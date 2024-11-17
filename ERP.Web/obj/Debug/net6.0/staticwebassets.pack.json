@@ -873,6 +873,10 @@
       "PackagePath": "staticwebassets\\js\\api\\typehead_collection.json"
     },
     {
+      "Id": "D:\\Project\\ERP.Web\\ERP.Web\\wwwroot\\js\\arrange\\chart.js",
+      "PackagePath": "staticwebassets\\js\\arrange\\chart.js"
+    },
+    {
       "Id": "D:\\Project\\ERP.Web\\ERP.Web\\wwwroot\\js\\bootstrap.js",
       "PackagePath": "staticwebassets\\js\\bootstrap.js"
     },

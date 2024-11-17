@@ -1,6 +1,6 @@
 {
   "Version": 1,
-  "Hash": "sliEP8FQ2JAuBNhwwUPxpjl4FAXqGQN9UX79/denPjo=",
+  "Hash": "ffplQqzoyGBukSYl3WBrM4MOmM4T6yuEFdzm9VXTNrE=",
   "Source": "ERP.Web",
   "BasePath": "_content/ERP.Web",
   "Mode": "Default",
@@ -3738,6 +3738,23 @@
       "CopyToOutputDirectory": "Never",
       "CopyToPublishDirectory": "PreserveNewest",
       "OriginalItemSpec": "wwwroot\\js\\api\\typehead_collection.json"
+    },
+    {
+      "Identity": "D:\\Project\\ERP.Web\\ERP.Web\\wwwroot\\js\\arrange\\chart.js",
+      "SourceId": "ERP.Web",
+      "SourceType": "Discovered",
+      "ContentRoot": "D:\\Project\\ERP.Web\\ERP.Web\\wwwroot\\",
+      "BasePath": "_content/ERP.Web",
+      "RelativePath": "js/arrange/chart.js",
+      "AssetKind": "All",
+      "AssetMode": "All",
+      "AssetRole": "Primary",
+      "RelatedAsset": "",
+      "AssetTraitName": "",
+      "AssetTraitValue": "",
+      "CopyToOutputDirectory": "Never",
+      "CopyToPublishDirectory": "PreserveNewest",
+      "OriginalItemSpec": "wwwroot\\js\\arrange\\chart.js"
     },
     {
       "Identity": "D:\\Project\\ERP.Web\\ERP.Web\\wwwroot\\js\\bootstrap.js",
