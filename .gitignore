@@ -1,0 +1,9 @@
+﻿.vs/
+ERP.Web/bin/
+ERP.Web/obj/
+ERP.Web.Models/bin/
+ERP.Web.Models/obj/
+ERP.Web.Service/bin/
+ERP.Web.Service/obj/
+ERP.Web.Utility/bin/
+ERP.Web.Utility/obj/

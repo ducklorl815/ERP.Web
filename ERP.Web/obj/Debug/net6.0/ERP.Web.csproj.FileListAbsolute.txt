@@ -6,7 +6,6 @@ D:\Project\ERP.Web\ERP.Web\bin\Debug\net6.0\ERP.Web.deps.json
 D:\Project\ERP.Web\ERP.Web\bin\Debug\net6.0\ERP.Web.runtimeconfig.json
 D:\Project\ERP.Web\ERP.Web\bin\Debug\net6.0\ERP.Web.dll
 D:\Project\ERP.Web\ERP.Web\bin\Debug\net6.0\ERP.Web.pdb
-D:\Project\ERP.Web\ERP.Web\obj\Debug\net6.0\ERP.Web.csproj.AssemblyReference.cache
 D:\Project\ERP.Web\ERP.Web\obj\Debug\net6.0\ERP.Web.GeneratedMSBuildEditorConfig.editorconfig
 D:\Project\ERP.Web\ERP.Web\obj\Debug\net6.0\ERP.Web.AssemblyInfoInputs.cache
 D:\Project\ERP.Web\ERP.Web\obj\Debug\net6.0\ERP.Web.AssemblyInfo.cs
@@ -29,3 +28,4 @@ D:\Project\ERP.Web\ERP.Web\obj\Debug\net6.0\refint\ERP.Web.dll
 D:\Project\ERP.Web\ERP.Web\obj\Debug\net6.0\ERP.Web.pdb
 D:\Project\ERP.Web\ERP.Web\obj\Debug\net6.0\ERP.Web.genruntimeconfig.cache
 D:\Project\ERP.Web\ERP.Web\obj\Debug\net6.0\ref\ERP.Web.dll
+D:\Project\ERP.Web\ERP.Web\obj\Debug\net6.0\ERP.Web.sourcelink.json
