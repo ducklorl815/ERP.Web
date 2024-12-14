@@ -1,7 +1,16 @@
+using ERP.Web.Models.Respository;
+using ERP.Web.Service.Service;
+using ERP.Web.Utility.Models;
+
 var builder = WebApplication.CreateBuilder(args);
 
 // Add services to the container.
 builder.Services.AddControllersWithViews();
+
+builder.Services.AddSingleton<ChartsService>();
+builder.Services.AddSingleton<ChartsRespo>();
+
+builder.Services.Configure<DBList>(builder.Configuration.GetSection("ConnectionStrings"));
 
 var app = builder.Build();
 

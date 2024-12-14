@@ -1,0 +1,7 @@
+﻿[*.cs]
+
+# CS8600: 正在將 Null 常值或可能的 Null 值轉換為不可為 Null 的型別。
+dotnet_diagnostic.CS8600.severity = none
+
+# CS8618: 退出建構函式時，不可為 Null 的欄位必須包含非 Null 值。請考慮新增 'required' 修飾元，或將欄位宣告為可以為 Null。
+dotnet_diagnostic.CS8618.severity = none
