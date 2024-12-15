@@ -19,17 +19,23 @@ namespace ERP.Web.Service.Service
             var result = new OrdersAmountViewModel
             {
                 IsSuccess = false,
-                Amount = new List<List<int>>(), // 修正型別
-                Count = new List<List<int>>()   // 修正型別
+                TotalAmount = new List<List<int>>(),
+                TopAmount = new List<List<int>>(),
+                OrderCount = new List<List<int>>(),
+                OrderDate = new List<List<string>>(),
             };
-            List<OrdersAmountMainModel> OrdersAmountList = await _chartsRespo.GetOrdersAmount();
+            var targetYear = DateTime.Now.Year;
+            var targetMonth = DateTime.Now.Month;
+            List<OrdersAmountMainModel> OrdersAmountList = await _chartsRespo.GetOrdersAmount(targetYear, targetMonth);
 
             if (OrdersAmountList == null)
                 return result;
 
             // 將資料轉換為 Amount 和 Count 格式
-            result.Amount = OrdersAmountList.Select((x, index) => new List<int> { index, x.Amount }).ToList();
-            result.Count = OrdersAmountList.Select((x, index) => new List<int> { index, x.Count }).ToList();
+            result.TotalAmount = OrdersAmountList.Select((x, index) => new List<int> { index, x.TotalAmount }).ToList();
+            result.TopAmount = OrdersAmountList.Select((x, index) => new List<int> { index, x.TopAmount }).ToList();
+            result.OrderCount = OrdersAmountList.Select((x, index) => new List<int> { index, x.OrderCount }).ToList();
+            result.OrderDate = OrdersAmountList.Select((x, index) => new List<string> { index.ToString(), x.OrderDate.ToString("dd") }).ToList();
 
             result.IsSuccess = true;
             return result;

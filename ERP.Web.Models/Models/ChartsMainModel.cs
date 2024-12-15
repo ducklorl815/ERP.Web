@@ -2,10 +2,12 @@
 {
     public class OrdersAmountMainModel
     {
-        public Guid ID { get; set; }
+        public string OrderID { get; set; }
+        public int TopAmount { get; set; }
+        public int TotalAmount { get; set; }
+        public int OrderCount { get; set; }
         public DateTime OrderDate { get; set; }
-        public int Amount { get; set; }
-        public int Count { get; set; }
+        public Guid SalerID { get; set; }
 
     }
 }

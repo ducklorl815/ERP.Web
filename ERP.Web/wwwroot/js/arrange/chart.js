@@ -49,11 +49,9 @@ $.ajax({
     type: 'GET', // 請求方式
     dataType: 'json', // 返回的資料格式
     success: function (response) {
-        console.log(response)
         if (response.isSuccess) {
-
             // 使用 data1 和 data2 初始化圖表或進行其他操作
-            renderChart(response.amount, response.count);
+            renderChart(response.totalAmount, response.topAmount, response.orderCount, response.orderDate);
         } else {
             console.error('獲取資料失敗：', response.message);
         }
@@ -62,12 +60,17 @@ $.ajax({
         console.error('AJAX 請求失敗：', error);
     }
 });
-function renderChart(amount, count) {
-    console.log(amount)
-    console.log(count)
+function renderChart(totalAmount, topAmount, orderCount, orderDate) {
+
+    // 轉換 orderDate 只保留日期部分
+    var formattedDates = orderDate.map(function (date) {
+        return date[1]; // 取得日期部分，去掉索引
+    });
 
     $("#flot-dashboard-chart").length && $.plot($("#flot-dashboard-chart"), [
-        amount, count
+        { label: "總銷售", data: totalAmount, },
+        { label: "最高金額", data: topAmount },
+        { label: "訂單筆數", data: orderCount }
     ],
         {
             series: {
@@ -94,17 +97,28 @@ function renderChart(amount, count) {
                 borderWidth: 1,
                 color: '#d5d5d5'
             },
-            colors: ["#1ab394", "#1C84C6"],
+            legend: {
+                show: false // 隱藏圖表上的 label
+            },
+            colors: ["#1ab394", "#1C84C6", "#F39C12"], // 顏色配置
             xaxis: {
+                ticks: totalAmount.map(function (value, index) {
+                    return [index, formattedDates[index]]; // 将索引与日期配对
+                }),
+                tickLength: 10,
+                rotateTicks: 45,
+                axisLabel: "日期" // X 軸標籤
             },
             yaxis: {
-                ticks: 4
+                ticks: 10,
+                axisLabel: "金額（單位：元）" // Y 軸標籤
             },
-            tooltip: false
-        }
-    );
+            tooltip: true,
+            tooltipOpts: {
+                content: function (label, xval, yval) {
+                    return label + ": " + yval; // 顯示提示框
+                }
+            }
+        });
 }
-
-
-
 
