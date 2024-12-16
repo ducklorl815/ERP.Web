@@ -110,7 +110,7 @@ function renderChart(totalAmount, topAmount, orderCount, orderDate) {
                 axisLabel: "日期" // X 軸標籤
             },
             yaxis: {
-                ticks: 10,
+                ticks: 5,
                 axisLabel: "金額（單位：元）" // Y 軸標籤
             },
             tooltip: true,

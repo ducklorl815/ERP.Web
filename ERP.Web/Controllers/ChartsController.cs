@@ -13,14 +13,15 @@ namespace ERP.Web.Controllers
         {
             _chartsService = chartsService;
         }
-        public IActionResult Index()
+        public async Task<IActionResult> Index()
         {
             return View();
         }
 
         public async Task<IActionResult> GetOrdersAmount()
         {
-            var result = await _chartsService.GetOrdersAmount();
+            string SalerID = "4DC64990-C818-4A28-AAEC-4C726F5E6CEB";
+            var result = await _chartsService.GetOrdersAmount(SalerID);
 
             return Json(result);
         }

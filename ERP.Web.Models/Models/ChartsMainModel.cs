@@ -8,6 +8,15 @@
         public int OrderCount { get; set; }
         public DateTime OrderDate { get; set; }
         public Guid SalerID { get; set; }
+    }
+    public class ChartOrderMainModel
+    {
+        public string OrderID { get; set; }
+        public int OrderAmount { get; set; }
+        public Guid SalerID { get; set; }
+        public DateTime OrderDate { get; set; }
+        public Guid ModifyUser { get; set; }
+        public DateTime ModifyDate { get; set; }
 
     }
 }

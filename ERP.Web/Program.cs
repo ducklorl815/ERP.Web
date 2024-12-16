@@ -7,7 +7,9 @@ var builder = WebApplication.CreateBuilder(args);
 // Add services to the container.
 builder.Services.AddControllersWithViews();
 
+builder.Services.AddSingleton<HomeService>();
 builder.Services.AddSingleton<ChartsService>();
+
 builder.Services.AddSingleton<ChartsRespo>();
 
 builder.Services.Configure<DBList>(builder.Configuration.GetSection("ConnectionStrings"));
