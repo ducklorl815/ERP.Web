@@ -15,7 +15,19 @@ namespace ERP.Web.Service.Service
         {
             _chartsRespo = chartsRespo;
         }
-        public async Task<OrdersAmountViewModel> GetOrdersAmount(string SalerID)
+        public async Task<ChartsIndexViewModel_result> GetChartsIndex(Guid SalerID)
+        {
+            var result = new ChartsIndexViewModel_result();
+            List<ChartsIndexMainModel> ChartsDataList = await _chartsRespo.GetChartsIndex(SalerID);
+            result.YearAmount = ChartsDataList.Sum(x => x.OrderAmount);
+            result.YearCount = ChartsDataList.Count();
+            result.MonthAmount = ChartsDataList.Where(x => x.OrderDate.Month == DateTime.Now.Month).Sum(x => x.OrderAmount);
+            result.MonthCount = ChartsDataList.Where(x => x.OrderDate.Month == DateTime.Now.Month).Count();
+            result.DayAmount = ChartsDataList.Where(x => x.OrderDate == DateTime.Now.Date).Sum(x => x.OrderAmount);
+            result.DayCount = ChartsDataList.Where(x => x.OrderDate == DateTime.Now.Date).Count();
+            return result;
+        }
+        public async Task<OrdersAmountViewModel> GetOrdersAmount(Guid SalerID)
         {
             var result = new OrdersAmountViewModel
             {
@@ -27,7 +39,7 @@ namespace ERP.Web.Service.Service
             };
             var targetYear = DateTime.Now.Year;
             var targetMonth = DateTime.Now.Month;
-            List<OrdersAmountMainModel> OrdersAmountList = await _chartsRespo.GetOrdersAmount(targetYear, targetMonth, Guid.Parse(SalerID));
+            List<OrdersAmountMainModel> OrdersAmountList = await _chartsRespo.GetOrdersAmount(targetYear, targetMonth, SalerID);
 
             if (OrdersAmountList == null)
                 return result;
@@ -122,5 +134,7 @@ namespace ERP.Web.Service.Service
             // 預設返回值（理論上不會到這裡）
             return 0;
         }
+
+
     }
 }

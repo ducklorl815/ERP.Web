@@ -38,6 +38,32 @@ namespace ERP.Web.Models.Respository
             }
         }
 
+        public async Task<List<ChartsIndexMainModel>> GetChartsIndex(Guid SalerID)
+        {
+            var sqlparam = new DynamicParameters();
+            sqlparam.Add("SalerID", SalerID);
+            var sql = @"
+                    SELECT 
+                         OrderID
+                        ,OrderAmount
+                        ,OrderDate
+                    FROM erp.dbo.ChartOrder
+                    WHERE SalerID = @SalerID
+                    AND YEAR(OrderDate) = YEAR(GETDATE())
+                    ORDER BY OrderDate 
+                        ";
+            using var conn = new SqlConnection(_dBList.erp);
+            try
+            {
+                var result = await conn.QueryAsync<ChartsIndexMainModel>(sql, sqlparam);
+                return result.ToList();
+            }
+            catch (Exception)
+            {
+                return null;
+            }
+        }
+
         public async Task<List<OrdersAmountMainModel>> GetOrdersAmount(int targetYear, int targetMonth, Guid SalerID)
         {
             var sqlparam = new DynamicParameters();

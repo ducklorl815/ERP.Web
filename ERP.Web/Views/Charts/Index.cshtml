@@ -1,4 +1,7 @@
-﻿<div class="row  border-bottom white-bg dashboard-header">
+﻿@model ERP.Web.Service.ViewModels.ChartsIndexViewModel_result
+
+
+<div class="row  border-bottom white-bg dashboard-header">
 
     <div class="col-md-3">
         <h2>欢迎您inspinia 2.9.2</h2>
@@ -38,32 +41,35 @@
         </ul>
         <!-- #endregion -->
     </div>
-        <div class="col-md-6">
+    <div class="col-md-6">
         <!-- #region 圖表 -->
-            <div class="flot-chart dashboard-chart">
-                <div class="flot-chart-content" id="flot-dashboard-chart"></div>
-            </div>
+        <div class="flot-chart dashboard-chart">
+            <div class="flot-chart-content" id="flot-dashboard-chart"></div>
+        </div>
         <!-- #endregion -->
         <!-- #region 圖下資訊 -->
-            <div class="row text-left">
-                <div class="col">
-                    <div class=" m-l-md">
-                        <span class="h5 font-bold m-t block">$ 406,100</span>
-                        <small class="text-muted m-b block">总销售收入</small>
-                    </div>
-                </div>
-                <div class="col">
-                    <span class="h5 font-bold m-t block">$ 150,401</span>
-                    <small class="text-muted m-b block">年销售收入</small>
-                </div>
-                <div class="col">
-                    <span class="h5 font-bold m-t block">$ 16,822</span>
-                    <small class="text-muted m-b block">月销售收入</small>
+        <div class="row text-center">
+            <div class="col">
+                <div class=" m-l-md">
+                    <large class="text-muted block">@(DateTime.Now.Year)年 總銷售額</large>
+                    <span class="font-bold block" style="font-size:20px">$@(Model.MonthAmount.ToString("N0"))</span>
+                    <large class="text-muted block">訂單比數 : @Model.YearCount</large>
                 </div>
             </div>
-        <!-- #endregion -->
+            <div class="col">
+                <large class="text-muted block"> @(DateTime.Now.Month)月 銷售額</large>
+                <span class="font-bold block" style="font-size:20px">$@(Model.MonthAmount.ToString("N0"))</span>
+                <large class="text-muted block">訂單比數 : @Model.MonthCount</large>
+            </div>
+            <div class="col">
+                <large class="text-muted block">@(DateTime.Now.Day)日 單日銷售額</large>
+                <span class="font-bold block" style="font-size:20px">$@(Model.DayAmount.ToString("N0"))</span>
+                <large class="text-muted block">訂單比數 : @Model.DayCount</large>
+            </div>
         </div>
- 
+        <!-- #endregion -->
+    </div>
+
     <div class="col-md-3">
         <div class="statistic-box">
             <h4>
@@ -429,7 +435,7 @@
     </div>
 </div>
 @section Scripts{
-    <!-- ChartJS--> 
+    <!-- ChartJS-->
     <script src="~/js/arrange/chart.js"></script>
 
 }

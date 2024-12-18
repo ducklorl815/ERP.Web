@@ -17,6 +17,11 @@
         public DateTime OrderDate { get; set; }
         public Guid ModifyUser { get; set; }
         public DateTime ModifyDate { get; set; }
-
+    }
+    public class ChartsIndexMainModel
+    {
+        public string OrderID { get; set; }
+        public int OrderAmount { get; set; }
+        public DateTime OrderDate { get; set; }
     }
 }
