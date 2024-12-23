@@ -1,0 +1,89 @@
+﻿@model ERP.Web.Service.ViewModels.SeatMapViewModel_result
+@using ERP.Web.Service.Helper
+
+<link href="~/css/seatmap/public.css" rel="stylesheet" />
+@{
+    var maxRow = 50; // 測試用最大行數
+    var maxCol = 50; // 測試用最大列數
+    var staticSeatMap = new List<dynamic> {
+        new { Row = 1, Col = 1, Colorcode = "#FFD700", Status = "using", BoxNumber = "台北", Location = "台北", TicketID = "T01A5AA00" ,Border ="TopBorder LeftBorder"},
+        new { Row = 2, Col = 2, Colorcode = "#90EE90", Status = "using", BoxNumber = "台北", Location = "台北", TicketID = "T02B50A24",Border ="DownBorder LeftBorder"},
+    };
+
+    var previousEmpNames = new Dictionary<string, int>();
+}
+<div class="ibox">
+    <div class="ibox-content">
+        <div class="row justify-content-start">
+            <div class="d-flex align-items-center">
+                <div class="col-sm-6 px-0 py-1">
+                    <div>XXX</div>
+                </div>
+                <label class="col-sm-6 col-form-label font-weight-bold text-sm-left p-1">分公司</label>
+            </div>
+        </div>
+
+        <div class="seat-map mt-4">
+            @for (int i = 1; i <= maxRow + 1; i++)
+            {
+                var letterSequence = await Helpers.GetLetterSequence(i);
+                <div class="d-flex align-items-center justify-content-center">
+                    @*@if (i == 1)
+                    {
+                        @for (int j = 1; j <= maxCol; j++)
+                        {
+                            <div class="solid" style="position: relative;right:-20px">
+                                <i class="fa-solid fa-sort-down fa-xl fa-unselected" data-status="unused" data-col="col_@(j)" style="position: absolute;visibility:hidden"></i>
+                                <span style="display: block;">@(j)</span>
+                            </div>
+                        }
+                    }*@
+                    @*else
+                    {*@
+                       @* <div class="solid">
+                            <span>@letterSequence</span>
+                            <i class="fa-solid fa-caret-right fa-xl fa-unselected" style="visibility:hidden" data-status="unused" data-row="row_@(i - 1)"></i>
+                        </div>*@
+
+                        @for (int j = 1; j <= maxCol; j++)
+                        {
+                            var item = staticSeatMap.FirstOrDefault(x => x.Row == i && x.Col == j);
+                            <div class="seat" style="background-color:@item?.Colorcode"
+                                 data-status="@item?.Status"
+                                 data-Border="@item?.Border"
+                                 data-sign="@letterSequence@j"
+                                 data-TicketID="@item?.TicketID"
+                                 data-rowcol="row_@(i - 1)&col_@(j)">
+                                @if (item != null)
+                                {
+                                    <div style="text-align: center;">
+                                        @if (item.Border.Contains("Admin"))
+                                        {
+                                            <span>@letterSequence@j @item?.Border</span>
+                                            previousEmpNames[item?.TicketID] = previousEmpNames.ContainsKey(item?.TicketID)
+                                            ? previousEmpNames[item?.TicketID] + 1
+                                            : 1;
+                                        }
+                                        else
+                                        {
+                                            <span class="TicketID" style="font-size:8px">@item.TicketID</span>
+                                            <span>@letterSequence@j</span>
+                                        }
+                                    </div>
+                                }
+                                else
+                                {
+                                    <div style="text-align: center;color:lightgrey">
+                                        <span>@letterSequence@j</span>
+                                    </div>
+                                }
+                            </div>
+                        }
+                    @*}*@
+                </div>
+            }
+        </div>
+    </div>
+</div>
+<script src="~/js/seatmap/public.js"></script>
+<script src="~/js/seatmap/datamaintain.js"></script>

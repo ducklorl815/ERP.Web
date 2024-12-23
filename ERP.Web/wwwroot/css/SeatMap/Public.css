@@ -1,0 +1,375 @@
+﻿/*環境*/
+.seat-map {
+    position: relative;
+    width: 100%;
+    margin: 0 auto;
+}
+
+/* 原本的 seat 樣式 */
+.seat {
+    position: relative;
+    width: 50px;
+    height: 50px;
+    display: flex;
+    justify-content: center;
+    align-items: center;
+    font-size: 12px;
+    cursor: pointer;
+    font-family: 思源黑體, 微軟正黑體, 蘋方體, 黑體, sans-serif, serif;
+    color: black;
+    font-weight: 900;
+    /*padding-left: 10px;
+    padding-top: 10px;*/
+
+    border: 1px solid #585135 !important;
+    border-top-left-radius: 5px !important;
+    border-top-right-radius: 5px !important;
+    border-bottom-left-radius: 5px !important;
+    border-bottom-right-radius: 5px !important;
+}
+
+/*座位圖各種樣式*/
+.using {
+    background-color: #bac8ce;
+}
+
+.IsStuff {
+    background-color: #e5e4dd;
+    border: 1px solid rgba(0, 0, 0, 0.02);
+    font-weight: 900;
+    color: black;
+    font-size: 16px;
+}
+
+.unused {
+    background-color: transparent;
+    border: 1px solid #f9f9f9;
+}
+
+.road {
+    background-color: #e7e7e7;
+    border: 1px solid rgba(0, 0, 0, 0.02);
+    font-weight: 900;
+    color: black;
+    font-size: 16px;
+}
+
+.personal {
+    background-color: #efefef;
+    border: 1px solid rgba(0, 0, 0, 0.01);
+    font-weight: 900;
+    color: black;
+    font-size: 12px;
+    align-items: center;
+}
+
+
+.white {
+    background-color: #ffffff;
+}
+/*箭頭樣式*/
+.solid {
+    position: relative;
+    width: 50px;
+    height: 50px;
+    display: flex;
+    justify-content: center;
+    align-items: center;
+    font-size: 20px;
+    cursor: pointer;
+}
+
+
+.fa-selected {
+    color: #ff8744;
+}
+
+.fa-unselected {
+    color: #aaaa;
+}
+
+/*ajax顯示各個div的data內容資料*/
+/*.seat.selected {
+    background-color: pink;
+}*/
+
+#tooltip {
+    position: fixed;
+    background-color: #fff;
+    border: 1px solid #ccc;
+    padding: 15px 30px;
+    border-radius: 5px;
+    font-size: 14px;
+    box-shadow: 0px 2px 5px rgba(0, 0, 0, 0.2);
+    white-space: nowrap;
+    z-index: 9998;
+    opacity: 1;
+    color: black;
+}
+
+/*部門區隔顏色*/
+/*票務*/
+.ticket {
+    background-color: #fabf8f;
+    border: 1px solid #eeb588;
+}
+
+.ticketAdmin {
+    background-color: #faa47b;
+    border: 1px solid #faa47b;
+}
+/*資訊*/
+.IT {
+    background-color: #fce4d6;
+    border: 1px solid #f1dacd;
+}
+
+.ITAdmin {
+    background-color: #efbfa5;
+    border: 1px solid #efbfa5;
+}
+/*同業*/
+.same {
+    background-color: #a7b191;
+    border: 1px solid #9aa386;
+}
+
+.sameAdmin {
+    background-color: #8db160;
+    border: 1px solid #8db160;
+}
+/*管理*/
+.manage {
+    background-color: #daeef3;
+    border: 1px solid #cfe2e7;
+}
+
+.manageAdmin {
+    background-color: #a5e3f3;
+    border: 1px solid #a5e3f3;
+}
+/*自由行*/
+.free {
+    background-color: #ccffcc;
+    border: 1px solid #bcebbc;
+}
+
+.freeAdmin {
+    background-color: #b3f9c2;
+    border: 1px solid #a4ebb3;
+}
+/*國旅部*/
+.gov {
+    background-color: #ccc0da;
+    border: 1px solid #c0b5ce;
+}
+
+.govAdmin {
+    background-color: #aca1cf;
+    border: 1px solid #aca1cf;
+}
+/*直售部*/
+.direct {
+    background-color: #fe7f80;
+    border: 1px solid #e67374;
+}
+
+.directAdmin {
+    background-color: #fa6d8d;
+    border: 1px solid #fa6d8d;
+}
+/*獎旅部*/
+.award {
+    background-color: #e7af68;
+    border: 1px solid #d7a360;
+}
+
+.awardAdmin {
+    background-color: #d7ad53;
+    border: 1px solid #d7ad53;
+}
+/*長程線*/
+.long-range {
+    background-color: #ddd9c4;
+    border: 1px solid #d0ccb9;
+}
+
+.long-rangeAdmin {
+    background-color: #d2c79f;
+    border: 1px solid #d2c79f;
+}
+/*大陸線*/
+.China {
+    background-color: #fefe66;
+    border: 1px solid #dfdf59;
+}
+
+.ChinaAdmin {
+    background-color: #fee958;
+    border: 1px solid #ebd74c;
+}
+/*東南亞、韓國線*/
+.SouthAsia {
+    background-color: #73ae92;
+    border: 1px solid #659a81;
+}
+
+.SouthAsiaAdmin {
+    background-color: #599a89;
+    border: 1px solid #599a89;
+}
+
+/*東北亞*/
+.Subregion {
+    background-color: #ac6fcc;
+    border: 1px solid #9a63b6;
+}
+
+.SubregionAdmin {
+    background-color: #9063cc;
+    border: 1px solid #9063cc;
+}
+/*行銷部*/
+.marketing {
+    background-color: #c9d452;
+    border: 1px solid #b6c04a;
+}
+
+.marketingAdmin {
+    background-color: #9ac640;
+    border: 1px solid #9ac640;
+}
+/*稽核*/
+.audit {
+    background-color: #399eb7;
+    border: 1px solid #3492a9;
+}
+
+.auditAdmin {
+    background-color: #2780a5;
+    border: 1px solid #2780a5;
+}
+/*櫃檯*/
+.reception {
+    background-color: #f3abe7;
+    border: 1px solid #dd9cd3;
+}
+/*會計*/
+.account {
+    background-color: #ffa427;
+    border: 1px solid #f59e25;
+}
+
+.accountAdmin {
+    background-color: #f37e1d;
+    border: 1px solid #f37e1d;
+}
+
+/*導領*/
+.guide {
+    background-color: #dae8ff;
+    border: 1px solid #cfddf3;
+}
+
+.guideAdmin {
+    background-color: #ccd3fb;
+    border: 1px solid #c3caf0;
+}
+
+/*高爾夫*/
+.golf {
+    background-color: #83dc8e;
+    border: 1px solid #71c67b;
+}
+
+.golfAdmin {
+    background-color: #48b473;
+    border: 1px solid #48b473;
+}
+
+/*董事長*/
+.boss {
+    background-color: #ffb3cf;
+    border: 1px solid #f0a8c3;
+}
+
+.bossAdmin {
+    background-color: #ea8198;
+    border: 1px solid #ea8198;
+}
+
+/*邊界Border*/
+/*.ibox-content {
+    background-color: #d0d0d0;
+}*/
+
+.TopBorder {
+    border-top: 1px solid #585135 !important;
+}
+
+.RightBorder {
+    border-right: 1px solid #585135 !important;
+}
+
+.DownBorder {
+    border-bottom: 1px solid #585135 !important;
+}
+
+.LeftBorder {
+    border-left: 1px solid #585135 !important;
+}
+
+.LeftTopRadius {
+    border-top-left-radius: 5px !important;
+}
+
+.LeftDownRadius {
+    border-bottom-left-radius: 5px !important;
+}
+
+.RightTopRadius {
+    border-top-right-radius: 5px !important;
+}
+
+.RightDownRadius {
+    border-bottom-right-radius: 5px !important;
+}
+
+/*預設登入者*/
+.findedName {
+    animation: blink 1s ease-in-out infinite;
+}
+
+@keyframes blink {
+    0% {
+        background-color: yellow;
+    }
+
+    50% {
+        background-color: red;
+    }
+
+    100% {
+        background-color: yellow;
+    }
+}
+
+.yellow-bg {
+    background-color: yellow;
+    transition: background-color 0.3s ease-in-out;
+}
+
+    .yellow-bg.findedName {
+        animation-name: blink;
+    }
+
+
+
+
+
+/* 縮放版面配置為 150% 的 seat 樣式 */
+/*.scaling-125 {
+    width: 40px;
+    height: 40px;
+}*/
+

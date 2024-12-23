@@ -1,0 +1,218 @@
+﻿@media (min-width: 1681px) and (max-width: 1810px) {
+    .seat {
+        width: 38px;
+        height: 38px;
+    }
+
+    /* 座位圖各種樣式 */
+    .using {
+        font-size: 12px;
+    }
+
+    .IsStuff {
+        font-size: 16px;
+    }
+
+    .road {
+        font-size: 16px;
+    }
+
+    /* 箭頭樣式 */
+    .solid {
+        width: 38px;
+        height: 38px;
+    }
+
+    #tooltip {
+        font-size: 20px;
+    }
+}
+
+@media (min-width: 1401px) and (max-width: 1680px) {
+    .seat {
+        width: 32px;
+        height: 32px;
+    }
+
+    /*座位圖各種樣式*/
+    .using {
+        font-size: 12px;
+    }
+
+    .IsStuff {
+        font-size: 12px;
+    }
+
+    .road {
+        font-size: 12px;
+    }
+
+    /*箭頭樣式*/
+    .solid {
+        width: 32px;
+        height: 32px;
+        display: none;
+    }
+
+    #tooltip {
+        font-size: 20px;
+    }
+
+    .Extension {
+        display: none;
+    }
+}
+
+@media (min-width: 1281px) and (max-width: 1400px) {
+    .seat {
+        width: 28px;
+        height: 28px;
+    }
+
+    /*座位圖各種樣式*/
+    .using {
+        font-size: 12px;
+    }
+
+    .IsStuff {
+        font-size: 12px;
+    }
+
+    .road {
+        font-size: 12px;
+    }
+
+    /*箭頭樣式*/
+    .solid {
+        width: 28px;
+        height: 28px;
+        display: none;
+    }
+
+    #tooltip {
+        font-size: 20px;
+    }
+    /* .EmpName {
+        display: none;
+    }*/
+    .Extension {
+        display: none;
+    }
+}
+
+@media (min-width: 1025px) and (max-width: 1280px) {
+    .seat {
+        width: 20px;
+        height: 20px;
+    }
+
+    /*座位圖各種樣式*/
+    .using {
+        font-size: 12px;
+    }
+
+    .IsStuff {
+        font-size: 12px;
+    }
+
+    .road {
+        font-size: 12px;
+    }
+
+    /*箭頭樣式*/
+    .solid {
+        width: 20px;
+        height: 20px;
+        display: none;
+    }
+
+    #tooltip {
+        font-size: 20px;
+    }
+    /* .EmpName {
+        display: none;
+    }*/
+    .Extension {
+        display: none;
+    }
+}
+
+@media (min-width: 601px) and (max-width: 1024.5px) {
+    .seat {
+        width: 12px;
+        height: 12px;
+    }
+
+    /*座位圖各種樣式*/
+    .using {
+        font-size: 12px;
+    }
+
+    .IsStuff {
+        font-size: 12px;
+    }
+
+    .road {
+        font-size: 12px;
+    }
+
+    /*箭頭樣式*/
+    .solid {
+        width: 12px;
+        height: 12px;
+        display: none;
+    }
+
+    #tooltip {
+        font-size: 20px;
+    }
+
+    .EmpName {
+        overflow: hidden;
+    }
+
+        .EmpName::first-letter {
+        }
+
+    .Extension {
+        display: none;
+    }
+}
+
+@media (min-width: 0px) and (max-width: 600px) {
+    .seat {
+        width: 12px;
+        height: 12px;
+    }
+    /*座位圖各種樣式*/
+    .using {
+        color: transparent;
+    }
+
+    .IsStuff {
+        color: transparent;
+    }
+
+    .road {
+        color: transparent;
+    }
+    /*箭頭樣式*/
+    .solid {
+        width: 12px;
+        height: 12px;
+        display: none;
+    }
+
+    #tooltip {
+        font-size: 20px;
+    }
+
+
+    .EmpName {
+        display: none;
+    }
+
+    .Extension {
+        display: none;
+    }
+}
