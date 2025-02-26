@@ -46,7 +46,48 @@ function SeatClick() {
     const seats = document.querySelectorAll('.seat');
     seats.forEach(seat => {
         seat.addEventListener('click', event => {
-            ClickSeatSaveData(seat);
+            // 製作方塊 function
+            if ($('#IsStuff').is(':checked')) {
+                handleStuffClick(seat);
+            }
         });
     });
+}
+
+
+//新增障礙物 switch
+new Vue({
+    el: "#IsStuff",
+    data: {
+        checked: false
+    },
+
+    watch: {
+        checked: function (val) {
+            console.log(val)
+            if (val == true) {
+                $('#IsStuff').attr('value', true);
+               
+            } else if (val == false) {
+                $('#IsStuff').prop('checked', false);
+                $('#IsStuff').attr('value', false);
+            }
+        }
+    }
+});
+
+// 點擊障礙物function
+function handleStuffClick(seat) {
+    // 移除原先的 class
+    seat.className = 'seat'
+
+    if (seat.dataset.status === 'IsStuff') {
+        seat.dataset.status = 'unused';
+        seat.classList.add('unused');
+        seat.innerHTML = '';
+    } else {
+        seat.dataset.status = 'IsStuff';
+        seat.classList.add('IsStuff');
+    }
+    ClickSeatSaveData(seat);
 }

@@ -18,4 +18,8 @@
     <Folder Include="wwwroot\css\SeatMap\" />
   </ItemGroup>
 
+  <ItemGroup>
+    <PackageReference Include="EPPlus" Version="7.6.0" />
+  </ItemGroup>
+
 </Project>

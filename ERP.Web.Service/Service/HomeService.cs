@@ -18,7 +18,7 @@ namespace ERP.Web.Service.Service
         public async Task<bool> InsertDailyData()
         {
             bool InsertDaily = false;
-            int Days = 7;
+            int Days = 250;
             for (int i = 0; i < Days; i++)
             {
                 Random random = new Random();
