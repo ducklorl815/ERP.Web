@@ -1,0 +1,14 @@
+﻿@model List<ERP.Web.Service.ViewModels.ExamQuestionViewModel>
+
+<h2>英文填空題考試</h2>
+
+<form method="post" action="@Url.Action("Submit", "Exam")">
+    @for (int i = 0; i < Model.Count; i++)
+    {
+        <div class="question">
+            <p>@(i + 1). @Model[i].Question</p>
+            <input type="text" name="answers[@i]" required />
+        </div>
+    }
+    <button type="submit">提交</button>
+</form>

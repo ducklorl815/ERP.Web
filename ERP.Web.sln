@@ -5,11 +5,11 @@ VisualStudioVersion = 17.5.33530.505
 MinimumVisualStudioVersion = 10.0.40219.1
 Project("{9A19103F-16F7-4668-BE54-9A1E7A4F7556}") = "ERP.Web", "ERP.Web\ERP.Web.csproj", "{3AC77036-4018-4149-A3DD-48AB8F1A82E0}"
 EndProject
-Project("{FAE04EC0-301F-11D3-BF4B-00C04F79EFBC}") = "ERP.Web.Service", "ERP.Web.Service\ERP.Web.Service.csproj", "{2F56F5B9-480F-4D0B-94FE-9F9EFF670CAC}"
+Project("{9A19103F-16F7-4668-BE54-9A1E7A4F7556}") = "ERP.Web.Service", "ERP.Web.Service\ERP.Web.Service.csproj", "{2F56F5B9-480F-4D0B-94FE-9F9EFF670CAC}"
 EndProject
-Project("{FAE04EC0-301F-11D3-BF4B-00C04F79EFBC}") = "ERP.Web.Models", "ERP.Web.Models\ERP.Web.Models.csproj", "{EB1D261C-7C64-45B1-B7E2-39CB37F6314C}"
+Project("{9A19103F-16F7-4668-BE54-9A1E7A4F7556}") = "ERP.Web.Models", "ERP.Web.Models\ERP.Web.Models.csproj", "{EB1D261C-7C64-45B1-B7E2-39CB37F6314C}"
 EndProject
-Project("{FAE04EC0-301F-11D3-BF4B-00C04F79EFBC}") = "ERP.Web.Utility", "ERP.Web.Utility\ERP.Web.Utility.csproj", "{7BB5DAB0-ACD8-4893-8AA6-0A98DA989786}"
+Project("{9A19103F-16F7-4668-BE54-9A1E7A4F7556}") = "ERP.Web.Utility", "ERP.Web.Utility\ERP.Web.Utility.csproj", "{7BB5DAB0-ACD8-4893-8AA6-0A98DA989786}"
 EndProject
 Project("{2150E333-8FDC-42A3-9474-1A3956D46DE8}") = "Solution Items", "Solution Items", "{A2F5DDFA-089D-4DBA-BC4D-0E26BE492865}"
 	ProjectSection(SolutionItems) = preProject

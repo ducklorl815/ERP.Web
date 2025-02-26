@@ -2,6 +2,7 @@
 @using ERP.Web.Service.Helper
 
 <link href="~/css/seatmap/public.css" rel="stylesheet" />
+<link href="~/css/vueslider.css" rel="stylesheet" />
 @{
     var maxRow = 50; // 測試用最大行數
     var maxCol = 50; // 測試用最大列數
@@ -12,6 +13,18 @@
 
     var previousEmpNames = new Dictionary<string, int>();
 }
+
+<div class="row">
+    <div class="w-8 d-flex" style="align-items: center;">
+        <label class="col-sm-8 col-form-label font-weight-bold text-sm-right p-1">新增障礙物</label>
+        <div id="Stuff" class="col-sm-4 app p-1">
+            <label>
+                <input id="IsStuff" type="checkbox" v-model="checked" value="false" />
+                <span class="slider"></span>
+            </label>
+        </div>
+    </div>
+</div>
 <div class="ibox">
     <div class="ibox-content">
         <div class="row justify-content-start">
@@ -85,5 +98,6 @@
         </div>
     </div>
 </div>
+<script src="https://cdn.jsdelivr.net/npm/vue/dist/vue.js"></script>
 <script src="~/js/seatmap/public.js"></script>
 <script src="~/js/seatmap/datamaintain.js"></script>
