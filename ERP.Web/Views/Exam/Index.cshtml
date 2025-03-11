@@ -2,6 +2,18 @@
 
 <h2>英文填空題考試</h2>
 
+<!-- Excel 檔案上傳區 -->
+<form id="uploadForm" enctype="multipart/form-data">
+    <input type="file" id="fileInput" name="file" accept=".xlsx, .xls" />
+    <button type="submit">上傳 Excel</button>
+</form>
+
+<!-- 狀態訊息 -->
+<p id="uploadStatus"></p>
+
+<hr />
+
+<!-- 題目列表 -->
 <form method="post" action="@Url.Action("Submit", "Exam")">
     @for (int i = 0; i < Model.Count; i++)
     {
@@ -12,3 +24,37 @@
     }
     <button type="submit">提交</button>
 </form>
+
+<!-- jQuery AJAX 上傳處理 -->
+<script src="https://code.jquery.com/jquery-3.6.0.min.js"></script>
+<script>
+    $(document).ready(function () {
+        $("#uploadForm").submit(function (e) {
+            e.preventDefault(); // 防止表單提交
+
+            var formData = new FormData();
+            var fileInput = $("#fileInput")[0].files[0];
+
+            if (!fileInput) {
+                $("#uploadStatus").text("請選擇 Excel 檔案");
+                return;
+            }
+
+            formData.append("file", fileInput);
+
+            $.ajax({
+                url: "/upload",
+                type: "POST",
+                data: formData,
+                processData: false,
+                contentType: false,
+                success: function (response) {
+                    $("#uploadStatus").text("上傳成功！");
+                },
+                error: function () {
+                    $("#uploadStatus").text("上傳失敗，請重試");
+                }
+            });
+        });
+    });
+</script>
