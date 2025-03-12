@@ -14,6 +14,13 @@ namespace ERP.Web.Service.Service
         {
             _examRepo = examRepo;
         }
+
+        public async Task<> GetExamDataAsync(int Class)
+        {
+            var result = await _examRepo.GetExamDataAsync(Class);
+            throw new NotImplementedException();
+        }
+
         public async Task GetUploadFileAsync(IFormFile file)
         {
             ExcelPackage.LicenseContext = LicenseContext.NonCommercial; // 設定 EPPlus 授權
@@ -74,7 +81,6 @@ namespace ERP.Web.Service.Service
             }
             catch (Exception)
             {
-
                 return false;
             }
         }

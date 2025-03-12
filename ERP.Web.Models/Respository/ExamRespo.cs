@@ -42,6 +42,33 @@ namespace ERP.Web.Models.Respository
             }
         }
 
+        public async Task<List<Vocabulary>> GetExamDataAsync(int Class)
+        {
+            var sqlparam = new DynamicParameters();
+            sqlparam.Add("Class", Class);
+            var sql = @"
+                    DECLARE @targetClass INT = @Class;
+
+                    SELECT Class, Word, Meaning
+                    FROM KidsWorld.dbo.Vocabulary
+                    WHERE @Class BETWEEN @targetClass - 10;
+                        "
+            ;
+
+            using var conn = new SqlConnection(_dBList.erp);
+
+            try
+            {
+                var result = await conn.QueryAsync<Vocabulary>(sql, sqlparam);
+                return result.ToList();
+
+            }
+            catch
+            {
+                return null;
+            }
+        }
+
         public async Task<bool> InsertWord(Vocabulary vocab)
         {
             var sqlparam = new DynamicParameters();

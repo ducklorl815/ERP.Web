@@ -23,6 +23,8 @@ public class ExamController : Controller
 
     public IActionResult Index()
     {
+        int Class = 1;
+        var result = await _examService.GetExamDataAsync(Class);
         // 死資料 (未來可改為從資料庫撈取)
         var questions = new List<ExamQuestionViewModel>
         {
