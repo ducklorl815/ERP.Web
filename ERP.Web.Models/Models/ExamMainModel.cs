@@ -3,8 +3,9 @@
     public class Vocabulary
     {
         public Guid ID { get; set; }
-        public int Class { get; set; } // 課程編號
-        public string Word { get; set; } // 單字
-        public string Meaning { get; set; } // 意思
+        public int ClassNum { get; set; } // 課程編號
+        public string ClassName { get; set; } // 課程標題
+        public string Question { get; set; } // 
+        public string Answer { get; set; } // 意思
     }
 }

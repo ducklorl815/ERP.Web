@@ -17,23 +17,22 @@ public class ExamController : Controller
             return BadRequest("請上傳 Excel 檔案");
         }
 
-        await _examService.GetUploadFileAsync(file);
+        var chkUpload =  await _examService.GetUploadFileAsync(file);
         return Json("true");
     }
 
-    public IActionResult Index()
+    public async Task<IActionResult> Index()
     {
-        int Class = 1;
-        var result = await _examService.GetExamDataAsync(Class);
-        // 死資料 (未來可改為從資料庫撈取)
-        var questions = new List<ExamQuestionViewModel>
-        {
-            new ExamQuestionViewModel { Id = 1, Question = "She ____ (be) a teacher.", Answer = "is" },
-            new ExamQuestionViewModel { Id = 2, Question = "They ____ (go) to school every day.", Answer = "go" },
-            new ExamQuestionViewModel { Id = 3, Question = "The sun ____ (rise) in the east.", Answer = "rises" }
-        };
+        string Class = "Put Me In The Zoo Sp 04";
+        var ClassArrey = Class.Split("Sp");
+        var ClassName = ClassArrey[0];
+        var ClassNumChk = ClassArrey[1].Trim();
+        if (string.IsNullOrEmpty(ClassNumChk))
+            return BadRequest();
+        int ClassNum = int.Parse(ClassNumChk);
+        var result = await _examService.GetExamDataAsync(ClassName, ClassNum);
 
-        return View(questions);
+        return View(result);
     }
     [HttpPost]
     public IActionResult Submit(List<string> answers)

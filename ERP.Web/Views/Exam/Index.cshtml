@@ -1,4 +1,4 @@
-﻿@model List<ERP.Web.Service.ViewModels.ExamQuestionViewModel>
+﻿@model List<ERP.Web.Models.Models.Vocabulary>
 
 <h2>英文填空題考試</h2>
 
@@ -15,14 +15,21 @@
 
 <!-- 題目列表 -->
 <form method="post" action="@Url.Action("Submit", "Exam")">
-    @for (int i = 0; i < Model.Count; i++)
+    @if (Model == null || !Model.Any())
     {
-        <div class="question">
-            <p>@(i + 1). @Model[i].Question</p>
-            <input type="text" name="answers[@i]" required />
-        </div>
+        <p>目前沒有資料</p>
     }
-    <button type="submit">提交</button>
+    @if (Model != null)
+    {
+        @for (int i = 0; i < Model.Count; i++)
+        {
+            <div class="question">
+                <p>@(i + 1). @Model[i].Question</p>
+                <input type="text" name="answers[@i]" required />
+            </div>
+        }
+        <button type="submit">提交</button>
+    }
 </form>
 
 <!-- jQuery AJAX 上傳處理 -->

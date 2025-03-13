@@ -2,6 +2,7 @@
 using ERP.Web.Models.Respository;
 using Microsoft.AspNetCore.Http;
 using OfficeOpenXml;
+using System.Security.Claims;
 
 namespace ERP.Web.Service.Service
 {
@@ -15,13 +16,65 @@ namespace ERP.Web.Service.Service
             _examRepo = examRepo;
         }
 
-        public async Task<> GetExamDataAsync(int Class)
+        public async Task<List<Vocabulary>> GetExamDataAsync(string ClassName, int ClassNum)
         {
-            var result = await _examRepo.GetExamDataAsync(Class);
-            throw new NotImplementedException();
+            var listVocabulary = await _examRepo.GetExamDataAsync(ClassName, ClassNum);
+
+            // 按 ClassNum 降序排列（最新的在前）
+            var groupedByClass = listVocabulary
+                .GroupBy(x => x.ClassNum)
+                .OrderByDescending(g => g.Key)
+                .ToList();
+
+            // 設定權重
+            var distribution = new Dictionary<int, double>
+            {
+                { 0, 0.6 }, // 目前課程
+                { 1, 0.2 }, // 前一個課程
+                { 2, 0.1 }  // 前前一個課程
+            };
+
+            int totalQuestions = 100;
+            List<Vocabulary> finalQuestions = new List<Vocabulary>();
+
+            // 先處理前三個課程
+            int usedQuestions = 0;
+            for (int i = 0; i < Math.Min(3, groupedByClass.Count); i++)
+            {
+                double percentage = distribution[i];
+                int questionCount = (int)Math.Round(totalQuestions * percentage);
+                usedQuestions += questionCount;
+
+                var availableQuestions = groupedByClass[i].ToList();
+                if (availableQuestions.Count > questionCount)
+                {
+                    finalQuestions.AddRange(availableQuestions.OrderBy(x => Guid.NewGuid()).Take(questionCount));
+                }
+                else
+                {
+                    finalQuestions.AddRange(availableQuestions);
+                }
+            }
+
+            // 剩餘的課程（全部佔 10%）
+            int remainingQuestions = totalQuestions - usedQuestions;
+            var olderClasses = groupedByClass.Skip(3).SelectMany(g => g).ToList();
+
+            if (olderClasses.Count > remainingQuestions)
+            {
+                finalQuestions.AddRange(olderClasses.OrderBy(x => Guid.NewGuid()).Take(remainingQuestions));
+            }
+            else
+            {
+                finalQuestions.AddRange(olderClasses); // 題目不足就全拿
+            }
+
+            return finalQuestions;
         }
 
-        public async Task GetUploadFileAsync(IFormFile file)
+
+
+        public async Task<bool> GetUploadFileAsync(IFormFile file)
         {
             ExcelPackage.LicenseContext = LicenseContext.NonCommercial; // 設定 EPPlus 授權
 
@@ -32,7 +85,7 @@ namespace ERP.Web.Service.Service
                 using (var package = new ExcelPackage(stream))
                 {
                     var worksheets = package.Workbook.Worksheets;
-                    if (worksheets.Count <= 1) return; // 如果只有一個 (範本)，則不做任何處理
+                    if (worksheets.Count <= 1) return false; // 如果只有一個 (範本)，則不做任何處理
                     // **跳過第一個工作表**
                     for (int i = 1; i < worksheets.Count; i++)
                     {
@@ -41,20 +94,27 @@ namespace ERP.Web.Service.Service
                         if (worksheet.Dimension == null) continue; // 略過空的工作表
 
                         int rowCount = worksheet.Dimension.Rows;
-                        string className = worksheet.Name; // 以工作表名稱作為課程名稱
+
+                        string Class = worksheet.Name; // 以工作表名稱作為課程名稱
+                        var ClassArrey = Class.Split("Sp");
+                        var ClassName = ClassArrey[0];
+                        var ClassNumChk = ClassArrey[1].Trim();
+                        if (!int.TryParse(ClassNumChk, out int ClassNum))
+                            return false;
 
                         for (int row = 2; row <= rowCount; row++) // 從第 2 行開始，因為第 1 行是標題
                         {
-                            string word = worksheet.Cells[row, 1].Text.Trim();
-                            string meaning = worksheet.Cells[row, 2].Text.Trim();
+                            string Question = worksheet.Cells[row, 2].Text.Trim();
+                            string Answer = worksheet.Cells[row, 3].Text.Trim();
 
-                            if (!string.IsNullOrEmpty(word) && !string.IsNullOrEmpty(meaning))
+                            if (!string.IsNullOrEmpty(Question) && !string.IsNullOrEmpty(Answer))
                             {
                                 vocabularies.Add(new Vocabulary
                                 {
-                                    Class = i, // 以工作表名稱作為課程名稱
-                                    Word = word,
-                                    Meaning = meaning
+                                    ClassNum = ClassNum,
+                                    ClassName = ClassName,
+                                    Question = Question,
+                                    Answer = Answer
                                 });
                             }
                         }
@@ -63,7 +123,8 @@ namespace ERP.Web.Service.Service
             }
 
             // 儲存到資料庫
-            await SaveToDatabase(vocabularies);
+            var result = await SaveToDatabase(vocabularies);
+            return vocabularies.Count > 0 ? await SaveToDatabase(vocabularies) : false;
         }
 
         public async Task<bool> SaveToDatabase(List<Vocabulary> vocabularies)
@@ -73,7 +134,7 @@ namespace ERP.Web.Service.Service
                 foreach (var vocab in vocabularies)
                 {
                     // 檢查是否已有相同單字
-                    bool checkWord = await _examRepo.chkSameWord(vocab.Word);
+                    bool checkWord = await _examRepo.chkSameWord(vocab.Question);
                     if (!checkWord)
                         await _examRepo.InsertWord(vocab);
                 }

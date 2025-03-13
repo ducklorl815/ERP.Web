@@ -4,6 +4,7 @@ using ERP.Web.Models.Models;
 using ERP.Web.Utility.Models;
 using Microsoft.Extensions.Options;
 using System.Data.SqlClient;
+using System.Security.Claims;
 
 namespace ERP.Web.Models.Respository
 {
@@ -16,14 +17,14 @@ namespace ERP.Web.Models.Respository
         {
             _dBList = dbList.Value;
         }
-        public async Task<bool> chkSameWord(string Word)
+        public async Task<bool> chkSameWord(string Question)
         {
             var sqlparam = new DynamicParameters();
-            sqlparam.Add("Word", Word);
+            sqlparam.Add("Question", Question);
             var sql = @"
                         SELECT TOP 1 1 
                           FROM KidsWorld.dbo.Vocabulary
-                          WHERE Word = @Word
+                          WHERE Question = @Question
                         "
             ;
 
@@ -42,18 +43,20 @@ namespace ERP.Web.Models.Respository
             }
         }
 
-        public async Task<List<Vocabulary>> GetExamDataAsync(int Class)
+        public async Task<List<Vocabulary>> GetExamDataAsync(string ClassName, int ClassNum)
         {
             var sqlparam = new DynamicParameters();
-            sqlparam.Add("Class", Class);
+            sqlparam.Add("ClassName", ClassName);
+            sqlparam.Add("ClassNum", ClassNum.ToString("D2"));
             var sql = @"
-                    DECLARE @targetClass INT = @Class;
+                DECLARE @targetClass INT = @ClassNum;
 
-                    SELECT Class, Word, Meaning
-                    FROM KidsWorld.dbo.Vocabulary
-                    WHERE @Class BETWEEN @targetClass - 10;
-                        "
-            ;
+                SELECT Class, ClassName, Question, Answer
+                FROM KidsWorld.dbo.Vocabulary
+                WHERE ClassName = @ClassName
+                AND ClassNum BETWEEN @ClassNum AND @targetClass - 10;
+            ";
+
 
             using var conn = new SqlConnection(_dBList.erp);
 
@@ -69,26 +72,30 @@ namespace ERP.Web.Models.Respository
             }
         }
 
-        public async Task<bool> InsertWord(Vocabulary vocab)
+        public async Task<bool> InsertWord(Vocabulary param)
         {
             var sqlparam = new DynamicParameters();
-            sqlparam.Add("Word", vocab.Word);
-            sqlparam.Add("Class", vocab.Class);
-            sqlparam.Add("Meaning", vocab.Meaning);
+            sqlparam.Add("Question", param.Question);
+            sqlparam.Add("Answer", param.Answer);
+            sqlparam.Add("ClassName", param.ClassName);
+            sqlparam.Add("ClassNum", param.ClassNum.ToString("D2"));
+            //sqlparam.Add("Class", $"{param.ClassName} Sp {param.ClassNum.ToString("D2")}");
             var sql = @"
                     INSERT INTO KidsWorld.dbo.Vocabulary
                                (
                                 ID
-                               ,Class
-                               ,Word
-                               ,Meaning
+                               ,ClassName
+                               ,ClassNum
+                               ,Question
+                               ,Answer
                                 )
                          VALUES
                                (
                                 newID()
-                               ,@Class
-                               ,@Word
-                               ,@Meaning
+                               ,@ClassName
+                               ,@ClassNum
+                               ,@Question
+                               ,@Answer
                                 )
                         "
             ;
