@@ -2,7 +2,6 @@
 using ERP.Web.Models.Respository;
 using Microsoft.AspNetCore.Http;
 using OfficeOpenXml;
-using System.Security.Claims;
 
 namespace ERP.Web.Service.Service
 {
@@ -20,57 +19,78 @@ namespace ERP.Web.Service.Service
         {
             var listVocabulary = await _examRepo.GetExamDataAsync(ClassName, ClassNum);
 
-            // 按 ClassNum 降序排列（最新的在前）
+            // 依 ClassNum 降序排列（最新的在前）
             var groupedByClass = listVocabulary
                 .GroupBy(x => x.ClassNum)
                 .OrderByDescending(g => g.Key)
                 .ToList();
 
-            // 設定權重
+            // 設定權重（依課程遠近分配）
             var distribution = new Dictionary<int, double>
             {
-                { 0, 0.6 }, // 目前課程
-                { 1, 0.2 }, // 前一個課程
-                { 2, 0.1 }  // 前前一個課程
+                { 0, 0.8 }, // 目前課程
+                { 1, 0.3 }, // 前一個課程
+                { 2, 0.2 }, // 前前一個課程
+                { 3, 0.1 }  // 其餘課程
             };
 
-            int totalQuestions = 100;
-            List<Vocabulary> finalQuestions = new List<Vocabulary>();
+            int totalWordQuestions = 20;   // 單字 10 題
+            int totalPhraseQuestions = 20; // 片語 10 題
 
-            // 先處理前三個課程
-            int usedQuestions = 0;
+            List<Vocabulary> finalWordQuestions = new List<Vocabulary>();
+            List<Vocabulary> finalPhraseQuestions = new List<Vocabulary>();
+
+            int usedWordQuestions = 0;
+            int usedPhraseQuestions = 0;
+
+            // 先處理前三個課程（依據 distribution 權重）
             for (int i = 0; i < Math.Min(3, groupedByClass.Count); i++)
             {
                 double percentage = distribution[i];
-                int questionCount = (int)Math.Round(totalQuestions * percentage);
-                usedQuestions += questionCount;
+                int wordCount = (int)Math.Round(totalWordQuestions * percentage);
+                int phraseCount = (int)Math.Round(totalPhraseQuestions * percentage);
+                usedWordQuestions += wordCount;
+                usedPhraseQuestions += phraseCount;
 
-                var availableQuestions = groupedByClass[i].ToList();
-                if (availableQuestions.Count > questionCount)
-                {
-                    finalQuestions.AddRange(availableQuestions.OrderBy(x => Guid.NewGuid()).Take(questionCount));
-                }
+                var words = groupedByClass[i].Where(x => x.Type == "Word").ToList();
+                var phrases = groupedByClass[i].Where(x => x.Type == "Phrase").ToList();
+
+                if (words.Count > wordCount)
+                    finalWordQuestions.AddRange(words.OrderBy(x => Guid.NewGuid()).Take(wordCount));
                 else
-                {
-                    finalQuestions.AddRange(availableQuestions);
-                }
+                    finalWordQuestions.AddRange(words);
+
+                if (phrases.Count > phraseCount)
+                    finalPhraseQuestions.AddRange(phrases.OrderBy(x => Guid.NewGuid()).Take(phraseCount));
+                else
+                    finalPhraseQuestions.AddRange(phrases);
             }
 
-            // 剩餘的課程（全部佔 10%）
-            int remainingQuestions = totalQuestions - usedQuestions;
-            var olderClasses = groupedByClass.Skip(3).SelectMany(g => g).ToList();
+            // 剩餘課程（全部佔 10%）
+            int remainingWordQuestions = totalWordQuestions - usedWordQuestions;
+            int remainingPhraseQuestions = totalPhraseQuestions - usedPhraseQuestions;
 
-            if (olderClasses.Count > remainingQuestions)
-            {
-                finalQuestions.AddRange(olderClasses.OrderBy(x => Guid.NewGuid()).Take(remainingQuestions));
-            }
+            var olderWords = groupedByClass.Skip(3).SelectMany(g => g).Where(x => x.Type == "單字_Word").ToList();
+            var olderPhrases = groupedByClass.Skip(3).SelectMany(g => g).Where(x => x.Type == "片語_Phrase").ToList();
+
+            if (olderWords.Count > remainingWordQuestions)
+                finalWordQuestions.AddRange(olderWords.OrderBy(x => Guid.NewGuid()).Take(remainingWordQuestions));
             else
-            {
-                finalQuestions.AddRange(olderClasses); // 題目不足就全拿
-            }
+                finalWordQuestions.AddRange(olderWords);
 
-            return finalQuestions;
+            if (olderPhrases.Count > remainingPhraseQuestions)
+                finalPhraseQuestions.AddRange(olderPhrases.OrderBy(x => Guid.NewGuid()).Take(remainingPhraseQuestions));
+            else
+                finalPhraseQuestions.AddRange(olderPhrases);
+
+            // 合併兩個題目清單，隨機排序
+            var finalQuestions = finalWordQuestions.Concat(finalPhraseQuestions)
+                                                   .OrderBy(x => Guid.NewGuid())
+                                                   .ToList();
+
+            return finalQuestions.OrderByDescending(x => x.Type).ToList();
         }
+
 
 
 
@@ -104,6 +124,7 @@ namespace ERP.Web.Service.Service
 
                         for (int row = 2; row <= rowCount; row++) // 從第 2 行開始，因為第 1 行是標題
                         {
+                            string Type = worksheet.Cells[row, 1].Text.Trim();
                             string Question = worksheet.Cells[row, 2].Text.Trim();
                             string Answer = worksheet.Cells[row, 3].Text.Trim();
 
@@ -111,6 +132,7 @@ namespace ERP.Web.Service.Service
                             {
                                 vocabularies.Add(new Vocabulary
                                 {
+                                    Type = Type,
                                     ClassNum = ClassNum,
                                     ClassName = ClassName,
                                     Question = Question,

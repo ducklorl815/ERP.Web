@@ -1,10 +1,8 @@
-﻿
-using Dapper;
+﻿using Dapper;
 using ERP.Web.Models.Models;
 using ERP.Web.Utility.Models;
 using Microsoft.Extensions.Options;
 using System.Data.SqlClient;
-using System.Security.Claims;
 
 namespace ERP.Web.Models.Respository
 {
@@ -47,14 +45,16 @@ namespace ERP.Web.Models.Respository
         {
             var sqlparam = new DynamicParameters();
             sqlparam.Add("ClassName", ClassName);
-            sqlparam.Add("ClassNum", ClassNum.ToString("D2"));
+            sqlparam.Add("ClassNum", ClassNum);
+  
             var sql = @"
                 DECLARE @targetClass INT = @ClassNum;
+                DECLARE @minRange INT = CASE WHEN @targetClass - 10 < 0 THEN 0 ELSE @targetClass - 10 END; 
 
-                SELECT Class, ClassName, Question, Answer
+                SELECT Type, ClassNum, ClassName, Question, Answer
                 FROM KidsWorld.dbo.Vocabulary
                 WHERE ClassName = @ClassName
-                AND ClassNum BETWEEN @ClassNum AND @targetClass - 10;
+                AND ClassNum BETWEEN @minRange AND @ClassNum;
             ";
 
 
@@ -75,6 +75,7 @@ namespace ERP.Web.Models.Respository
         public async Task<bool> InsertWord(Vocabulary param)
         {
             var sqlparam = new DynamicParameters();
+            sqlparam.Add("Type", param.Type);
             sqlparam.Add("Question", param.Question);
             sqlparam.Add("Answer", param.Answer);
             sqlparam.Add("ClassName", param.ClassName);
@@ -84,6 +85,7 @@ namespace ERP.Web.Models.Respository
                     INSERT INTO KidsWorld.dbo.Vocabulary
                                (
                                 ID
+                               ,Type
                                ,ClassName
                                ,ClassNum
                                ,Question
@@ -92,6 +94,7 @@ namespace ERP.Web.Models.Respository
                          VALUES
                                (
                                 newID()
+                               ,@Type
                                ,@ClassName
                                ,@ClassNum
                                ,@Question

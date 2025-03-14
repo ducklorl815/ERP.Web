@@ -1,5 +1,4 @@
 ﻿using ERP.Web.Service.Service;
-using ERP.Web.Service.ViewModels;
 using Microsoft.AspNetCore.Mvc;
 
 public class ExamController : Controller
@@ -20,8 +19,13 @@ public class ExamController : Controller
         var chkUpload =  await _examService.GetUploadFileAsync(file);
         return Json("true");
     }
-
+    
     public async Task<IActionResult> Index()
+    {
+        return View();
+    }
+
+    public async Task<IActionResult> Test()
     {
         string Class = "Put Me In The Zoo Sp 04";
         var ClassArrey = Class.Split("Sp");
@@ -34,6 +38,7 @@ public class ExamController : Controller
 
         return View(result);
     }
+
     [HttpPost]
     public IActionResult Submit(List<string> answers)
     {
