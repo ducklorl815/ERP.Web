@@ -22,26 +22,24 @@ namespace ERP.Web.Service.Service
             // 依 ClassNum 降序排列（最新的在前）
             var groupedByClass = listVocabulary
                 .GroupBy(x => x.ClassNum)
-                .OrderByDescending(g => g.Key)
+                .OrderByDescending(g => g.Key == ClassNum) // 讓 ClassNum 優先
+                .ThenByDescending(g => g.Key) // 其他課程仍然維持降序
                 .ToList();
 
             // 設定權重（依課程遠近分配）
             var distribution = new Dictionary<int, double>
             {
-                { 0, 0.8 }, // 目前課程
+                { 0, 1 },   // 目前課程
                 { 1, 0.3 }, // 前一個課程
                 { 2, 0.2 }, // 前前一個課程
                 { 3, 0.1 }  // 其餘課程
             };
 
-            int totalWordQuestions = 20;   // 單字 10 題
-            int totalPhraseQuestions = 20; // 片語 10 題
+            int totalWordQuestions = 15;
+            int totalPhraseQuestions = 15;
 
             List<Vocabulary> finalWordQuestions = new List<Vocabulary>();
             List<Vocabulary> finalPhraseQuestions = new List<Vocabulary>();
-
-            int usedWordQuestions = 0;
-            int usedPhraseQuestions = 0;
 
             // 先處理前三個課程（依據 distribution 權重）
             for (int i = 0; i < Math.Min(3, groupedByClass.Count); i++)
@@ -49,47 +47,41 @@ namespace ERP.Web.Service.Service
                 double percentage = distribution[i];
                 int wordCount = (int)Math.Round(totalWordQuestions * percentage);
                 int phraseCount = (int)Math.Round(totalPhraseQuestions * percentage);
-                usedWordQuestions += wordCount;
-                usedPhraseQuestions += phraseCount;
 
-                var words = groupedByClass[i].Where(x => x.Type == "Word").ToList();
-                var phrases = groupedByClass[i].Where(x => x.Type == "Phrase").ToList();
+                var words = groupedByClass[i].Where(x => x.Type == "Word").OrderBy(x => Guid.NewGuid()).ToList();
+                var phrases = groupedByClass[i].Where(x => x.Type == "Phrase").OrderBy(x => Guid.NewGuid()).ToList();
 
-                if (words.Count > wordCount)
-                    finalWordQuestions.AddRange(words.OrderBy(x => Guid.NewGuid()).Take(wordCount));
-                else
-                    finalWordQuestions.AddRange(words);
-
-                if (phrases.Count > phraseCount)
-                    finalPhraseQuestions.AddRange(phrases.OrderBy(x => Guid.NewGuid()).Take(phraseCount));
-                else
-                    finalPhraseQuestions.AddRange(phrases);
+                finalWordQuestions.AddRange(words.Take(wordCount));
+                finalPhraseQuestions.AddRange(phrases.Take(phraseCount));
             }
 
-            // 剩餘課程（全部佔 10%）
-            int remainingWordQuestions = totalWordQuestions - usedWordQuestions;
-            int remainingPhraseQuestions = totalPhraseQuestions - usedPhraseQuestions;
-
-            var olderWords = groupedByClass.Skip(3).SelectMany(g => g).Where(x => x.Type == "單字_Word").ToList();
-            var olderPhrases = groupedByClass.Skip(3).SelectMany(g => g).Where(x => x.Type == "片語_Phrase").ToList();
-
-            if (olderWords.Count > remainingWordQuestions)
-                finalWordQuestions.AddRange(olderWords.OrderBy(x => Guid.NewGuid()).Take(remainingWordQuestions));
-            else
-                finalWordQuestions.AddRange(olderWords);
-
-            if (olderPhrases.Count > remainingPhraseQuestions)
-                finalPhraseQuestions.AddRange(olderPhrases.OrderBy(x => Guid.NewGuid()).Take(remainingPhraseQuestions));
-            else
-                finalPhraseQuestions.AddRange(olderPhrases);
-
-            // 合併兩個題目清單，隨機排序
-            var finalQuestions = finalWordQuestions.Concat(finalPhraseQuestions)
+            // 如果題目不足 15 題，補滿
+            if (finalWordQuestions.Count < totalWordQuestions)
+            {
+                var remainingWords = listVocabulary.Where(x => x.Type == "Word" && !finalWordQuestions.Contains(x))
                                                    .OrderBy(x => Guid.NewGuid())
                                                    .ToList();
+                finalWordQuestions.AddRange(remainingWords);
+            }
 
-            return finalQuestions.OrderByDescending(x => x.Type).ToList();
+            if (finalPhraseQuestions.Count < totalPhraseQuestions)
+            {
+                var remainingPhrases = listVocabulary.Where(x => x.Type == "Phrase" && !finalPhraseQuestions.Contains(x))
+                                                     .OrderBy(x => Guid.NewGuid())
+                                                     .ToList();
+                finalPhraseQuestions.AddRange(remainingPhrases);
+            }
+
+            // **嚴格限制單字和片語各 15 題**
+            finalWordQuestions = finalWordQuestions.Take(15).ToList();
+            finalPhraseQuestions = finalPhraseQuestions.Take(15).ToList();
+
+            // **最終合併並隨機排序**
+            return finalWordQuestions.Concat(finalPhraseQuestions)
+                                     .OrderBy(x => Guid.NewGuid())
+                                     .ToList();
         }
+
 
 
 
@@ -156,7 +148,7 @@ namespace ERP.Web.Service.Service
                 foreach (var vocab in vocabularies)
                 {
                     // 檢查是否已有相同單字
-                    bool checkWord = await _examRepo.chkSameWord(vocab.Question);
+                    bool checkWord = await _examRepo.chkSameWord(vocab);
                     if (!checkWord)
                         await _examRepo.InsertWord(vocab);
                 }

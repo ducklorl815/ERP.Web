@@ -16,10 +16,10 @@ public class ExamController : Controller
             return BadRequest("請上傳 Excel 檔案");
         }
 
-        var chkUpload =  await _examService.GetUploadFileAsync(file);
+        var chkUpload = await _examService.GetUploadFileAsync(file);
         return Json("true");
     }
-    
+
     public async Task<IActionResult> Index()
     {
         return View();
@@ -27,7 +27,7 @@ public class ExamController : Controller
 
     public async Task<IActionResult> Test()
     {
-        string Class = "Put Me In The Zoo Sp 04";
+        string Class = "Put Me In The Zoo Sp 05";
         var ClassArrey = Class.Split("Sp");
         var ClassName = ClassArrey[0];
         var ClassNumChk = ClassArrey[1].Trim();

@@ -15,14 +15,18 @@ namespace ERP.Web.Models.Respository
         {
             _dBList = dbList.Value;
         }
-        public async Task<bool> chkSameWord(string Question)
+        public async Task<bool> chkSameWord(Vocabulary param)
         {
             var sqlparam = new DynamicParameters();
-            sqlparam.Add("Question", Question);
+            sqlparam.Add("Question", param.Question);
+            sqlparam.Add("Answer", param.Answer);
+            sqlparam.Add("ClassName", param.ClassName);
             var sql = @"
                         SELECT TOP 1 1 
                           FROM KidsWorld.dbo.Vocabulary
                           WHERE Question = @Question
+                          AND Answer = @Answer
+                          AND ClassName = @ClassName
                         "
             ;
 
@@ -31,7 +35,6 @@ namespace ERP.Web.Models.Respository
             try
             {
                 var result = await conn.QueryFirstOrDefaultAsync<int>(sql, sqlparam);
-
                 return result > 0;
 
             }
@@ -46,15 +49,16 @@ namespace ERP.Web.Models.Respository
             var sqlparam = new DynamicParameters();
             sqlparam.Add("ClassName", ClassName);
             sqlparam.Add("ClassNum", ClassNum);
-  
+
             var sql = @"
                 DECLARE @targetClass INT = @ClassNum;
                 DECLARE @minRange INT = CASE WHEN @targetClass - 10 < 0 THEN 0 ELSE @targetClass - 10 END; 
+                DECLARE @MaxRange INT = @targetClass + 10; 
 
                 SELECT Type, ClassNum, ClassName, Question, Answer
                 FROM KidsWorld.dbo.Vocabulary
                 WHERE ClassName = @ClassName
-                AND ClassNum BETWEEN @minRange AND @ClassNum;
+                AND ClassNum BETWEEN @minRange AND @MaxRange;
             ";
 
 
