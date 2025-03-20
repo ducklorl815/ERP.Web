@@ -1,4 +1,5 @@
 ﻿using ERP.Web.Service.Service;
+using ERP.Web.Service.ViewModels;
 using Microsoft.AspNetCore.Mvc;
 
 public class ExamController : Controller
@@ -8,6 +9,13 @@ public class ExamController : Controller
     {
         _examService = examService;
     }
+
+    public async Task<IActionResult> Index()
+    {
+        ExamSearchListViewModel_result result = await _examService.GetListAsync();
+        return View(result);
+    }
+
     [HttpPost("upload")]
     public async Task<IActionResult> Upload(IFormFile file)
     {
@@ -20,15 +28,23 @@ public class ExamController : Controller
         return Json("true");
     }
 
-    public async Task<IActionResult> Index()
-    {
-        return View();
-    }
+
 
     public async Task<IActionResult> Test()
     {
-        string Class = "Put Me In The Zoo Sp 05";
-        var ClassArrey = Class.Split("Sp");
+        string Class = "Put Me In The Zoo HW 04";
+        var Category = string.Empty;
+        List<string> ClassArrey = new List<string>();
+        if (Class.Contains("Sp"))
+        {
+            ClassArrey = Class.Split("Sp").ToList();
+            Category = "Sp";
+        }
+        if (Class.Contains("HW"))
+        {
+            ClassArrey = Class.Split("HW").ToList();
+            Category = "HW";
+        }
         var ClassName = ClassArrey[0];
         var ClassNumChk = ClassArrey[1].Trim();
         if (string.IsNullOrEmpty(ClassNumChk))

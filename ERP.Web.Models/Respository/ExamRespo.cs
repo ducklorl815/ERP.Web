@@ -76,6 +76,30 @@ namespace ERP.Web.Models.Respository
             }
         }
 
+        public async Task<List<string>> GetExamListAsync()
+        {
+            var sqlparam = new DynamicParameters();
+
+            var sql = @"
+                SELECT DISTINCT TOP 1000 ClassName  + ' ' + Category + ' ' + ClassNum as ClassName
+                  FROM KidsWorld.dbo.Vocabulary
+            ";
+
+
+            using var conn = new SqlConnection(_dBList.erp);
+
+            try
+            {
+                var result = await conn.QueryAsync<string>(sql, sqlparam);
+                return result.ToList();
+
+            }
+            catch
+            {
+                return null;
+            }
+        }
+
         public async Task<bool> InsertWord(Vocabulary param)
         {
             var sqlparam = new DynamicParameters();
@@ -84,6 +108,8 @@ namespace ERP.Web.Models.Respository
             sqlparam.Add("Answer", param.Answer);
             sqlparam.Add("ClassName", param.ClassName);
             sqlparam.Add("ClassNum", param.ClassNum.ToString("D2"));
+            sqlparam.Add("Category", param.Category);
+            
             //sqlparam.Add("Class", $"{param.ClassName} Sp {param.ClassNum.ToString("D2")}");
             var sql = @"
                     INSERT INTO KidsWorld.dbo.Vocabulary
@@ -92,6 +118,7 @@ namespace ERP.Web.Models.Respository
                                ,Type
                                ,ClassName
                                ,ClassNum
+                               ,Category
                                ,Question
                                ,Answer
                                 )
@@ -101,6 +128,7 @@ namespace ERP.Web.Models.Respository
                                ,@Type
                                ,@ClassName
                                ,@ClassNum
+                               ,@Category
                                ,@Question
                                ,@Answer
                                 )

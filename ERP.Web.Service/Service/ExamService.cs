@@ -1,5 +1,6 @@
 ﻿using ERP.Web.Models.Models;
 using ERP.Web.Models.Respository;
+using ERP.Web.Service.ViewModels;
 using Microsoft.AspNetCore.Http;
 using OfficeOpenXml;
 
@@ -14,7 +15,12 @@ namespace ERP.Web.Service.Service
         {
             _examRepo = examRepo;
         }
-
+        public async Task<ExamSearchListViewModel_result> GetListAsync()
+        {
+            var result = new ExamSearchListViewModel_result();
+            result.ClassNameList = await _examRepo.GetExamListAsync();
+            return result;
+        }
         public async Task<List<Vocabulary>> GetExamDataAsync(string ClassName, int ClassNum)
         {
             var listVocabulary = await _examRepo.GetExamDataAsync(ClassName, ClassNum);
@@ -35,7 +41,7 @@ namespace ERP.Web.Service.Service
                 { 3, 0.1 }  // 其餘課程
             };
 
-            int totalWordQuestions = 15;
+            int totalWordQuestions = 20;
             int totalPhraseQuestions = 15;
 
             List<Vocabulary> finalWordQuestions = new List<Vocabulary>();
@@ -73,16 +79,14 @@ namespace ERP.Web.Service.Service
             }
 
             // **嚴格限制單字和片語各 15 題**
-            finalWordQuestions = finalWordQuestions.Take(15).ToList();
-            finalPhraseQuestions = finalPhraseQuestions.Take(15).ToList();
+            finalWordQuestions = finalWordQuestions.Take(totalWordQuestions).ToList();
+            finalPhraseQuestions = finalPhraseQuestions.Take(totalPhraseQuestions).ToList();
 
             // **最終合併並隨機排序**
             return finalWordQuestions.Concat(finalPhraseQuestions)
                                      .OrderBy(x => Guid.NewGuid())
                                      .ToList();
         }
-
-
 
 
 
@@ -107,8 +111,20 @@ namespace ERP.Web.Service.Service
 
                         int rowCount = worksheet.Dimension.Rows;
 
-                        string Class = worksheet.Name; // 以工作表名稱作為課程名稱
-                        var ClassArrey = Class.Split("Sp");
+                        string Class = worksheet.Cells[1, 1].Text; // 以工作表名稱作為課程名稱
+                        string Category = string.Empty;
+                        List<string> ClassArrey = new List<string>();
+                        if (Class.Contains("Sp"))
+                        {
+                            ClassArrey = Class.Split("Sp").ToList();
+                            Category = "Sp";
+                        }
+                        if (Class.Contains("HW"))
+                        {
+                            ClassArrey = Class.Split("HW").ToList();
+                            Category = "HW";
+                        }
+                           
                         var ClassName = ClassArrey[0];
                         var ClassNumChk = ClassArrey[1].Trim();
                         if (!int.TryParse(ClassNumChk, out int ClassNum))
@@ -126,6 +142,7 @@ namespace ERP.Web.Service.Service
                                 {
                                     Type = Type,
                                     ClassNum = ClassNum,
+                                    Category = Category,
                                     ClassName = ClassName,
                                     Question = Question,
                                     Answer = Answer
