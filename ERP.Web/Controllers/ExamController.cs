@@ -30,9 +30,8 @@ public class ExamController : Controller
 
 
 
-    public async Task<IActionResult> Test()
+    public async Task<IActionResult> Test(string Class)
     {
-        string Class = "Put Me In The Zoo HW 04";
         var Category = string.Empty;
         List<string> ClassArrey = new List<string>();
         if (Class.Contains("Sp"))
