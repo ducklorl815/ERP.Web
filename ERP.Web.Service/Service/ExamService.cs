@@ -21,15 +21,21 @@ namespace ERP.Web.Service.Service
             result.ClassNameList = await _examRepo.GetExamListAsync();
             return result;
         }
-        public async Task<List<Vocabulary>> GetExamDataAsync(string ClassName, int ClassNum)
+        public async Task<ExamDataViewModel_result> GetExamDataAsync(string ClassName, int ClassNum, string Category)
         {
+            var result = new ExamDataViewModel_result
+            {
+                VocabularyList = new List<Vocabulary>()
+            };
             var listVocabulary = await _examRepo.GetExamDataAsync(ClassName, ClassNum);
 
             // 依 ClassNum 降序排列（最新的在前）
             var groupedByClass = listVocabulary
-                .GroupBy(x => x.ClassNum)
-                .OrderByDescending(g => g.Key == ClassNum) // 讓 ClassNum 優先
-                .ThenByDescending(g => g.Key) // 其他課程仍然維持降序
+                .GroupBy(x => new { x.ClassNum, x.Category }) // 依 ClassNum 和 Category 分組
+                .OrderByDescending(g => g.Key.ClassNum == ClassNum) // 讓指定 ClassNum 優先
+                .ThenByDescending(g => g.Key.Category == Category) // 其他 Category 維持降序
+                .ThenByDescending(g => g.Key.ClassNum) // 其他 ClassNum 維持降序
+                .ThenBy(g => g.Key.Category)// 在相同 ClassNum 下依 Category 升序排列
                 .ToList();
 
             // 設定權重（依課程遠近分配）
@@ -42,7 +48,7 @@ namespace ERP.Web.Service.Service
             };
 
             int totalWordQuestions = 20;
-            int totalPhraseQuestions = 15;
+            int totalPhraseQuestions = 16;
 
             List<Vocabulary> finalWordQuestions = new List<Vocabulary>();
             List<Vocabulary> finalPhraseQuestions = new List<Vocabulary>();
@@ -83,9 +89,11 @@ namespace ERP.Web.Service.Service
             finalPhraseQuestions = finalPhraseQuestions.Take(totalPhraseQuestions).ToList();
 
             // **最終合併並隨機排序**
-            return finalWordQuestions.Concat(finalPhraseQuestions)
+            result.VocabularyList = finalWordQuestions.Concat(finalPhraseQuestions)
                                      .OrderBy(x => Guid.NewGuid())
                                      .ToList();
+
+            return result;
         }
 
 
@@ -124,7 +132,7 @@ namespace ERP.Web.Service.Service
                             ClassArrey = Class.Split("HW").ToList();
                             Category = "HW";
                         }
-                           
+
                         var ClassName = ClassArrey[0];
                         var ClassNumChk = ClassArrey[1].Trim();
                         if (!int.TryParse(ClassNumChk, out int ClassNum))

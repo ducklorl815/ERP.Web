@@ -49,8 +49,8 @@ public class ExamController : Controller
         if (string.IsNullOrEmpty(ClassNumChk))
             return BadRequest();
         int ClassNum = int.Parse(ClassNumChk);
-        var result = await _examService.GetExamDataAsync(ClassName, ClassNum);
-
+        var result = await _examService.GetExamDataAsync(ClassName, ClassNum, Category);
+        result.Title = Class;
         return View(result);
     }
 

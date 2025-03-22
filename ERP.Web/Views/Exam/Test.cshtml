@@ -1,4 +1,4 @@
-﻿@model List<ERP.Web.Models.Models.Vocabulary>
+﻿@model ERP.Web.Service.ViewModels.ExamDataViewModel_result
 @{
     Layout = null;  // 禁用布局
 }
@@ -52,49 +52,54 @@
 </style>
 
 <form method="post" action="@Url.Action("Submit", "Exam")">
-    <div class="exam-container">
-        @{
-            var words = Model.Where(x => x.Type == "Word").ToList();
-            var phrases = Model.Where(x => x.Type == "Phrase").ToList();
-        }
-
-        <!-- 單字考卷 -->
-        @if (words.Any())
+    @{
+        var words = Model.VocabularyList.Where(x => x.Type == "Word").ToList();
+        var phrases = Model.VocabularyList.Where(x => x.Type == "Phrase").ToList();
+    }
+    @if (words.Any())
+    {
+        @for (int X = 0; X < 2; X++)
         {
+            <div class="exam-container page-break">
+                <!-- 單字考卷 -->
+
+                <div style="display: flex; justify-content: space-between;">
+                    <label class="exam-section">
+                        單字測驗 ( 寫出中文所代表的意思 )
+                    </label>
+                    <label class="exam-title">
+                        @Model.Title 英文試卷
+                    </label>
+                </div>
+
+                @for (int i = 0; i < words.Count; i++)
+                {
+                    <div>
+                        <span class="question-number">@(i + 1).</span>
+                        <span class="question-text">@words[i].Question</span>
+                    </div>
+                    <div>
+                        <input type="text" class="answer-line" name="answers[@i]" required />
+                    </div>
+                }
+
+            </div>
+        }
+    }
+
+    @* 只有在單字考卷後才換頁，確保有內容時才顯示換頁標籤 *@
+    @if (words.Any())
+    {
+        <div class="exam-container page-break">
             <div style="display: flex; justify-content: space-between;">
                 <label class="exam-section">
                     單字測驗 ( 寫出中文所代表的意思 )
                 </label>
                 <label class="exam-title">
-                    @Model.Select(x => x.ClassName).First() 英文試卷
+                    @Model.Title 英文答案卷
                 </label>
             </div>
-
-            @for (int i = 0; i < words.Count; i++)
-            {
-                <div>
-                    <span class="question-number">@(i + 1).</span>
-                    <span class="question-text">@words[i].Question</span>
-                </div>
-                <div>
-                    <input type="text" class="answer-line" name="answers[@i]" required />
-                </div>
-            }
-        }
-    </div>
-    <div class="exam-container page-break">
-        <!-- 單字考卷 -->
-        @if (words.Any())
-        {
-            <div style="display: flex; justify-content: space-between;">
-                <label class="exam-section">
-                    單字測驗 ( 寫出中文所代表的意思 )
-                </label>
-                <label class="exam-title">
-                    @Model.Select(x => x.ClassName).First() 英文試卷
-                </label>
-            </div>
-
+            <!-- 單字考卷答案部分 -->
             @for (int i = 0; i < words.Count; i++)
             {
                 <div>
@@ -105,42 +110,46 @@
                     <span style="background-color:lightgray">@words[i].Answer</span>
                 </div>
             }
-        }
-    </div>
-    <!-- 片語考卷，強制換頁 -->
-    <div class="exam-container page-break">
-        @if (phrases.Any())
+        </div>
+    }
+
+    @* 只有在片語考卷存在時才強制換頁 *@
+    @if (phrases.Any())
+    {
+        @for (int y = 0; y < 2; y++)
         {
-            <div style="display: flex; justify-content: space-between;">
-                <label class="exam-section">
-                    片語測驗 ( 寫出對應的問句或回答 )
-                </label>
-                <label class="exam-title">
-                    @Model.Select(x => x.ClassName).First() 英文試卷
-                </label>
+            <div class="exam-container page-break">
+                <!-- 片語考卷 -->
+                <div style="display: flex; justify-content: space-between;">
+                    <label class="exam-section">
+                        片語測驗 ( 寫出對應的問句或回答 )
+                    </label>
+                    <label class="exam-title">
+                        @Model.Title 英文試卷
+                    </label>
+                </div>
+                @for (int i = 0; i < phrases.Count; i++)
+                {
+                    <div>
+                        <span class="question-number">@(i + 1).</span>
+                        <span class="question-text">@phrases[i].Question</span>
+                    </div>
+                    <div>
+                        <input type="text" class="answer-line" name="answers[@(words.Count + i)]" required />
+                    </div>
+                }
             </div>
-            @for (int i = 0; i < phrases.Count; i++)
-            {
-                <div>
-                    <span class="question-number">@(i + 1).</span>
-                    <span class="question-text">@phrases[i].Question</span>
-                </div>
-                <div>
-                    <input type="text" class="answer-line" name="answers[@(words.Count + i)]" required />
-                </div>
-            }
         }
-    </div>
-    <!-- 片語考卷，強制換頁 -->
-    <div class="exam-container page-break">
-        @if (phrases.Any())
-        {
+
+
+        <div class="exam-container page-break">
+            <!-- 片語考卷答案部分 -->
             <div style="display: flex; justify-content: space-between;">
                 <label class="exam-section">
                     片語測驗 ( 寫出對應的問句或回答 )
                 </label>
                 <label class="exam-title">
-                    @Model.Select(x => x.ClassName).First() 英文試卷
+                    @Model.Title 英文答案卷
                 </label>
             </div>
             @for (int i = 0; i < phrases.Count; i++)
@@ -153,8 +162,9 @@
                     <span style="background-color:lightgray">@phrases[i].Answer</span>
                 </div>
             }
-        }
-    </div>
+        </div>
+    }
+
     @* <div class="submit-container">
     <button type="submit">提交</button>
     </div> *@

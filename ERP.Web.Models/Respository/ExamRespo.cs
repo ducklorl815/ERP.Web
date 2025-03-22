@@ -55,7 +55,7 @@ namespace ERP.Web.Models.Respository
                 DECLARE @minRange INT = CASE WHEN @targetClass - 10 < 0 THEN 0 ELSE @targetClass - 10 END; 
                 DECLARE @MaxRange INT = @targetClass + 10; 
 
-                SELECT Type, ClassNum, ClassName, Question, Answer
+                SELECT Type, ClassNum, ClassName, Category, Question, Answer
                 FROM KidsWorld.dbo.Vocabulary
                 WHERE ClassName = @ClassName
                 AND ClassNum BETWEEN @minRange AND @MaxRange;
@@ -109,7 +109,7 @@ namespace ERP.Web.Models.Respository
             sqlparam.Add("ClassName", param.ClassName);
             sqlparam.Add("ClassNum", param.ClassNum.ToString("D2"));
             sqlparam.Add("Category", param.Category);
-            
+
             //sqlparam.Add("Class", $"{param.ClassName} Sp {param.ClassNum.ToString("D2")}");
             var sql = @"
                     INSERT INTO KidsWorld.dbo.Vocabulary
