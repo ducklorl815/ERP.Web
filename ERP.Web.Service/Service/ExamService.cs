@@ -21,12 +21,61 @@ namespace ERP.Web.Service.Service
             result.ClassNameList = await _examRepo.GetExamListAsync();
             return result;
         }
-        public async Task<ExamDataViewModel_result> GetExamDataAsync(string ClassName, int ClassNum, string Category)
+        public async Task<ExamDataViewModel_result> GetExamDataAsync(string Class)
         {
+
             var result = new ExamDataViewModel_result
             {
-                VocabularyList = new List<Vocabulary>()
+                VocabularyList = new List<Vocabulary>(),
+                Title = Class
             };
+
+            // 判斷今天是否出過考券
+            Guid KidTestID = await _examRepo.ChkKidTest(Class, "English");
+            if (KidTestID != Guid.Empty)
+            {
+                // 取得今天出過的考試資料
+                result.VocabularyList = await _examRepo.GetExamFromExamIndex(KidTestID);
+                return result;
+            }
+
+            //取得考試資料
+            result.VocabularyList = await GetExamData(Class);
+
+            // 出過的題目存入資料庫
+            Guid NewKidTestID = await _examRepo.InsertKidTestIndex(Class, "English");
+
+            foreach (var word in result.VocabularyList)
+            {
+                await _examRepo.InsertExamIndex(word.ID, NewKidTestID);
+            }
+
+            return result;
+        }
+        /// <summary>
+        /// 取得考試資料
+        /// </summary>
+        /// <param name="Class"></param>
+        /// <returns></returns>
+        private async Task<List<Vocabulary>> GetExamData(string Class)
+        {
+            var Category = string.Empty;
+            List<string> ClassArrey = new List<string>();
+            if (Class.Contains("Sp"))
+            {
+                ClassArrey = Class.Split("Sp").ToList();
+                Category = "Sp";
+            }
+            if (Class.Contains("HW"))
+            {
+                ClassArrey = Class.Split("HW").ToList();
+                Category = "HW";
+            }
+            var ClassName = ClassArrey[0];
+            var ClassNumChk = ClassArrey[1].Trim();
+            int ClassNum = int.Parse(ClassNumChk);
+
+
             var listVocabulary = await _examRepo.GetExamDataAsync(ClassName, ClassNum);
 
             // 依 ClassNum 降序排列（最新的在前）
@@ -87,16 +136,12 @@ namespace ERP.Web.Service.Service
             // **嚴格限制單字和片語各 15 題**
             finalWordQuestions = finalWordQuestions.Take(totalWordQuestions).ToList();
             finalPhraseQuestions = finalPhraseQuestions.Take(totalPhraseQuestions).ToList();
-
             // **最終合併並隨機排序**
-            result.VocabularyList = finalWordQuestions.Concat(finalPhraseQuestions)
-                                     .OrderBy(x => Guid.NewGuid())
-                                     .ToList();
-
-            return result;
+            List<Vocabulary> finalQuestions = finalWordQuestions.Concat(finalPhraseQuestions)
+                                             .OrderBy(x => Guid.NewGuid())
+                                            .ToList();
+            return finalQuestions;
         }
-
-
 
         public async Task<bool> GetUploadFileAsync(IFormFile file)
         {

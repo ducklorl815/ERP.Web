@@ -10,4 +10,10 @@
         public string Question { get; set; } // 
         public string Answer { get; set; } // 意思
     }
+
+    public class KidTestIndex
+    {
+        public string Class { get; set; }
+        public string TestType { get; set; }
+    }
 }

@@ -15,6 +15,35 @@ namespace ERP.Web.Models.Respository
         {
             _dBList = dbList.Value;
         }
+
+        public async Task<Guid> ChkKidTest(string Class, string TestType)
+        {
+            var sqlparam = new DynamicParameters();
+            sqlparam.Add("Class", Class);
+            sqlparam.Add("TestType", TestType);
+
+            var sql = @"
+                    SELECT ID
+                    FROM KidsWorld.dbo.KidTestIndex
+                    WHERE Class = @Class
+                    AND TestType = @TestType
+                    AND CONVERT(DATE, TestDate) = CONVERT(DATE, GETDATE());
+            ";
+
+
+            using var conn = new SqlConnection(_dBList.erp);
+
+            try
+            {
+                var result = await conn.QueryFirstOrDefaultAsync<Guid>(sql, sqlparam);
+                return result;
+            }
+            catch
+            {
+                return Guid.Empty;
+            }
+        }
+
         public async Task<bool> chkSameWord(Vocabulary param)
         {
             var sqlparam = new DynamicParameters();
@@ -68,6 +97,42 @@ namespace ERP.Web.Models.Respository
             {
                 var result = await conn.QueryAsync<Vocabulary>(sql, sqlparam);
                 return result.ToList();
+            }
+            catch
+            {
+                return null;
+            }
+        }
+
+        public async Task<List<Vocabulary>> GetExamFromExamIndex(Guid KidTestID)
+        {
+            var sqlparam = new DynamicParameters();
+            sqlparam.Add("KidTestID", KidTestID);
+
+            var sql = @"
+                SELECT 
+                v.ID,
+                v.Type,
+                v.ClassNum,
+                v.Category,
+                v.ClassName,
+                v.Question,
+                v.Answer
+                FROM KidsWorld.dbo.Vocabulary v
+                JOIN KidsWorld.dbo.KidExamWordIndex ke ON v.ID = ke.ExamID
+                JOIN KidsWorld.dbo.KidTestIndex kt ON ke.KidTestIndexID = kt.ID
+                WHERE kt.ID = @KidTestID 
+                AND ke.Enabled = 1 AND ke.Deleted = 0
+                AND kt.Enabled = 1 AND kt.Deleted = 0
+            ";
+
+
+            using var conn = new SqlConnection(_dBList.erp);
+
+            try
+            {
+                var result = await conn.QueryAsync<Vocabulary>(sql, sqlparam);
+                return result.ToList();
 
             }
             catch
@@ -97,6 +162,91 @@ namespace ERP.Web.Models.Respository
             catch
             {
                 return null;
+            }
+        }
+
+        public async Task<bool> InsertExamIndex(Guid ExamID, Guid KidTestIndexID)
+        {
+            var sqlparam = new DynamicParameters();
+            sqlparam.Add("ExamID", ExamID);
+            sqlparam.Add("KidTestIndexID", KidTestIndexID);
+
+            var sql = @"
+                    INSERT INTO dbo.KidExamWordIndex
+                               (
+		                       ID
+                               ,ExamID
+                               ,KidTestIndexID
+                               ,CreateDate
+                               ,ModifyDate
+                               ,Enabled
+                               ,Deleted
+		                       )
+                         VALUES
+                               (
+		                       NEWID()
+                               ,@ExamID
+                               ,@KidTestIndexID
+                               ,GETDATE()
+                               ,GETDATE()
+                               ,1
+                               ,0
+		                       )
+                        "
+            ;
+
+            using var conn = new SqlConnection(_dBList.erp);
+
+            try
+            {
+                var result = await conn.ExecuteAsync(sql, sqlparam);
+                return result > 0;
+
+            }
+            catch
+            {
+                return false;
+            }
+        }
+
+        public async Task<Guid> InsertKidTestIndex(string Class, string TestType)
+        {
+            var sqlparam = new DynamicParameters();
+            sqlparam.Add("Class", Class);
+            sqlparam.Add("TestType", TestType);
+
+            var sql = @"
+                    INSERT INTO dbo.KidTestIndex
+                               (ID
+                               ,Class
+                               ,TestType
+                               ,TestDate
+                               ,Enabled
+                               ,Deleted)
+                         OUTPUT INSERTED.ID
+                         VALUES
+                               (
+		                       NEWID()
+                               ,@Class
+                               ,@TestType
+                               ,GETDATE()
+                               ,1
+                               ,0
+		                       )
+                        "
+            ;
+
+            using var conn = new SqlConnection(_dBList.erp);
+
+            try
+            {
+                var result = await conn.QueryFirstOrDefaultAsync<Guid>(sql, sqlparam);
+                return result;
+
+            }
+            catch
+            {
+                return Guid.Empty;
             }
         }
 
@@ -149,9 +299,5 @@ namespace ERP.Web.Models.Respository
             }
         }
 
-        public async Task SaveToDatabase(Vocabulary param)
-        {
-            throw new NotImplementedException();
-        }
     }
 }

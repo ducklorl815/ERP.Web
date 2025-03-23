@@ -32,25 +32,8 @@ public class ExamController : Controller
 
     public async Task<IActionResult> Test(string Class)
     {
-        var Category = string.Empty;
-        List<string> ClassArrey = new List<string>();
-        if (Class.Contains("Sp"))
-        {
-            ClassArrey = Class.Split("Sp").ToList();
-            Category = "Sp";
-        }
-        if (Class.Contains("HW"))
-        {
-            ClassArrey = Class.Split("HW").ToList();
-            Category = "HW";
-        }
-        var ClassName = ClassArrey[0];
-        var ClassNumChk = ClassArrey[1].Trim();
-        if (string.IsNullOrEmpty(ClassNumChk))
-            return BadRequest();
-        int ClassNum = int.Parse(ClassNumChk);
-        var result = await _examService.GetExamDataAsync(ClassName, ClassNum, Category);
-        result.Title = Class;
+        var result = await _examService.GetExamDataAsync(Class);
+
         return View(result);
     }
 
