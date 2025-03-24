@@ -1,4 +1,5 @@
 ﻿@model ERP.Web.Service.ViewModels.ExamSearchListViewModel_result
+
 <!-- Excel 檔案上傳區 -->
 <form id="uploadForm" enctype="multipart/form-data">
     <input type="file" id="fileInput" name="file" accept=".xlsx, .xls" />
@@ -6,15 +7,31 @@
 </form>
 
 <form method="get" action="@Url.Action("Test", "Exam")">
-    <label for="Class">選擇班級：</label>
+    <label for="Class">選擇考卷：</label>
     <select id="Class" name="Class">
         @foreach (var className in Model.ClassNameList)
         {
             <option value="@className">@className</option>
         }
     </select>
+    <label for="CorrectType">選擇題目類型：</label>
+    <select id="CorrectType" name="CorrectType">
+        @foreach (var item in Model.CorrectList)
+        {
+            <option value="@item.Value">@item.Text</option>
+        }
+    </select>
+    <label for="KidID">選擇學生：</label>
+    <select id="KidID" name="KidID">
+        @foreach (var kid in Model.KidList)
+        {
+            <option value="@kid.Value">@kid.Text</option>
+        }
+    </select>
+
     <button type="submit">送出</button>
 </form>
+
 <!-- 狀態訊息 -->
 <p id="uploadStatus"></p>
 
@@ -37,7 +54,7 @@
             formData.append("file", fileInput);
 
             $.ajax({
-                url: "/upload",
+                url: "@Url.Action("UploadExcel", "Exam")",
                 type: "POST",
                 data: formData,
                 processData: false,
@@ -47,6 +64,30 @@
                 },
                 error: function () {
                     $("#uploadStatus").text("上傳失敗，請重試");
+                }
+            });
+        });
+
+        $("#Class, #CorrectType").change(function () {
+            var selectedClass = $("#Class").val();
+            var selectedCorrectType = $("#CorrectType").val();
+
+            $.ajax({
+                url: '@Url.Action("GetFilteredStudentList", "Exam")',
+                type: 'GET',
+                data: { className: selectedClass, correctType: selectedCorrectType },
+                success: function (response) {
+                    var kidDropdown = $("#KidID");
+                    kidDropdown.empty();
+                    $.each(response, function (index, item) {
+                        kidDropdown.append($('<option>', {
+                            value: item.value,
+                            text: item.text
+                        }));
+                    });
+                },
+                error: function () {
+                    alert("無法取得學生列表！");
                 }
             });
         });

@@ -12,10 +12,14 @@ public class ExamController : Controller
 
     public async Task<IActionResult> Index()
     {
-        ExamSearchListViewModel_result result = await _examService.GetListAsync();
+        ExamSearchListViewModel_result result = await _examService.GetIndexAsync();
         return View(result);
     }
-
+    public async Task<IActionResult> GetList(ExamSearchListViewModel_param param)
+    {
+        ExamSearchListViewModel_result result = await _examService.GetListAsync(param);
+        return View(result);
+    }
     [HttpPost("upload")]
     public async Task<IActionResult> Upload(IFormFile file)
     {
@@ -27,12 +31,9 @@ public class ExamController : Controller
         var chkUpload = await _examService.GetUploadFileAsync(file);
         return Json("true");
     }
-
-
-
-    public async Task<IActionResult> Test(string Class)
+    public async Task<IActionResult> Test(string Class,string KidID)
     {
-        var result = await _examService.GetExamDataAsync(Class);
+        var result = await _examService.GetExamDataAsync(Class, KidID);
 
         return View(result);
     }

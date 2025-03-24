@@ -3,6 +3,7 @@ using ERP.Web.Models.Respository;
 using ERP.Web.Service.ViewModels;
 using Microsoft.AspNetCore.Http;
 using OfficeOpenXml;
+using System.Web.Mvc;
 
 namespace ERP.Web.Service.Service
 {
@@ -15,13 +16,40 @@ namespace ERP.Web.Service.Service
         {
             _examRepo = examRepo;
         }
-        public async Task<ExamSearchListViewModel_result> GetListAsync()
+
+        public async Task<ExamSearchListViewModel_result> GetListAsync(ExamSearchListViewModel_param param)
+        {
+            //分頁功能
+            //var datacount = await _examRepo.GetListCountAsync();
+
+            //var pager = new Paging(param.Page, param.PageSize, datacount);
+
+            ////關鍵字搜尋
+            ////var deptdetlKeyword = _autoMapper.Map<DeptRepo.DeptdetlMainKeyword>(param.DeptdetlKeyword);
+
+            //result.Pager = pager;
+            //result.Deptdetl = await _deptRepo.GetSearchListAsync(pager, deptdetlKeyword, param.CompanyName);
+
+            return null;
+        }
+        public async Task<ExamSearchListViewModel_result> GetIndexAsync()
         {
             var result = new ExamSearchListViewModel_result();
-            result.ClassNameList = await _examRepo.GetExamListAsync();
+
+            var tasks = new List<Task>
+            {
+                Task.Run(async()=>
+                    result.KidList = (await _examRepo.GetKidListAsync())
+                    .Select(x=> new SelectListItem{ Text = x.Item2,Value = x.Item1.ToString()}).ToList()),
+                Task.Run(async()=>
+                        result.ClassNameList = await _examRepo.GetExamListAsync()
+                    )
+            };
+            await Task.WhenAll(tasks);
+
             return result;
         }
-        public async Task<ExamDataViewModel_result> GetExamDataAsync(string Class)
+        public async Task<ExamDataViewModel_result> GetExamDataAsync(string Class, string KidID)
         {
 
             var result = new ExamDataViewModel_result
@@ -31,11 +59,11 @@ namespace ERP.Web.Service.Service
             };
 
             // 判斷今天是否出過考券
-            Guid KidTestID = await _examRepo.ChkKidTest(Class, "English");
-            if (KidTestID != Guid.Empty)
+            Guid KidTestIndexID = await _examRepo.ChkKidTest(Class, "English", KidID);
+            if (KidTestIndexID != Guid.Empty)
             {
                 // 取得今天出過的考試資料
-                result.VocabularyList = await _examRepo.GetExamFromExamIndex(KidTestID);
+                result.VocabularyList = await _examRepo.GetExamFromExamIndex(KidTestIndexID);
                 return result;
             }
 
@@ -43,7 +71,7 @@ namespace ERP.Web.Service.Service
             result.VocabularyList = await GetExamData(Class);
 
             // 出過的題目存入資料庫
-            Guid NewKidTestID = await _examRepo.InsertKidTestIndex(Class, "English");
+            Guid NewKidTestID = await _examRepo.InsertKidTestIndex(Class, "English", KidID);
 
             foreach (var word in result.VocabularyList)
             {
@@ -229,5 +257,6 @@ namespace ERP.Web.Service.Service
                 return false;
             }
         }
+
     }
 }
