@@ -36,8 +36,7 @@
 <p id="uploadStatus"></p>
 
 <hr />
-<!-- jQuery AJAX 上傳處理 -->
-<script src="https://code.jquery.com/jquery-3.6.0.min.js"></script>
+
 <script>
     $(document).ready(function () {
         $("#uploadForm").submit(function (e) {
@@ -54,7 +53,7 @@
             formData.append("file", fileInput);
 
             $.ajax({
-                url: "@Url.Action("UploadExcel", "Exam")",
+                url: "@Url.Action("Upload", "Exam")",
                 type: "POST",
                 data: formData,
                 processData: false,
@@ -68,14 +67,15 @@
             });
         });
 
-        $("#Class, #CorrectType").change(function () {
-            var selectedClass = $("#Class").val();
-            var selectedCorrectType = $("#CorrectType").val();
+        $(document).on("change", "#Class, #CorrectType, #KidID", function () {
+            var ClassName = $("#Class").val();
+            var CorrectType = $("#CorrectType").val();
+            var KidID = $("#KidID").val();
 
             $.ajax({
-                url: '@Url.Action("GetFilteredStudentList", "Exam")',
+                url: '@Url.Action("GetList", "Exam")',
                 type: 'GET',
-                data: { className: selectedClass, correctType: selectedCorrectType },
+                data: { ClassName: ClassName, CorrectType: CorrectType, KidID: KidID },
                 success: function (response) {
                     var kidDropdown = $("#KidID");
                     kidDropdown.empty();
@@ -91,5 +91,10 @@
                 }
             });
         });
+
+
+
     });
+
+
 </script>

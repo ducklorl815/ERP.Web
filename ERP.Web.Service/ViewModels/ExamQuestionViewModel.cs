@@ -14,11 +14,12 @@ namespace ERP.Web.Service.ViewModels
     public class ExamSearchListViewModel_param
     {
         public int Page { get; set; } = 1;
-
         public int PageSize { get; set; } = 15;
-
-
         public Paging Pager { get; set; }
+        public string ClassName { get; set; }
+        public string CorrectType { get; set; }
+        public string KidID { get; set; }
+
     }
     public class ExamSearchListViewModel_result
     {

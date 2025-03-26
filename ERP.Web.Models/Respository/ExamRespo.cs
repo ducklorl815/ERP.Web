@@ -53,12 +53,15 @@ namespace ERP.Web.Models.Respository
             sqlparam.Add("Question", param.Question);
             sqlparam.Add("Answer", param.Answer);
             sqlparam.Add("ClassName", param.ClassName);
+            sqlparam.Add("Category", param.Category);
+            
             var sql = @"
                         SELECT TOP 1 1 
                           FROM KidsWorld.dbo.Vocabulary
                           WHERE Question = @Question
                           AND Answer = @Answer
                           AND ClassName = @ClassName
+                          AND Category = @Category
                         "
             ;
 
