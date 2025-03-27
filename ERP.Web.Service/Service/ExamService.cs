@@ -19,18 +19,22 @@ namespace ERP.Web.Service.Service
 
         public async Task<ExamSearchListViewModel_result> GetListAsync(ExamSearchListViewModel_param param)
         {
+            var result = new ExamSearchListViewModel_result();
             //分頁功能
-            //var datacount = await _examRepo.GetListCountAsync();
+            var ExamKeyword = new ExamMainKeyword
+            {
+                ClassName = param.ClassName,
+                CorrectType = param.CorrectType,
+                KidID = param.KidID
+            };
 
-            //var pager = new Paging(param.Page, param.PageSize, datacount);
+            var datacount = await _examRepo.GetListCountAsync(ExamKeyword);
+            var pager = new Paging(param.Page, param.PageSize, datacount);
 
-            ////關鍵字搜尋
-            ////var deptdetlKeyword = _autoMapper.Map<DeptRepo.DeptdetlMainKeyword>(param.DeptdetlKeyword);
+            result.Pager = pager;
+            result.ExamDataList = await _examRepo.GetSearchListAsync(pager, ExamKeyword);
 
-            //result.Pager = pager;
-            //result.Deptdetl = await _deptRepo.GetSearchListAsync(pager, deptdetlKeyword, param.CompanyName);
-
-            return null;
+            return result;
         }
         public async Task<ExamSearchListViewModel_result> GetIndexAsync()
         {

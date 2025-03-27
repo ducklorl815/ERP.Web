@@ -28,6 +28,13 @@
             <option value="@kid.Value">@kid.Text</option>
         }
     </select>
+    @* <label for="SelectDate">選擇日期：</label>
+    <select id="SelectDate" name="SelectDate">
+        @foreach (var Date in Model.DateList)
+        {
+            <option value="@Date.Value">@Date.Text</option>
+        }
+    </select> *@
 
     <button type="submit">送出</button>
 </form>
@@ -37,6 +44,16 @@
 
 <hr />
 
+
+<div class="row">
+    <div class="col-lg-12">
+        <div class="ibox">
+            <div id="partial" class="ibox-content ibox-list-content">
+                <partial name="_SearchList" model="Model"><partial />
+            </div>
+        </div>
+    </div>
+</div>
 <script>
     $(document).ready(function () {
         $("#uploadForm").submit(function (e) {
@@ -71,25 +88,17 @@
             var ClassName = $("#Class").val();
             var CorrectType = $("#CorrectType").val();
             var KidID = $("#KidID").val();
-
             $.ajax({
-                url: '@Url.Action("GetList", "Exam")',
-                type: 'GET',
-                data: { ClassName: ClassName, CorrectType: CorrectType, KidID: KidID },
-                success: function (response) {
-                    var kidDropdown = $("#KidID");
-                    kidDropdown.empty();
-                    $.each(response, function (index, item) {
-                        kidDropdown.append($('<option>', {
-                            value: item.value,
-                            text: item.text
-                        }));
-                    });
-                },
-                error: function () {
-                    alert("無法取得學生列表！");
-                }
-            });
+                    url: '@Url.Action("GetList")',
+                    type: 'GET',
+                    data: {
+                        ClassName: ClassName, 
+                        CorrectType: CorrectType, 
+                        KidID: KidID
+                    }
+                }).done(function (result) {
+                    $('#partial').html(result);
+                });
         });
 
 

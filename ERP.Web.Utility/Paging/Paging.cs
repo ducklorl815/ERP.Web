@@ -1,9 +1,4 @@
-﻿using System;
-using System.Collections.Generic;
-using System.Text;
-
-namespace LifeTech.ERP.Utility.Paging
-{
+﻿
     public class Paging
     {
 
@@ -89,4 +84,3 @@ namespace LifeTech.ERP.Utility.Paging
         public Paging Pager { get; set; }
     }
 
-}

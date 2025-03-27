@@ -1,0 +1,60 @@
+﻿@model ERP.Web.Service.ViewModels.ExamSearchListViewModel_result
+
+<partial name="~/Views/Shared/_Page.cshtml" model="@Model.Pager" />
+<table class="footable table table-stripped toggle-arrow-tiny">
+    <thead>
+        <tr class="text-center" style="white-space:nowrap;background-color: #F0F0F0">
+            <td><input type="text" class="inputSty text-center" /></td>
+            <td><input type="text" class="inputSty text-center" /></td>
+            <td><input type="text" class="inputSty text-center" style="width:300px" /></td>
+            <td class="px-0">
+                <button class="btnSty" onclick="CodeMainCheck(this,'ERPJobTitle')" style="background-color:#d98757 !important">檢查</button>
+                <button class="btnSty" onclick="CodeMainInsert(this,'ERPJobTitle')" style="background-color:#0091DA !important">新增</button>
+            </td>
+            <td></td>
+
+            <td><input type="text" class="inputSty text-center" /></td>
+            <td><input type="text" class="inputSty text-center" /></td>
+            <td><input type="text" class="inputSty" maxlength="20" style="width:300px" /></td>
+            <td class="px-0">
+                <button class="btnSty" onclick="CodeMainCheck(this,'ERPPOST')" style="background-color:#d98757 !important">檢查</button>
+                <button class="btnSty" onclick="CodeMainInsert(this,'ERPPOST')" style="background-color:#0091DA !important">新增</button>
+            </td>
+            <td></td>
+        </tr>
+    </thead>
+    <thead>
+        <tr class="text-center" style="white-space:nowrap;background-color: #F0F0F0">
+            <th class="col-1" data-sort-ignore="true">排序</th>
+            <th class="col-1" data-sort-ignore="true">Code</th>
+            <th class="col-2" data-sort-ignore="true">職務</th>
+            <th class="col-1" data-sort-ignore="true">儲存</th>
+            <th class="col-1" data-sort-ignore="true"></th>
+
+            <th class="col-1" data-sort-ignore="true">排序</th>
+            <th class="col-1" data-sort-ignore="true">Code</th>
+            <th class="col-2" data-sort-ignore="true">職稱</th>
+            <th colspan="2" class="col-1" data-sort-ignore="true">科威不允許修改</th>
+
+        </tr>
+    </thead>
+    <tbody>
+        @foreach (var item in Model.ExamDataList)
+        {
+            <tr class="text-center">
+                <td><input type="text" class="inputSty text-center" value="@Html.DisplayFor(modelItem => item.Sort)" /></td>
+                <td><input type="text" class="inputSty text-center" value="@Html.DisplayFor(modelItem => item.Code)" /></td>
+                <td><input type="text" style="width: 300px" class="inputSty" maxlength="20" value="@Html.DisplayFor(modelItem => item.CodeName)" /></td>
+                <td class="px-0"><button class="btnSty" onclick="CodeMainSave(this,'@item2.ID','@item2.GrupCode')">儲存</button></td>
+                <th></th>
+
+            </tr>
+        }
+
+       
+    </tbody>
+</table>
+<partial name="~/Views/Shared/_Page.cshtml" model="@Model.Pager" />
+
+
+

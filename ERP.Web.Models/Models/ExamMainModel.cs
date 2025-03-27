@@ -16,4 +16,21 @@
         public string Class { get; set; }
         public string TestType { get; set; }
     }
+    public class ExamMainKeyword
+    {
+        public string ClassName { get; set; }
+        public string CorrectType { get; set; }
+        public string KidID { get; set; }
+        public DateTime TestDate { get; set; }
+    }
+    public class ExamMainModel
+    {
+        public string Class { get; set; }
+        public string TestType { get; set; }
+        public string Question { get; set; }
+        public string Answer { get; set; }
+        public string Cname { get; set; }
+        public int Correct { get; set; }
+        public DateTime TestDate { get; set; }
+    }
 }

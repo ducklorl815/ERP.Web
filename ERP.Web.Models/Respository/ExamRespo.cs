@@ -54,7 +54,7 @@ namespace ERP.Web.Models.Respository
             sqlparam.Add("Answer", param.Answer);
             sqlparam.Add("ClassName", param.ClassName);
             sqlparam.Add("Category", param.Category);
-            
+
             var sql = @"
                         SELECT TOP 1 1 
                           FROM KidsWorld.dbo.Vocabulary
@@ -189,6 +189,125 @@ namespace ERP.Web.Models.Respository
             {
                 return null;
             }
+        }
+
+        public async Task<int> GetListCountAsync(ExamMainKeyword param)
+        {
+            var sqlparam = new DynamicParameters();
+
+            var sql = $@"
+                    SELECT  count(*)
+                      FROM KidsWorld.dbo.KidExamWordIndex wl
+                      JOIN KidsWorld.dbo.Vocabulary w ON w.ID = wl.ExamID
+                      JOIN KidsWorld.dbo.KidTestIndex kti ON kti.ID = wl.KidTestIndexID 
+                      JOIN KidsWorld.dbo.KidMain km ON km.ID = kti.KidMainID  
+                      WHERE wl.Enabled = 1
+                      AND wl.Deleted = 0
+                      AND kti.Enabled = 1
+                      AND kti.Deleted = 0
+                        ";
+
+            #region 關鍵字搜尋
+            if (!string.IsNullOrEmpty(param.ClassName))
+            {
+                sqlparam.Add("Class", param.ClassName);
+                sql += $" AND kti.Class = @Class";
+            }
+            if (!string.IsNullOrEmpty(param.KidID))
+            {
+                sqlparam.Add("KidID", param.KidID);
+                sql += $" AND km.ID = @KidID";
+            }
+            if (!string.IsNullOrEmpty(param.CorrectType))
+            {
+                sqlparam.Add("Correct", param.CorrectType);
+                sql += $" AND Correct = @Correct";
+            }
+            if (param.TestDate != DateTime.MinValue)
+            {
+                sqlparam.Add("TestDate", param.TestDate);
+                sql += $" AND TestDate = (CONVERT(DATE,@TestDate))";
+            }
+            #endregion
+
+            using var conn = new SqlConnection(_dBList.erp);
+            try
+            {
+                var result = await conn.QueryFirstOrDefaultAsync<int>(sql, sqlparam);
+                return result;
+            }
+            catch (Exception)
+            {
+                return int.MinValue;
+            }
+        }
+
+        public async Task<List<ExamMainModel>> GetSearchListAsync(Paging pager, ExamMainKeyword param)
+        {
+            var sqlparam = new DynamicParameters();
+
+            var sql = $@"
+                    SELECT 
+	                       kti.Class
+	                      ,kti.TestType
+	                      ,w.Question
+	                      ,w.Answer
+	                      ,km.Cname
+                          ,Correct
+	                      ,(CONVERT(DATE,kti.TestDate)) as TestDate
+                      FROM KidsWorld.dbo.KidExamWordIndex wl
+                      JOIN KidsWorld.dbo.Vocabulary w ON w.ID = wl.ExamID
+                      JOIN KidsWorld.dbo.KidTestIndex kti ON kti.ID = wl.KidTestIndexID
+                      JOIN KidsWorld.dbo.KidMain km ON km.ID = kti.KidMainID
+                      WHERE wl.Enabled = 1
+                      AND wl.Deleted = 0
+                      AND kti.Enabled = 1
+                      AND kti.Deleted = 0
+                        ";
+
+            #region 關鍵字搜尋
+            if (!string.IsNullOrEmpty(param.ClassName))
+            {
+                sqlparam.Add("Class", param.ClassName);
+                sql += $" AND kti.Class = @Class";
+            }
+            if (!string.IsNullOrEmpty(param.KidID))
+            {
+                sqlparam.Add("KidID", param.KidID);
+                sql += $" AND km.ID = @KidID";
+            }
+            if (!string.IsNullOrEmpty(param.CorrectType))
+            {
+                sqlparam.Add("Correct", param.CorrectType);
+                sql += $" AND Correct = @Correct";
+            }
+            if (param.TestDate != DateTime.MinValue)
+            {
+                sqlparam.Add("TestDate", param.TestDate);
+                sql += $" AND TestDate = (CONVERT(DATE,@TestDate))";
+            }
+            #endregion
+
+            sql += " ORDER BY (CONVERT(DATE,kti.TestDate)) desc ";
+
+            //分頁功能
+            sqlparam.Add("Offset", pager.ItemStart - 1);
+            sqlparam.Add("Fetch", 200);
+            sql += "offset @Offset Rows ";
+            sql += "fetch next @Fetch Rows Only ";
+
+            using var conn = new SqlConnection(_dBList.erp);
+
+            try
+            {
+                var result = await conn.QueryAsync<ExamMainModel>(sql, sqlparam);
+                return result.ToList();
+            }
+            catch (Exception)
+            {
+                return null;
+            }
+
         }
 
         public async Task<bool> InsertExamIndex(Guid ExamID, Guid KidTestIndexID)

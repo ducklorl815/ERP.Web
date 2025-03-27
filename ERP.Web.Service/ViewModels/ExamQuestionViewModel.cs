@@ -1,6 +1,4 @@
 ﻿using ERP.Web.Models.Models;
-using LifeTech.ERP.Utility.Paging;
-using System.Net.NetworkInformation;
 using System.Web.Mvc;
 
 namespace ERP.Web.Service.ViewModels
@@ -11,18 +9,16 @@ namespace ERP.Web.Service.ViewModels
         public string Question { get; set; }
         public string Answer { get; set; } // 正確答案
     }
-    public class ExamSearchListViewModel_param
+    public class ExamSearchListViewModel_param : PageViewModel
     {
-        public int Page { get; set; } = 1;
-        public int PageSize { get; set; } = 15;
-        public Paging Pager { get; set; }
         public string ClassName { get; set; }
         public string CorrectType { get; set; }
         public string KidID { get; set; }
 
     }
-    public class ExamSearchListViewModel_result
+    public class ExamSearchListViewModel_result : ExamSearchListViewModel_param
     {
+        public List<ExamMainModel> ExamDataList { get; set; }
         public List<string> ClassNameList { get; set; }
         public List<SelectListItem> KidList { get; set; }
 
