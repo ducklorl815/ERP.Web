@@ -1,4 +1,5 @@
-﻿
+﻿namespace ERP.Web.Utility.Paging
+{
     public class Paging
     {
 
@@ -31,7 +32,8 @@
                 return;
 
             PageStart = pageNumber - (int)Math.Floor(showPageCount / 2.0);
-            if (PageStart < 1) { 
+            if (PageStart < 1)
+            {
                 PageStart = 1;
             }
             PageEnd = PageStart + showPageCount - 1;
@@ -84,3 +86,4 @@
         public Paging Pager { get; set; }
     }
 
+}

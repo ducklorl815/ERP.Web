@@ -1,6 +1,7 @@
 ﻿using ERP.Web.Models.Models;
 using ERP.Web.Models.Respository;
 using ERP.Web.Service.ViewModels;
+using ERP.Web.Utility.Paging;
 using Microsoft.AspNetCore.Http;
 using OfficeOpenXml;
 using System.Web.Mvc;
@@ -36,9 +37,22 @@ namespace ERP.Web.Service.Service
 
             return result;
         }
-        public async Task<ExamSearchListViewModel_result> GetIndexAsync()
+        public async Task<ExamSearchListViewModel_result> GetIndexAsync(ExamSearchListViewModel_param param)
         {
             var result = new ExamSearchListViewModel_result();
+            //分頁功能
+            var ExamKeyword = new ExamMainKeyword
+            {
+                ClassName = param.ClassName,
+                CorrectType = param.CorrectType,
+                KidID = param.KidID
+            };
+
+            var datacount = await _examRepo.GetListCountAsync(ExamKeyword);
+            var pager = new Paging(param.Page, param.PageSize, datacount);
+
+            result.Pager = pager;
+            result.ExamDataList = await _examRepo.GetSearchListAsync(pager, ExamKeyword);
 
             var tasks = new List<Task>
             {

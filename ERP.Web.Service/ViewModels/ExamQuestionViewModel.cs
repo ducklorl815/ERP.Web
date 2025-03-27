@@ -1,4 +1,5 @@
 ﻿using ERP.Web.Models.Models;
+using ERP.Web.Utility.Paging;
 using System.Web.Mvc;
 
 namespace ERP.Web.Service.ViewModels
