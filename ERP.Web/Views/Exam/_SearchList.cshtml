@@ -2,7 +2,7 @@
 
 <partial name="~/Views/Shared/_Page.cshtml" model="@Model.Pager" />
 <table class="footable table table-stripped toggle-arrow-tiny">
-    <thead>
+    @* <thead>
         <tr class="text-center" style="white-space:nowrap;background-color: #F0F0F0">
             <td><input type="text" class="inputSty text-center" /></td>
             <td><input type="text" class="inputSty text-center" /></td>
@@ -11,30 +11,31 @@
                 <button class="btnSty" onclick="CodeMainCheck(this,'ERPJobTitle')" style="background-color:#d98757 !important">檢查</button>
                 <button class="btnSty" onclick="CodeMainInsert(this,'ERPJobTitle')" style="background-color:#0091DA !important">新增</button>
             </td>
-
         </tr>
-    </thead>
+    </thead> *@
     <thead>
         <tr class="text-center" style="white-space:nowrap;background-color: #F0F0F0">
-            <th class="col-1" data-sort-ignore="true">排序</th>
-            <th class="col-1" data-sort-ignore="true">Code</th>
-            <th class="col-2" data-sort-ignore="true">職務</th>
-            <th class="col-1" data-sort-ignore="true">儲存</th>
-            <th class="col-1" data-sort-ignore="true"></th>
-
-
+            <th class="col-1" data-sort-ignore="true">類別</th>
+            <th class="col-1" data-sort-ignore="true">課程</th>
+            <th class="col-2" data-sort-ignore="true">問題</th>
+            <th class="col-1" data-sort-ignore="true">答案</th>
+            <th class="col-1" data-sort-ignore="true">答對</th>
+            <th class="col-1" data-sort-ignore="true">時間</th>
+            <th></th>
         </tr>
     </thead>
     <tbody>
-        
         @foreach (var item in Model.ExamDataList)
         {
             <tr class="text-center">
-                <td><input type="text" class="inputSty text-center" value="@Html.DisplayFor(modelItem => item.Cname)" /></td>
+                <td><input type="text" class="inputSty text-center" value="@Html.DisplayFor(modelItem => item.TestType)" /></td>
                 <td><input type="text" class="inputSty text-center" value="@Html.DisplayFor(modelItem => item.Class)" /></td>
-                <td><input type="text" style="width: 300px" class="inputSty" maxlength="20" value="@Html.DisplayFor(modelItem => item.Question)" /></td>
-                <td class="px-0"><button class="btnSty" onclick="CodeMainSave(this,'@item.Correct','@item.Correct')">儲存</button></td>
-                <th></th>
+                <td><input type="text" class="inputSty" maxlength="20" value="@Html.DisplayFor(modelItem => item.Question)" /></td>
+                <td><input type="text" class="inputSty" maxlength="20" value="@Html.DisplayFor(modelItem => item.Answer)" /></td>
+                <td><input type="text" class="inputSty" maxlength="20" value="@Html.DisplayFor(modelItem => item.Correct)" /></td>
+                <td><input type="text" class="inputSty" maxlength="20" value="@Html.DisplayFor(modelItem => item.TestDate)" /></td>
+                <td class="px-0"><button class="btnSty" onclick="CodeMainSave()">儲存</button></td>
+       
 
             </tr>
         }
@@ -42,7 +43,7 @@
        
     </tbody>
 </table>
-<partial name="_Page.cshtml" model="@Model.Pager" />
+<partial name="~/Views/Shared/_Page.cshtml" model="@Model.Pager" />
 
 
 

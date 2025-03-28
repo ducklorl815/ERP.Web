@@ -4,6 +4,9 @@ using ERP.Web.Utility.Models;
 
 var builder = WebApplication.CreateBuilder(args);
 
+// Razor §Y®É½sÄ¶
+builder.Services.AddControllersWithViews().AddRazorRuntimeCompilation();
+
 // Add services to the container.
 builder.Services.AddControllersWithViews();
 

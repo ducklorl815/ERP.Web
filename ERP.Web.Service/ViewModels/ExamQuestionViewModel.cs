@@ -22,7 +22,18 @@ namespace ERP.Web.Service.ViewModels
         public List<ExamMainModel> ExamDataList { get; set; }
         public List<string> ClassNameList { get; set; }
         public List<SelectListItem> KidList { get; set; }
-
+        public List<SelectListItem> TestTypeList
+        {
+            get
+            {
+                return new List<SelectListItem>
+            {
+                new SelectListItem { Text = "英文", Value = "English" },
+                //new SelectListItem { Text = "複習錯誤試題", Value = "1" }
+            };
+            }
+        }
+        
         public List<SelectListItem> CorrectList
         {
             get

@@ -7,6 +7,13 @@
 </form>
 
 <form method="get" action="@Url.Action("Test", "Exam")">
+    <label for="Class">科目：</label>
+    <select id="TestType" name="TestType">
+        @foreach (var testType in Model.TestTypeList)
+        {
+            <option value="@testType.Value">@testType.Text</option>
+        }
+    </select>
     <label for="Class">選擇考卷：</label>
     <select id="Class" name="Class">
         @foreach (var className in Model.ClassNameList)
@@ -85,9 +92,10 @@
         });
 
         $(document).on("change", "#Class, #CorrectType, #KidID", function () {
-            var ClassName = $("#Class").val();
-            var CorrectType = $("#CorrectType").val();
-            var KidID = $("#KidID").val();
+        var ClassName = $("#Class").val();
+        console.log("ClassName 改變為:", ClassName);
+        var CorrectType = $("#CorrectType").val();
+        var KidID = $("#KidID").val();
             $.ajax({
                     url: '@Url.Action("GetList")',
                     type: 'GET',
@@ -101,7 +109,22 @@
                 });
         });
 
-
+        var callback = function () {
+        var ClassName = $("#Class").val();
+        var CorrectType = $("#CorrectType").val();
+        var KidID = $("#KidID").val();
+            return {
+                method: "get",
+                url: '@Url.Action("GetList")',
+                footable: true,
+                data: {
+                    ClassName: ClassName,
+                    CorrectType: CorrectType,
+                    KidID: KidID
+                }
+            };
+        };
+        PageTurning(callback);
 
     });
 

@@ -12,6 +12,7 @@
 
   <ItemGroup>
     <ProjectReference Include="..\ERP.WEB.Service\ERP.WEB.Service.csproj" />
+
   </ItemGroup>
 
   <ItemGroup>

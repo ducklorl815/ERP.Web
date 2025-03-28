@@ -8,13 +8,9 @@ namespace ERP.Web.Controllers
         {
             ExamSearchListViewModel_result result = await _examService.GetIndexAsync(param);
             if (Request.IsAjaxRequest())
-            {
                 return PartialView("_SearchList", result);
-            }
             else
-            {
                 return View(result);
-            }
 
         }
         public async Task<IActionResult> GetList(ExamSearchListViewModel_param param)
