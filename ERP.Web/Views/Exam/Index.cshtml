@@ -52,141 +52,208 @@
     <button type="submit">送出</button>
 </form>
 
-<!-- 狀態訊息 -->
-<p id="uploadStatus"></p>
+    <!-- 這裡是放置 _Customize Modal 的地方 -->
+    <div id="modalContainer"></div>
+    <partial name="_Customize" model="Model"><partial />
 
-<hr />
-<!-- 引入 Select2 CSS -->
-<link href="https://cdn.jsdelivr.net/npm/select2@4.0.13/dist/css/select2.min.css" rel="stylesheet" />
+    <!-- 狀態訊息 -->
+    <p id="uploadStatus"></p>
 
-<!-- 引入 Select2 JS -->
-<script src="https://cdn.jsdelivr.net/npm/select2@4.0.13/dist/js/select2.min.js"></script>
+    <hr />
+    <!-- 引入 Select2 CSS -->
+    <link href="https://cdn.jsdelivr.net/npm/select2@4.0.13/dist/css/select2.min.css" rel="stylesheet" />
 
-<div class="row">
-    <div class="col-lg-12">
-        <div class="ibox">
-            <div id="partial" class="ibox-content ibox-list-content">
-                <partial name="_SearchList" model="Model"><partial />
+    <!-- 引入 Select2 JS -->
+    <script src="https://cdn.jsdelivr.net/npm/select2@4.0.13/dist/js/select2.min.js"></script>
+
+    <div class="row">
+        <div class="col-lg-12">
+            <div class="ibox">
+                <div id="partial" class="ibox-content ibox-list-content">
+                    <partial name="_SearchList" model="Model"><partial />
+
+                </div>
             </div>
         </div>
     </div>
-</div>
-<script>
-    $(document).ready(function () {
-        $("#uploadForm").submit(function (e) {
-            e.preventDefault(); // 防止表單提交
+    <script>
+        $(document).ready(function () {
 
-            var formData = new FormData();
-            var fileInput = $("#fileInput")[0].files[0];
 
-            if (!fileInput) {
-                $("#uploadStatus").text("請選擇 Excel 檔案");
+            $("#uploadForm").submit(function (e) {
+                e.preventDefault(); // 防止表單提交
+
+                var formData = new FormData();
+                var fileInput = $("#fileInput")[0].files[0];
+
+                if (!fileInput) {
+                    $("#uploadStatus").text("請選擇 Excel 檔案");
+                    return;
+                }
+
+                formData.append("file", fileInput);
+
+                $.ajax({
+                    url: "@Url.Action("Upload", "Exam")",
+                    type: "POST",
+                    data: formData,
+                    processData: false,
+                    contentType: false,
+                    success: function (response) {
+                        $("#uploadStatus").text("上傳成功！");
+                    },
+                    error: function () {
+                        $("#uploadStatus").text("上傳失敗，請重試");
+                    }
+                });
+            });
+
+            $(document).on("change", "#Class, #CorrectType, #KidID", function () {
+            var ClassNameList = $("#Class").val() || [];
+            var CorrectType = $("#CorrectType").val();
+            var KidID = $("#KidID").val();
+                $.ajax({
+                        url: '@Url.Action("GetList")',
+                        type: 'GET',
+                        traditional: true, // 讓 jQuery 正確傳遞陣列
+                        data: {
+                            ClassNameList: ClassNameList,
+                            CorrectType: CorrectType,
+                            KidID: KidID
+                        }
+                    }).done(function (result) {
+                        $('#partial').html(result);
+                    });
+            });
+
+                $("#Class").select2({
+                placeholder: "請選擇考卷", // 設定預設提示文字
+                allowClear: true // 允許清除選項
+            });
+
+            var callback = function () {
+            var ClassName = $("#Class").val();
+            var CorrectType = $("#CorrectType").val();
+            var KidID = $("#KidID").val();
+                return {
+                    method: "get",
+                    url: '@Url.Action("GetList")',
+                    footable: true,
+                    data: {
+                        ClassName: ClassName,
+                        CorrectType: CorrectType,
+                        KidID: KidID
+                    }
+                };
+            };
+            PageTurning(callback);
+
+        });
+
+        function CodeMainSave() {
+            // 取得選中的 checkbox 所對應的 WordID
+            var selectedWordIDs = [];
+            $("input[name^='selectedQuestions']:checked").each(function() {
+                selectedWordIDs.push($(this).val());  // 取得 WordID
+            });
+
+            // 取得 KidID 和 TestType
+            var KidID = $("#KidID").val();
+            var TestType = $("#TestType").val();
+
+            // 彈出視窗要求輸入考券名稱
+            var className = prompt("請輸入考券名稱:");
+
+            // 檢查使用者是否輸入了考券名稱
+            if (className) {
+                // 顯示選擇的資料
+                console.log("選中的 WordIDs: ", selectedWordIDs);
+                console.log("KidID: ", KidID);
+                console.log("TestType: ", TestType);
+                console.log("ClassName: ", className);
+
+                // 假設在這裡提交數據到後端
+                $.ajax({
+                    url: '@Url.Action("Submit", "Exam")',  // 更改為您的提交動作
+                    type: 'POST',
+                    data: {
+                        selectedWordIDs: selectedWordIDs,
+                        KidID: KidID,
+                        TestType: TestType,
+                        ClassName: className
+                    },
+                    success: function(response) {
+                        alert("資料已成功提交！");
+                    },
+                    error: function(xhr, status, error) {
+                        alert("提交失敗，請再試一次！");
+                    }
+                });
+            } else {
+                alert("請輸入考券名稱！");
+            }
+        }
+        function openModal() {
+            var selectedWordIDs = [];
+            $("input[name^='selectedQuestions']:checked").each(function() {
+                selectedWordIDs.push($(this).val());
+            });
+
+        // 顯示已選擇的題目數量
+        $("#selectedWordCountValue").html("&nbsp;" + selectedWordIDs.length);
+                // 取得 TestType 值並設定
+        var testType = $("#TestType").val();
+        $("#modalTestType").val(testType).change();
+ 
+
+        // 取得 KidID 值並設定
+        var kidID = $("#KidID").val();
+        $("#modalKidID").val(kidID).change();
+
+
+            // 顯示 modal
+            $("#examModal").fadeIn();
+        }
+
+        function closeModal() {
+            $("#examModal").fadeOut();
+        }
+
+        function submitExamData() {
+            var selectedWordIDs = [];
+            $("input[name^='selectedQuestions']:checked").each(function() {
+                selectedWordIDs.push($(this).val());
+            });
+
+            var KidID = $("#modalKidID").val();
+            var TestType = $("#modalTestType").val();
+            var CorrectType = $("#modalCorrectType").val();
+            var ClassName = $("#modalClass").val(); // 多選
+
+            // **驗證所有欄位是否選擇**
+            if (!KidID || !TestType || !CorrectType || !ClassName.length) {
+                alert("請確保所有選項均已選擇！");
                 return;
             }
 
-            formData.append("file", fileInput);
-
+            // **提交數據到後端**
             $.ajax({
-                url: "@Url.Action("Upload", "Exam")",
-                type: "POST",
-                data: formData,
-                processData: false,
-                contentType: false,
-                success: function (response) {
-                    $("#uploadStatus").text("上傳成功！");
-                },
-                error: function () {
-                    $("#uploadStatus").text("上傳失敗，請重試");
-                }
-            });
-        });
-
-        $(document).on("change", "#Class, #CorrectType, #KidID", function () {
-        var ClassNameList = $("#Class").val() || [];
-        var CorrectType = $("#CorrectType").val();
-        var KidID = $("#KidID").val();
-            $.ajax({
-                    url: '@Url.Action("GetList")',
-                    type: 'GET',
-                    traditional: true, // 讓 jQuery 正確傳遞陣列
-                    data: {
-                        ClassNameList: ClassNameList,
-                        CorrectType: CorrectType, 
-                        KidID: KidID
-                    }
-                }).done(function (result) {
-                    $('#partial').html(result);
-                });
-        });
-
-               $("#Class").select2({
-            placeholder: "請選擇考卷", // 設定預設提示文字
-            allowClear: true // 允許清除選項
-        });
-
-
-
-        var callback = function () {
-        var ClassName = $("#Class").val();
-        var CorrectType = $("#CorrectType").val();
-        var KidID = $("#KidID").val();
-            return {
-                method: "get",
-                url: '@Url.Action("GetList")',
-                footable: true,
-                data: {
-                    ClassName: ClassName,
-                    CorrectType: CorrectType,
-                    KidID: KidID
-                }
-            };
-        };
-        PageTurning(callback);
-
-    });
-
-        function CodeMainSave() {
-        // 取得選中的 checkbox 所對應的 WordID
-        var selectedWordIDs = [];
-        $("input[name^='selectedQuestions']:checked").each(function() {
-            selectedWordIDs.push($(this).val());  // 取得 WordID
-        });
-
-        // 取得 KidID 和 TestType
-        var KidID = $("#KidID").val();
-        var TestType = $("#TestType").val();
-
-        // 彈出視窗要求輸入考券名稱
-        var className = prompt("請輸入考券名稱:");
-
-        // 檢查使用者是否輸入了考券名稱
-        if (className) {
-            // 顯示選擇的資料
-            console.log("選中的 WordIDs: ", selectedWordIDs);
-            console.log("KidID: ", KidID);
-            console.log("TestType: ", TestType);
-            console.log("ClassName: ", className);
-
-            // 假設在這裡提交數據到後端
-            $.ajax({
-                url: '@Url.Action("Submit", "Exam")',  // 更改為您的提交動作
+                url: '@Url.Action("Submit", "Exam")',
                 type: 'POST',
                 data: {
                     selectedWordIDs: selectedWordIDs,
                     KidID: KidID,
                     TestType: TestType,
-                    ClassName: className
+                    CorrectType: CorrectType,
+                    ClassName: ClassName
                 },
                 success: function(response) {
                     alert("資料已成功提交！");
+                    closeModal(); // 關閉 Modal
                 },
                 error: function(xhr, status, error) {
                     alert("提交失敗，請再試一次！");
                 }
             });
-        } else {
-            alert("請輸入考券名稱！");
         }
-    }
-
-</script>
+    </script>

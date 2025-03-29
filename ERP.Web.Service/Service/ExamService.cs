@@ -45,7 +45,7 @@ namespace ERP.Web.Service.Service
             {
                 Task.Run(async()=>
                     result.KidList = (await _examRepo.GetKidListAsync())
-                    .Select(x=> new SelectListItem{ Text = x.Item2,Value = x.Item1.ToString()}).ToList()),
+                    .Select(x=> new SelectListItem{ Text = x.Item2,Value = x.Item1.ToString().Trim()}).ToList()),
 
                 Task.Run(async()=>
                         result.ClassNameList = await _examRepo.GetExamListAsync())
