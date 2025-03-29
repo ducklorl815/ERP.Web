@@ -209,10 +209,10 @@ namespace ERP.Web.Models.Respository
                         ";
 
             #region 關鍵字搜尋
-            if (!string.IsNullOrEmpty(param.ClassName))
+            if (param.ClassNameList?.Any() == true)
             {
-                sqlparam.Add("Class", param.ClassName);
-                sql += $" AND kti.Class = @Class";
+                sql += " AND kti.Class IN @Class";
+                sqlparam.Add("Class", param.ClassNameList);
             }
             if (!string.IsNullOrEmpty(param.KidID))
             {
@@ -251,6 +251,7 @@ namespace ERP.Web.Models.Respository
                     SELECT 
 	                       kti.Class
 	                      ,kti.TestType
+	                      ,w.ID as WordID
 	                      ,w.Question
 	                      ,w.Answer
 	                      ,km.Cname
@@ -267,11 +268,12 @@ namespace ERP.Web.Models.Respository
                         ";
 
             #region 關鍵字搜尋
-            if (!string.IsNullOrEmpty(param.ClassName))
+            if (param.ClassNameList?.Any() == true)
             {
-                sqlparam.Add("Class", param.ClassName);
-                sql += $" AND kti.Class = @Class";
+                sql += " AND kti.Class IN @Class";
+                sqlparam.Add("Class", param.ClassNameList);
             }
+
             if (!string.IsNullOrEmpty(param.KidID))
             {
                 sqlparam.Add("KidID", param.KidID);

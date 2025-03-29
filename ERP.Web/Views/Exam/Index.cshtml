@@ -9,27 +9,33 @@
 <form method="get" action="@Url.Action("Test", "Exam")">
     <label for="Class">科目：</label>
     <select id="TestType" name="TestType">
+        <option value="">請選擇</option>
         @foreach (var testType in Model.TestTypeList)
         {
             <option value="@testType.Value">@testType.Text</option>
         }
     </select>
+
     <label for="Class">選擇考卷：</label>
-    <select id="Class" name="Class">
+    <select id="Class" name="Class" multiple="multiple">
         @foreach (var className in Model.ClassNameList)
         {
             <option value="@className">@className</option>
         }
     </select>
+
     <label for="CorrectType">選擇題目類型：</label>
     <select id="CorrectType" name="CorrectType">
+        <option value="">請選擇</option>
         @foreach (var item in Model.CorrectList)
         {
             <option value="@item.Value">@item.Text</option>
         }
     </select>
+
     <label for="KidID">選擇學生：</label>
     <select id="KidID" name="KidID">
+        <option value="">請選擇</option>
         @foreach (var kid in Model.KidList)
         {
             <option value="@kid.Value">@kid.Text</option>
@@ -50,7 +56,11 @@
 <p id="uploadStatus"></p>
 
 <hr />
+<!-- 引入 Select2 CSS -->
+<link href="https://cdn.jsdelivr.net/npm/select2@4.0.13/dist/css/select2.min.css" rel="stylesheet" />
 
+<!-- 引入 Select2 JS -->
+<script src="https://cdn.jsdelivr.net/npm/select2@4.0.13/dist/js/select2.min.js"></script>
 
 <div class="row">
     <div class="col-lg-12">
@@ -92,15 +102,15 @@
         });
 
         $(document).on("change", "#Class, #CorrectType, #KidID", function () {
-        var ClassName = $("#Class").val();
-        console.log("ClassName 改變為:", ClassName);
+        var ClassNameList = $("#Class").val() || [];
         var CorrectType = $("#CorrectType").val();
         var KidID = $("#KidID").val();
             $.ajax({
                     url: '@Url.Action("GetList")',
                     type: 'GET',
+                    traditional: true, // 讓 jQuery 正確傳遞陣列
                     data: {
-                        ClassName: ClassName, 
+                        ClassNameList: ClassNameList,
                         CorrectType: CorrectType, 
                         KidID: KidID
                     }
@@ -108,6 +118,13 @@
                     $('#partial').html(result);
                 });
         });
+
+               $("#Class").select2({
+            placeholder: "請選擇考卷", // 設定預設提示文字
+            allowClear: true // 允許清除選項
+        });
+
+
 
         var callback = function () {
         var ClassName = $("#Class").val();
@@ -128,5 +145,48 @@
 
     });
 
+        function CodeMainSave() {
+        // 取得選中的 checkbox 所對應的 WordID
+        var selectedWordIDs = [];
+        $("input[name^='selectedQuestions']:checked").each(function() {
+            selectedWordIDs.push($(this).val());  // 取得 WordID
+        });
+
+        // 取得 KidID 和 TestType
+        var KidID = $("#KidID").val();
+        var TestType = $("#TestType").val();
+
+        // 彈出視窗要求輸入考券名稱
+        var className = prompt("請輸入考券名稱:");
+
+        // 檢查使用者是否輸入了考券名稱
+        if (className) {
+            // 顯示選擇的資料
+            console.log("選中的 WordIDs: ", selectedWordIDs);
+            console.log("KidID: ", KidID);
+            console.log("TestType: ", TestType);
+            console.log("ClassName: ", className);
+
+            // 假設在這裡提交數據到後端
+            $.ajax({
+                url: '@Url.Action("Submit", "Exam")',  // 更改為您的提交動作
+                type: 'POST',
+                data: {
+                    selectedWordIDs: selectedWordIDs,
+                    KidID: KidID,
+                    TestType: TestType,
+                    ClassName: className
+                },
+                success: function(response) {
+                    alert("資料已成功提交！");
+                },
+                error: function(xhr, status, error) {
+                    alert("提交失敗，請再試一次！");
+                }
+            });
+        } else {
+            alert("請輸入考券名稱！");
+        }
+    }
 
 </script>

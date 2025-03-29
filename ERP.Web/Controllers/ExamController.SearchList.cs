@@ -42,23 +42,6 @@ namespace ERP.Web.Controllers
             return View(result);
         }
 
-        [HttpPost]
-        public IActionResult Submit(List<string> answers)
-        {
-            var correctAnswers = new List<string> { "is", "go", "rises" };
-            int score = 0;
-
-            for (int i = 0; i < correctAnswers.Count; i++)
-            {
-                if (answers[i].Trim().ToLower() == correctAnswers[i])
-                {
-                    score++;
-                }
-            }
-
-            ViewBag.Score = score;
-            return View("Result");
-        }
     }
 
 }

@@ -1,49 +1,39 @@
 ﻿@model ERP.Web.Service.ViewModels.ExamSearchListViewModel_result
 
 <partial name="~/Views/Shared/_Page.cshtml" model="@Model.Pager" />
-<table class="footable table table-stripped toggle-arrow-tiny">
-    @* <thead>
-        <tr class="text-center" style="white-space:nowrap;background-color: #F0F0F0">
-            <td><input type="text" class="inputSty text-center" /></td>
-            <td><input type="text" class="inputSty text-center" /></td>
-            <td><input type="text" class="inputSty text-center" style="width:300px" /></td>
-            <td class="px-0">
-                <button class="btnSty" onclick="CodeMainCheck(this,'ERPJobTitle')" style="background-color:#d98757 !important">檢查</button>
-                <button class="btnSty" onclick="CodeMainInsert(this,'ERPJobTitle')" style="background-color:#0091DA !important">新增</button>
-            </td>
-        </tr>
-    </thead> *@
-    <thead>
-        <tr class="text-center" style="white-space:nowrap;background-color: #F0F0F0">
-            <th class="col-1" data-sort-ignore="true">類別</th>
-            <th class="col-1" data-sort-ignore="true">課程</th>
-            <th class="col-2" data-sort-ignore="true">問題</th>
-            <th class="col-1" data-sort-ignore="true">答案</th>
-            <th class="col-1" data-sort-ignore="true">答對</th>
-            <th class="col-1" data-sort-ignore="true">時間</th>
-            <th></th>
+
+<table class="table table-bordered table-hover">
+    <thead class="table-light">
+        <tr class="text-center">
+            <th class="col-1">選擇</th>
+            <th class="col-2">課程</th>
+            <th class="col-4">問題</th>
+            <th class="col-4">答案</th>
+            <th class="col-1">答錯</th>
+            <th class="col-2">時間</th>
+            <th class="col-1"><button class="btn btn-primary btn-sm" onclick="CodeMainSave()">修正</button></th>
         </tr>
     </thead>
     <tbody>
         @foreach (var item in Model.ExamDataList)
         {
-            <tr class="text-center">
-                <td><input type="text" class="inputSty text-center" value="@Html.DisplayFor(modelItem => item.TestType)" /></td>
-                <td><input type="text" class="inputSty text-center" value="@Html.DisplayFor(modelItem => item.Class)" /></td>
-                <td><input type="text" class="inputSty" maxlength="20" value="@Html.DisplayFor(modelItem => item.Question)" /></td>
-                <td><input type="text" class="inputSty" maxlength="20" value="@Html.DisplayFor(modelItem => item.Answer)" /></td>
-                <td><input type="text" class="inputSty" maxlength="20" value="@Html.DisplayFor(modelItem => item.Correct)" /></td>
-                <td><input type="text" class="inputSty" maxlength="20" value="@Html.DisplayFor(modelItem => item.TestDate)" /></td>
-                <td class="px-0"><button class="btnSty" onclick="CodeMainSave()">儲存</button></td>
-       
-
+            <tr class="text-center align-middle">
+                <td>
+                    <input type="checkbox" class="form-check-input" name="selectedQuestions[@item.WordID]" />
+                </td>
+                <td>@item.Class</td> 
+                <td><input type="text" class="form-control" value="@item.Question" /></td>
+                <td><input type="text" class="form-control" value="@item.Answer" /></td>
+                <td>
+                    <input type="checkbox" class="form-check-input" @(item.Correct == 1 ? "checked" : "") />
+                </td>
+                <td>@item.TestDate.ToString("yyyy/MM/dd")</td> @* 測驗時間純文字顯示 *@
+                <td>
+                    <button class="btn btn-primary btn-sm" onclick="CodeMainSave()">修正</button>
+                </td>
             </tr>
         }
-
-       
     </tbody>
 </table>
+
 <partial name="~/Views/Shared/_Page.cshtml" model="@Model.Pager" />
-
-
-

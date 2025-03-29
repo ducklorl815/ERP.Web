@@ -18,13 +18,14 @@
     }
     public class ExamMainKeyword
     {
-        public string ClassName { get; set; }
+        public List<string> ClassNameList { get; set; }
         public string CorrectType { get; set; }
         public string KidID { get; set; }
         public DateTime TestDate { get; set; }
     }
     public class ExamMainModel
     {
+        public Guid WordID { get; set; }
         public string Class { get; set; }
         public string TestType { get; set; }
         public string Question { get; set; }

@@ -24,7 +24,7 @@ namespace ERP.Web.Service.Service
             //分頁功能
             var ExamKeyword = new ExamMainKeyword
             {
-                ClassName = param.ClassName,
+                ClassNameList = param.ClassNameList,
                 CorrectType = param.CorrectType,
                 KidID = param.KidID
             };

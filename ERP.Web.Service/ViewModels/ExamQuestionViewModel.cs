@@ -12,7 +12,7 @@ namespace ERP.Web.Service.ViewModels
     }
     public class ExamSearchListViewModel_param : PageViewModel
     {
-        public string ClassName { get; set; }
+        public List<string> ClassNameList { get; set; }
         public string CorrectType { get; set; }
         public string KidID { get; set; }
 
@@ -33,7 +33,7 @@ namespace ERP.Web.Service.ViewModels
             };
             }
         }
-        
+
         public List<SelectListItem> CorrectList
         {
             get
