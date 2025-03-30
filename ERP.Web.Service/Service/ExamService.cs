@@ -73,14 +73,14 @@ namespace ERP.Web.Service.Service
             }
 
             //取得考試資料
-            result.VocabularyList = await GetExamData(Class);
+            result.VocabularyList = await GetExamData(Class, KidID);
 
             // 出過的題目存入資料庫
             Guid NewKidTestID = await _examRepo.InsertKidTestIndex(Class, "English", KidID);
 
             foreach (var word in result.VocabularyList)
             {
-                await _examRepo.InsertExamIndex(word.ID, NewKidTestID);
+                await _examRepo.InsertExamIndex(word.WordID, NewKidTestID);
             }
 
             return result;
@@ -90,7 +90,7 @@ namespace ERP.Web.Service.Service
         /// </summary>
         /// <param name="Class"></param>
         /// <returns></returns>
-        private async Task<List<Vocabulary>> GetExamData(string Class)
+        private async Task<List<Vocabulary>> GetExamData(string Class, string KidID)
         {
             var Category = string.Empty;
             List<string> ClassArrey = new List<string>();
@@ -109,70 +109,68 @@ namespace ERP.Web.Service.Service
             int ClassNum = int.Parse(ClassNumChk);
 
 
-            var listVocabulary = await _examRepo.GetExamDataAsync(ClassName, ClassNum);
+            var listVocabulary = await _examRepo.GetExamDataAsync(ClassName, ClassNum, Category);
 
             // 依 ClassNum 降序排列（最新的在前）
             var groupedByClass = listVocabulary
                 .GroupBy(x => new { x.ClassNum, x.Category }) // 依 ClassNum 和 Category 分組
                 .OrderByDescending(g => g.Key.ClassNum == ClassNum) // 讓指定 ClassNum 優先
-                .ThenByDescending(g => g.Key.Category == Category) // 其他 Category 維持降序
                 .ThenByDescending(g => g.Key.ClassNum) // 其他 ClassNum 維持降序
-                .ThenBy(g => g.Key.Category)// 在相同 ClassNum 下依 Category 升序排列
                 .ToList();
 
             // 設定權重（依課程遠近分配）
             var distribution = new Dictionary<int, double>
             {
                 { 0, 1 },   // 目前課程
-                { 1, 0.3 }, // 前一個課程
-                { 2, 0.2 }, // 前前一個課程
+                { 1, 0.1 }, // 前一個課程
+                { 2, 0.1 }, // 前前一個課程
                 { 3, 0.1 }  // 其餘課程
             };
 
-            int totalWordQuestions = 20;
-            int totalPhraseQuestions = 16;
+            int totalQuestions = 20;
 
-            List<Vocabulary> finalWordQuestions = new List<Vocabulary>();
-            List<Vocabulary> finalPhraseQuestions = new List<Vocabulary>();
+            List<Vocabulary> finalQuestions = new List<Vocabulary>();
 
             // 先處理前三個課程（依據 distribution 權重）
-            for (int i = 0; i < Math.Min(3, groupedByClass.Count); i++)
+            for (int i = 0; i < Math.Min(4, groupedByClass.Count); i++)
             {
                 double percentage = distribution[i];
-                int wordCount = (int)Math.Round(totalWordQuestions * percentage);
-                int phraseCount = (int)Math.Round(totalPhraseQuestions * percentage);
+                int totalCount = (int)Math.Round(totalQuestions * percentage);
 
-                var words = groupedByClass[i].Where(x => x.Type == "Word").OrderBy(x => Guid.NewGuid()).ToList();
-                var phrases = groupedByClass[i].Where(x => x.Type == "Phrase").OrderBy(x => Guid.NewGuid()).ToList();
+                var words = groupedByClass[i].ToList();
 
-                finalWordQuestions.AddRange(words.Take(wordCount));
-                finalPhraseQuestions.AddRange(phrases.Take(phraseCount));
+                // i = 0 時，不過濾 Correct，其他情況下過濾 Correct > 0，並依 Correct 降序排列
+                if (i != 0)
+                {
+                    words = words.Where(x => x.Correct > 0 && x.KidID == Guid.Parse(KidID))
+                                 .OrderByDescending(x => x.Correct) // 優先拿 Correct 較大的
+                                 .ToList();
+                }
+
+                // 隨機排序後取前 totalCount 筆
+                var selectedWords = words.OrderBy(x => Guid.NewGuid()).Take(totalCount).ToList();
+
+                // 確保不超過 totalQuestions
+                int remainingSlots = totalQuestions - finalQuestions.Count;
+                finalQuestions.AddRange(selectedWords.Take(remainingSlots));
+
+                // 題目滿 20 題就跳出
+                if (finalQuestions.Count >= totalQuestions) break;
             }
 
-            // 如果題目不足 15 題，補滿
-            if (finalWordQuestions.Count < totalWordQuestions)
+            // 如果題目不足 20 題，補滿
+            if (finalQuestions.Count < totalQuestions)
             {
-                var remainingWords = listVocabulary.Where(x => x.Type == "Word" && !finalWordQuestions.Contains(x))
+                int remainingSlots = totalQuestions - finalQuestions.Count;
+
+                var remainingWords = listVocabulary.Where(x => !finalQuestions.Contains(x))
                                                    .OrderBy(x => Guid.NewGuid())
+                                                   .Take(remainingSlots) // 只補足夠的數量
                                                    .ToList();
-                finalWordQuestions.AddRange(remainingWords);
+
+                finalQuestions.AddRange(remainingWords);
             }
 
-            if (finalPhraseQuestions.Count < totalPhraseQuestions)
-            {
-                var remainingPhrases = listVocabulary.Where(x => x.Type == "Phrase" && !finalPhraseQuestions.Contains(x))
-                                                     .OrderBy(x => Guid.NewGuid())
-                                                     .ToList();
-                finalPhraseQuestions.AddRange(remainingPhrases);
-            }
-
-            // **嚴格限制單字和片語各 15 題**
-            finalWordQuestions = finalWordQuestions.Take(totalWordQuestions).ToList();
-            finalPhraseQuestions = finalPhraseQuestions.Take(totalPhraseQuestions).ToList();
-            // **最終合併並隨機排序**
-            List<Vocabulary> finalQuestions = finalWordQuestions.Concat(finalPhraseQuestions)
-                                             .OrderBy(x => Guid.NewGuid())
-                                            .ToList();
             return finalQuestions;
         }
 

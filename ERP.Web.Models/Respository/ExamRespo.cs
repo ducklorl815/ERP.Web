@@ -80,20 +80,25 @@ namespace ERP.Web.Models.Respository
             }
         }
 
-        public async Task<List<Vocabulary>> GetExamDataAsync(string ClassName, int ClassNum)
+        public async Task<List<Vocabulary>> GetExamDataAsync(string ClassName, int ClassNum, string Category)
         {
             var sqlparam = new DynamicParameters();
             sqlparam.Add("ClassName", ClassName);
             sqlparam.Add("ClassNum", ClassNum);
+            sqlparam.Add("Category", Category);
 
             var sql = @"
                 DECLARE @targetClass INT = @ClassNum;
                 DECLARE @minRange INT = CASE WHEN @targetClass - 10 < 0 THEN 0 ELSE @targetClass - 10 END; 
                 DECLARE @MaxRange INT = @targetClass + 10; 
 
-                SELECT ID,Type, ClassNum, ClassName, Category, Question, Answer
-                FROM KidsWorld.dbo.Vocabulary
+                SELECT DISTINCT w.ID as WordID, Type, ClassNum, ClassName, Category, Question, Answer, km.ID as KidID,wi.Correct
+                FROM KidsWorld.dbo.Vocabulary w
+                LEFT JOIN KidsWorld.dbo.KidExamWordIndex wi ON wi.ExamID = w.ID
+                LEFT JOIN KidsWorld.dbo.KidTestIndex kti ON kti.ID = wi.KidTestIndexID
+                LEFT JOIN KidsWorld.dbo.KidMain km ON km.ID = kti.KidMainID
                 WHERE ClassName = @ClassName
+                AND Category = @Category
                 AND ClassNum BETWEEN @minRange AND @MaxRange;
             ";
 
@@ -250,6 +255,7 @@ namespace ERP.Web.Models.Respository
             var sql = $@"
                     SELECT 
 	                       kti.Class
+						  ,w.Category
 	                      ,kti.TestType
 	                      ,w.ID as WordID
 	                      ,w.Question
@@ -295,7 +301,7 @@ namespace ERP.Web.Models.Respository
 
             //分頁功能
             sqlparam.Add("Offset", pager.ItemStart - 1);
-            sqlparam.Add("Fetch", 200);
+            sqlparam.Add("Fetch", pager.PageSize);
             sql += "offset @Offset Rows ";
             sql += "fetch next @Fetch Rows Only ";
 
