@@ -1,0 +1,75 @@
+﻿/* 24吋以下 */
+@media screen and (min-width: 1681px) and (max-width: 1800px) {
+    .rwdsize {
+        font-size: 14px !important
+    }
+
+    .nav.navbar-top-links a {
+        font-size: 14px !important
+    }
+}
+
+/* 22吋 */
+@media screen and (min-width: 1441px) and (max-width: 1680px) {
+    .rwdsize {
+        font-size: 12px !important
+    }
+    .nav.navbar-top-links a {
+        font-size: 12px !important
+    }
+}
+
+/* 20吋 */
+@media screen and (min-width: 1281px) and (max-width: 1440px) {
+    .rwdsize {
+        font-size: 10px !important
+    }
+    .nav.navbar-top-links a {
+        font-size: 10px !important
+    }
+}
+
+/* 18吋 */
+@media screen and (min-width: 1101px) and (max-width: 1280px) {
+    .rwdsize {
+        font-size: 12px !important
+    }
+
+    .nav.navbar-top-links a {
+        display: none !important
+    }
+}
+
+@media screen and (max-width: 1100px) {
+    .rwdsize {
+        font-size: 10px !important
+    }
+
+    .nav.navbar-top-links a {
+        display: none !important
+    }
+}
+
+@media (max-width: 768px) {
+    .navbar-collapse {
+        display: flex !important;
+        flex-direction: column;
+    }
+
+    .navbar-nav {
+        width: 100%; /* 避免寬度壓縮 */
+    }
+
+    .nav-item {
+        text-align: left; /* 修正文字對齊 */
+        width: 100%; /* 確保項目填滿 */
+        margin-top: 3px;
+        margin-left: 10px;
+        font-size: 16px;
+    }
+
+    .dropdown-menu {
+        position: static !important; /* 確保下拉選單不超出畫面 */
+        width: 100%; /* 下拉選單佔滿寬度 */
+    }
+}

@@ -1,0 +1,349 @@
+﻿/*--改按鈕等主色start--*/
+.spin-icon {
+    background: #0091DA;
+}
+
+.pace .pace-progress {
+    background: #0091DA;
+}
+
+.nav > li.active {
+    border-left: 4px solid #0091DA;
+}
+
+.navbar-default .special_link a {
+    background: #0091DA;
+}
+
+    .navbar-default .special_link a:hover {
+        background: #1d6a96 !important;
+    }
+
+.pagination .footable-page.active a {
+    background-color: #0091DA;
+    border-color: #0091DA;
+}
+
+.dropdown-menu > .active > a, .dropdown-menu > .active > a:focus, .dropdown-menu > .active > a:hover {
+    background-color: #0091DA;
+}
+
+.select2-container--default .select2-results__option--highlighted[aria-selected] {
+    background-color: #0091DA;
+}
+
+.select2-container--default.select2-container--focus .select2-selection--single,
+.select2-container--default.select2-container--focus .select2-selection--multiple {
+    border-color: #0091DA;
+}
+
+.top-navigation .navbar-brand {
+    background: #0091DA;
+}
+
+.navbar-toggler {
+    background-color: #0091DA;
+}
+
+.top-navigation .nav > li > a:hover {
+    color: #0091DA !important;
+}
+
+.top-navigation .nav > li.show > a {
+    color: #0091DA !important;
+}
+
+.top-navigation .dropdown-menu > li > a:hover {
+    color: #0091DA !important;
+}
+
+.sk-spinner-fading-circle .sk-circle:before {
+    background-color: #0091DA;
+}
+
+.textarea:focus,
+textarea:focus,
+input[type="text"]:focus,
+input[type="password"]:focus,
+input[type="datetime"]:focus,
+input[type="datetime-local"]:focus,
+input[type="date"]:focus,
+input[type="month"]:focus,
+input[type="time"]:focus,
+input[type="week"]:focus,
+input[type="number"]:focus,
+input[type="email"]:focus,
+input[type="url"]:focus,
+input[type="search"]:focus,
+input[type="tel"]:focus,
+input[type="color"]:focus,
+.uneditable-input:focus {
+    border-color: #0091DA;
+}
+
+.custom-file-input:focus ~ .custom-file-label::after {
+    border-color: #0091DA;
+}
+
+.custom-file-input:focus ~ .custom-file-label {
+    border-color: #0091DA;
+}
+
+.table tr:hover td {
+    background: #c7d4dd;
+}
+/*--改按鈕等主色end--*/
+
+/* 改文字字體顏色start */
+body {
+    font-family: "open sans", "Helvetica Neue", Helvetica, Arial, sans-serif,"微軟正黑體";
+    color: #444;
+}
+/* 改文字字體顏色end */
+
+
+/*--垂直跑馬燈 CSS START--*/
+.vert .carousel-item-next.carousel-item-left, .vert .carousel-item-prev.carousel-item-right {
+    -webkit-transform: translate3d(0, 0, 0);
+    transform: translate3d(0, 0, 0);
+
+}
+
+.vert .carousel-item-next,
+.vert .active.carousel-item-right {
+    -webkit-transform: translate3d(0, 100%, 0);
+    transform: translate3d(0, 100% 0);
+
+}
+
+.vert .carousel-item-prev,
+.vert .active.carousel-item-left {
+    -webkit-transform: translate3d(0,-100%, 0);
+    transform: translate3d(0,-100%, 0);
+
+}
+
+/*垂直走馬燈*/
+#carouselExampleControls {
+    overflow: hidden;
+    font-size: 1rem;
+    padding: 10px 5px;
+    width: 100%;
+    padding-left: 24px;
+    display: block;
+    line-height: 2 !important;
+}
+
+
+    #carouselExampleControls a {
+        color: #676a6c;
+        font-weight: bold;
+
+    }
+
+        #carouselExampleControls a:hover {
+            color: #474a4c;
+        }
+
+@media (max-width: 768px) {
+    #carouselExampleControls {
+        display: none;
+    }
+}
+
+/* IE10+ CSS */
+@media all and (-ms-high-contrast: none), (-ms-high-contrast: active) {
+    #carouselExampleControls {
+        padding: 20px 20px;
+        width: auto;
+        overflow: hidden; /*设置一个高度，溢出隐藏*/
+    }
+}
+/*--垂直跑馬燈 CSS END--*/
+
+/*--自動補字CSS START--*/
+
+.typeahead.dropdown-menu {
+    right: auto; /*修正自動補字Item Menu 寬度全開*/
+}
+
+.typeahead {
+    max-height: 200px;
+    overflow-y: auto; /*設定最高高度*/
+    overflow-x: hidden;
+}
+/*--自動補字CSS END--*/
+
+/* Select2 custom styles start */
+.select2-container--default .select2-search--inline .select2-search__field {
+    padding-left: 6px;
+    font-size: 14px;
+}
+
+.select2-container--default .select2-selection--single,
+.select2-container--default .select2-selection--multiple {
+    border-color: #e7eaec;
+    border-radius: 0px;
+    height: 31px;
+    transition: border-color 0.15s ease-in-out 0s, box-shadow 0.15s ease-in-out 0s;
+}
+
+.select2-container--default .select2-search--dropdown .select2-search__field {
+    border-color: #e7eaec;
+}
+
+.select2-container--default .select2-selection--single .select2-selection__placeholder {
+    color: #6d757d;
+    font-size: 14px;
+}
+
+.select2-dropdown {
+    border-color: #e7eaec;
+}
+
+    .select2-dropdown input:focus {
+        outline: none;
+    }
+
+.select2-selection {
+    outline: none;
+}
+
+.ui-select-container.ui-select-bootstrap .ui-select-choices-row.active > a {
+    background-color: #1ab394;
+}
+
+.select2-container .select2-selection--single .select2-selection__rendered {
+    padding-left: 12px;
+}
+
+div.form-control-sm {
+    padding: 0px;
+}
+
+/* Select2 custom styles end */
+
+/* awsome checkbox raido custom styles start */
+
+div.radio, div.checkbox {
+    display: flex;
+    align-items: center;
+    /*padding-left: 12px;*/
+}
+
+    div.radio label, div.checkbox label {
+        margin-bottom: 0px;
+        margin-right: 20px;
+    }
+/* awsome checkbox raido custom styles end */
+
+/* side menu styles start */
+
+.nav-header, body.mini-navbar.fixed-sidebar .nav-header {
+    padding: 7px 7px;
+}
+
+    .nav-header .rounded-circle {
+        float: left;
+        margin-right: 7px
+    }
+
+    .nav-header .dropdown-menu {
+        min-width: 9rem;
+    }
+
+#side-menu li.menu2, #side-menu li.menu3 {
+    /*display: none;*/
+}
+
+/* side menu styles end */
+
+/* spinner styles start */
+
+.sk-spinner-fading-circle.sk-spinner {
+    width: 45px;
+    height: 80px;
+}
+/* spinner styles end */
+
+/* upload file start */
+.custom-file {
+    height: 31px;
+}
+
+.custom-file-input {
+    height: 31px;
+}
+
+    .custom-file-input:focus ~ .custom-file-label {
+        box-shadow: none;
+    }
+/* upload file end*/
+/* help components start */
+.help-components-input {
+}
+
+#HelpIconButton {
+    font-size: 15pt;
+}
+/* help components end */
+
+/* block ui start*/
+.blockUI.blockOverlay {
+    z-index: 3000 !important;
+}
+
+.blockUI.blockMsg.blockPage {
+    z-index: 3001 !important;
+}
+/* block ui end*/
+
+/* table start */
+.table > thead > tr > th, .table > tbody > tr > th, .table > tfoot > tr > th, .table > thead > tr > td, .table > tbody > tr > td, .table > tfoot > tr > td {
+    padding: 5px;
+}
+/* table end*/
+/*  ibox 內相關 start */
+.ibox {
+    margin-bottom: 10px;
+}
+
+#accordion .panel-heading {
+    padding: 5px 15px;
+}
+
+input[name=ModalRadio] {
+    cursor: pointer;
+}
+
+input[name=PageSize] {
+    height: 28.29px;
+    width: 36px;
+}
+
+/* ibox 內相關 padding end */
+
+/* sweet alert start */
+.sweet-alert {
+    top: 30%;
+}
+/* sweet alert end */
+
+/* page start */
+.page-block li.disabled {
+    color: #f1e0e0;
+}
+/* page end*/
+/* disabled icon start */
+.icon-disable {
+    color: #a5a0a0;
+    cursor: no-drop;
+}
+/* disabled icon end */
+
+/* select2 border width start */
+.select2-dropdown {
+    border-width: 5px;
+}
+/* select2 border width end */
+
