@@ -11430,6 +11430,9 @@ body.md-skin {
     padding-left: 52px;
 }
 
+.nav-third-level li a {
+    padding-left: 62px;
+}
 .md-skin.top-navigation .nav.navbar-right > li > a {
     padding: 15px 20px;
     color: #676a6c;

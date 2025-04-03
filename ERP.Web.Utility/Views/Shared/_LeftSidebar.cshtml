@@ -35,7 +35,17 @@
                         <a href="@Url.Action("Index", "SeatMap")">座位圖</a>
                     </li>
                     <li>
-                        <a href="@Url.Action("Index", "Exam")">考券</a>
+
+                        <a href="#">考券</a>
+                        <ul class="nav nav-third-level collapse">
+                            <li>
+                                <a href="@Url.Action("NewTest", "Exam", new { CorrectType = 0 })">新試題</a>
+                            </li>
+                            <li>
+                                <a href="@Url.Action("ReTest", "Exam", new { CorrectType = 1 })">複習試題</a>
+                            </li>
+                            <li><a href="carousel.html">Bootstrap 相册</a></li>
+                        </ul>
                     </li>
                     <li>
                         <a href="dashboard_4_1.html">主页示例 v.4</a>
@@ -208,7 +218,6 @@
                     <li><a href="basic_gallery.html">基本图库</a></li>
                     <li><a href="slick_carousel.html">图片切换</a></li>
                     <li><a href="carousel.html">Bootstrap 相册</a></li>
-
                 </ul>
             </li>
             <li>

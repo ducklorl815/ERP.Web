@@ -1,6 +1,6 @@
 ﻿@model ERP.Web.Service.ViewModels.ExamSearchListViewModel_result
 
-<div class="modal fade" id="newTestModal" tabindex="-1" aria-labelledby="newTestModalLabel" aria-hidden="true">
+    <div class="modal fade" id="newTestModal" style="display: none;">
     <div class="modal-dialog">
         <div class="modal-content">
             <div class="modal-header">
@@ -19,7 +19,7 @@
                     </select>
 
                     <label for="Class">選擇考卷：</label>
-                    <select id="Class" name="Class" multiple="multiple" class="form-select">
+                    <select id="Class" name="Class" class="form-select">
                         @foreach (var className in Model.ClassNameList)
                         {
                             <option value="@className">@className</option>
@@ -53,3 +53,7 @@
         </div>
     </div>
 </div>
+<!-- 引入 Select2 CSS -->
+<link href="https://cdn.jsdelivr.net/npm/select2@4.0.13/dist/css/select2.min.css" rel="stylesheet" />
+<!-- 引入 Select2 JS -->
+<script src="https://cdn.jsdelivr.net/npm/select2@4.0.13/dist/js/select2.min.js"></script>
