@@ -1,6 +1,7 @@
 using ERP.Web.Models.Respository;
 using ERP.Web.Service.Service;
 using ERP.Web.Utility.Models;
+using Microsoft.Extensions.FileProviders;
 
 var builder = WebApplication.CreateBuilder(args);
 
@@ -33,6 +34,14 @@ if (!app.Environment.IsDevelopment())
 
 app.UseHttpsRedirection();
 app.UseStaticFiles();
+
+app.UseDeveloperExceptionPage();
+app.UseStaticFiles(new StaticFileOptions
+{
+    FileProvider = new PhysicalFileProvider(Path.GetFullPath(@"..\ERP.Web.Utility\StaticFiles")),
+    RequestPath = "/StaticFiles"
+});
+
 
 app.UseRouting();
 

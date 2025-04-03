@@ -92,6 +92,7 @@ namespace ERP.Web.Service.Service
         /// <returns></returns>
         private async Task<List<Vocabulary>> GetExamData(string Class, string KidID)
         {
+            Class = "I'll teach my dog 100 words HW 03";
             var Category = string.Empty;
             List<string> ClassArrey = new List<string>();
             if (Class.Contains("Sp"))

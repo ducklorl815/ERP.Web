@@ -4,7 +4,7 @@
     <meta charset="utf-8" />
     <meta name="viewport" content="width=device-width, initial-scale=1.0" />
     <title>@ViewData["Title"] - ERP.Web</title>
-
+    @*<script src="~/StaticFiles/lib/jquery/dist/jquery.min.js"></script>*@
     <link href="~/css/bootstrap.css" rel="stylesheet" />
     <link href="~/font-awesome/css/fontawesome.css" rel="stylesheet" />
     <link href="~/css/animate.css" rel="stylesheet" />
@@ -64,24 +64,24 @@
 </head>
 <body>
     <div id="wrapper">
-
-        <partial name="_LeftSidebar"></partial>
+        <!-- Top Navbar -->
+        @Html.Partial("_LeftSidebar")
 
         <div id="page-wrapper" class="gray-bg dashbard-1">
 
-            <partial name="_Header"></partial>
+            @Html.Partial("_Header")
 
             <main role="main" class="pb-3">
                 @RenderBody()
             </main>
 
-            <partial name="_Footer"></partial>
+            @Html.Partial("_Footer")
 
         </div>
 
-        <partial name="_RightSidebar"></partial>
+        @Html.Partial("_RightSidebar")
 
-        <partial name="_SmallChat"></partial>
+        @Html.Partial("_SmallChat")
 
     </div>
 
