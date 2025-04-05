@@ -11,6 +11,14 @@
             <div class="ibox">
                 <div class="ibox-content">
                     <div>
+                        <label for="KidID" class="mt-3">選擇學生：</label>
+                        <select id="KidID" name="KidID" class="form-select">
+                            <option value="">請選擇</option>
+                            @foreach (var kid in Model.KidList)
+                            {
+                                <option value="@kid.Value">@kid.Text</option>
+                            }
+                        </select>
                         <partial name="_Customize" model="Model">
                     </div>
                     <div class="row">
@@ -58,10 +66,11 @@
             });
         });
 
-        $(document).on("change", "#Class, #CorrectType, #KidID", function () {
+        $(document).on("change", "#Class, #CorrectType, #KidID, #TestDate", function () {
             var ClassNameList = $("#Class").val() || [];
             var CorrectType = $("#CorrectType").val();
             var KidID = $("#KidID").val();
+            var TestDate = $("#TestDate").val();
             $.ajax({
                 url: '@Url.Action("GetList")',
                 type: 'GET',
@@ -69,10 +78,15 @@
                 data: {
                     ClassNameList: ClassNameList,
                     CorrectType: CorrectType,
-                    KidID: KidID
+                    KidID: KidID,
+                    TestDate:TestDate
                 }
             }).done(function (result) {
+                if (result.TestDate) {
+                $("#TestDate").val(result.TestDate);
+                }
                 $('#partial').html(result);
+
             });
         });
 
@@ -97,37 +111,21 @@
 
     });
 
-    function CodeMainSave() {
-        // 取得選中的 checkbox 所對應的 WordID
-        var selectedWordIDs = [];
-        $("input[name^='selectedQuestions']:checked").each(function () {
-            selectedWordIDs.push($(this).val());  // 取得 WordID
-        });
-
-        // 取得 KidID 和 TestType
+    function CodeMainSave(e) {
+        var WordID = $(e).data("wordid");
+        var Correct = $(e).closest("tr").find(".correct-checkbox").prop("checked");
+        var TestDate = $(e).closest("tr").find("td[data-testdate]").data("testdate");;
         var KidID = $("#KidID").val();
-        var TestType = $("#TestType").val();
-
-        // 彈出視窗要求輸入考券名稱
-        var className = prompt("請輸入考券名稱:");
-
-        // 檢查使用者是否輸入了考券名稱
-        if (className) {
-            // 顯示選擇的資料
-            console.log("選中的 WordIDs: ", selectedWordIDs);
-            console.log("KidID: ", KidID);
-            console.log("TestType: ", TestType);
-            console.log("ClassName: ", className);
-
-            // 假設在這裡提交數據到後端
+        
+        if (WordID) {
             $.ajax({
-                url: '@Url.Action("Submit", "Exam")',  // 更改為您的提交動作
+                url: '@Url.Action("UpdateExamWord", "Exam")',  // 更改為您的提交動作
                 type: 'POST',
                 data: {
-                    selectedWordIDs: selectedWordIDs,
+                    WordID: WordID,
                     KidID: KidID,
-                    TestType: TestType,
-                    ClassName: className
+                    TestDate: TestDate,
+                    Correct: Correct
                 },
                 success: function (response) {
                     alert("資料已成功提交！");
@@ -140,6 +138,9 @@
             alert("請輸入考券名稱！");
         }
     }
+
+
+
     function openModal() {
         var selectedWordIDs = [];
         $("input[name^='selectedQuestions']:checked").each(function () {

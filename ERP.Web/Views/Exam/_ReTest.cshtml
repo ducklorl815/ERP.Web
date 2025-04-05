@@ -2,7 +2,15 @@
 
 <partial name="~/Views/Shared/_Page.cshtml" model="@Model.Pager" />
 
+<label for="TestDate" class="mt-3">選擇日期：</label>
+<select id="TestDate" name="TestDate" class="form-select">
 
+    <option value="">請選擇</option>
+    @foreach (var TestDate in Model.TestDateList)
+    {
+        <option value="@TestDate.Value" >@TestDate.Text</option>
+    }
+</select>
 
 <table class="table table-bordered table-hover">
     <thead class="table-light">
@@ -21,17 +29,17 @@
         {
             <tr class="text-center align-middle">
                 <td>
-                    <input type="checkbox" class="form-check-input" name="selectedQuestions[@item.WordID]" value="@item.WordID" />
+                    <input type="checkbox" class="form-check-input" name="selectedQuestions[@item.WordID]" />
                 </td>
                 <td>@item.Class</td> 
                 <td><input type="text" class="form-control" value="@item.Question" /></td>
                 <td><input type="text" class="form-control" value="@item.Answer" /></td>
                 <td>
-                    <input type="checkbox" class="form-check-input" @(item.Correct == 1 ? "checked" : "") />
+                    <input type="checkbox" class="form-check-input correct-checkbox" @(item.Correct == 1 ? "checked" : "") />
                 </td>
-                <td>@item.TestDate.ToString("yyyy/MM/dd")</td> @* 測驗時間純文字顯示 *@
+                <td data-testdate="@item.TestDate">@item.TestDate.ToString("yyyy/MM/dd")</td>
                 <td>
-                    <button class="btn btn-primary btn-sm" onclick="CodeMainSave()">修正</button>
+                    <button class="btn btn-primary btn-sm" data-wordid="@item.WordID" onclick="CodeMainSave(this)">修正</button>
                 </td>
             </tr>
         }

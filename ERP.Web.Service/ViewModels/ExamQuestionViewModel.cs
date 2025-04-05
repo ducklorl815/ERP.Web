@@ -15,14 +15,19 @@ namespace ERP.Web.Service.ViewModels
         public List<string> ClassNameList { get; set; }
         public string TestType { get; set; }
         public string CorrectType { get; set; }
+        public string TestDate { get; set; }
         public string KidID { get; set; }
+        public string WordID { get; set; }
+        public bool Correct { get; set; }
 
     }
     public class ExamSearchListViewModel_result : ExamSearchListViewModel_param
     {
+        public string TestDate { get; set; }
         public List<ExamMainModel> ExamDataList { get; set; }
         public List<string> ClassNameList { get; set; }
         public List<SelectListItem> KidList { get; set; }
+        public List<SelectListItem> TestDateList { get; set; }
         public List<SelectListItem> TestTypeList
         {
             get

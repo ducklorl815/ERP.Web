@@ -232,7 +232,7 @@ namespace ERP.Web.Models.Respository
             if (param.TestDate != DateTime.MinValue)
             {
                 sqlparam.Add("TestDate", param.TestDate);
-                sql += $" AND TestDate = (CONVERT(DATE,@TestDate))";
+                sql += $" AND CONVERT(DATE, kti.TestDate) = @TestDate";
             }
             #endregion
 
@@ -293,7 +293,7 @@ namespace ERP.Web.Models.Respository
             if (param.TestDate != DateTime.MinValue)
             {
                 sqlparam.Add("TestDate", param.TestDate);
-                sql += $" AND TestDate = (CONVERT(DATE,@TestDate))";
+                sql += $" AND CONVERT(DATE, kti.TestDate) = @TestDate";
             }
             #endregion
 
@@ -317,6 +317,34 @@ namespace ERP.Web.Models.Respository
                 return null;
             }
 
+        }
+
+        public async Task<List<DateTime>> GetTestDateList(string KidID)
+        {
+            var sqlparam = new DynamicParameters();
+            sqlparam.Add("KidMainID", KidID);
+
+            var sql = @"
+                      SELECT DISTINCT CONVERT(date, TestDate)
+                      FROM KidsWorld.dbo.KidTestIndex
+                      WHERE KidMainID = @KidMainID
+                      AND Enabled = 1
+                      AND Deleted = 0
+                        "
+            ;
+
+            using var conn = new SqlConnection(_dBList.erp);
+
+            try
+            {
+                var result = await conn.QueryAsync<DateTime>(sql, sqlparam);
+                return result.ToList();
+
+            }
+            catch
+            {
+                return null;
+            }
         }
 
         public async Task<bool> InsertExamIndex(Guid ExamID, Guid KidTestIndexID)
@@ -457,5 +485,43 @@ namespace ERP.Web.Models.Respository
             }
         }
 
+        public async Task<bool> UpdateExamWord(string WordID, string KidID, string TestDate, bool Correct)
+        {
+
+            var sqlparam = new DynamicParameters();
+            sqlparam.Add("ExamID", WordID);
+            sqlparam.Add("KidMainID", KidID);
+            sqlparam.Add("TestDate", DateTime.Parse(TestDate));
+            sqlparam.Add("Correct", Correct);
+            var sql = @"
+                    UPDATE KEWI
+                    SET 
+                        KEWI.Correct = @Correct, 
+                        KEWI.ModifyDate = GETDATE() 
+                    FROM 
+                        KidsWorld.dbo.KidExamWordIndex KEWI
+                    JOIN 
+                        KidsWorld.dbo.KidTestIndex KTI 
+                        ON KTI.ID = KEWI.KidTestIndexID  
+                    WHERE 
+                        CAST(KTI.TestDate AS DATE) = CAST(@TestDate AS DATE) 
+                        AND KTI.KidMainID = @KidMainID  
+                        AND KEWI.ExamID = @ExamID  
+                        "
+            ;
+
+            using var conn = new SqlConnection(_dBList.erp);
+
+            try
+            {
+                var result = await conn.ExecuteAsync(sql, sqlparam);
+                return result > 0;
+
+            }
+            catch
+            {
+                return false;
+            }
+        }
     }
 }

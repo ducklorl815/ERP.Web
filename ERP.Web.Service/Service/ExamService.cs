@@ -20,20 +20,38 @@ namespace ERP.Web.Service.Service
 
         public async Task<ExamSearchListViewModel_result> GetListAsync(ExamSearchListViewModel_param param)
         {
-            var result = new ExamSearchListViewModel_result();
+            var result = new ExamSearchListViewModel_result()
+            {
+                TestDateList = new List<SelectListItem>(),
+                TestDate = param.TestDate
+            };
             //分頁功能
             var ExamKeyword = new ExamMainKeyword
             {
                 ClassNameList = param.ClassNameList,
                 CorrectType = param.CorrectType,
-                KidID = param.KidID
+                KidID = param.KidID,
             };
+            if (param.TestDate != null)
+                ExamKeyword.TestDate = DateTime.Parse(param.TestDate);
 
             var datacount = await _examRepo.GetListCountAsync(ExamKeyword);
             var pager = new Paging(param.Page, param.PageSize, datacount);
 
             result.Pager = pager;
             result.ExamDataList = await _examRepo.GetSearchListAsync(pager, ExamKeyword);
+            var tasks = new List<Task>
+            {
+                Task.Run(async()=>
+                    result.KidList = (await _examRepo.GetKidListAsync())
+                    .Select(x=> new SelectListItem{ Text = x.Item2,Value = x.Item1.ToString().Trim()}).ToList()),
+                Task.Run(async()=>
+                    result.TestDateList =(await _examRepo.GetTestDateList(param.KidID))
+                    .Select(x=> new SelectListItem{Text=x.Date.ToString("yyyy/MM/dd"),Value=x.Date.ToString("yyyy/MM/dd")}).ToList()),
+                Task.Run(async()=>
+                        result.ClassNameList = await _examRepo.GetExamListAsync())
+            };
+            await Task.WhenAll(tasks);
 
             return result;
         }
@@ -46,7 +64,9 @@ namespace ERP.Web.Service.Service
                 Task.Run(async()=>
                     result.KidList = (await _examRepo.GetKidListAsync())
                     .Select(x=> new SelectListItem{ Text = x.Item2,Value = x.Item1.ToString().Trim()}).ToList()),
-
+                Task.Run(async()=>
+                    result.TestDateList =(await _examRepo.GetTestDateList(param.KidID))
+                    .Select(x=> new SelectListItem{Text=x.Date.ToString(),Value=x.Date.ToString()}).ToList()),
                 Task.Run(async()=>
                         result.ClassNameList = await _examRepo.GetExamListAsync())
             };
@@ -287,5 +307,14 @@ namespace ERP.Web.Service.Service
             }
         }
 
+        public async Task<bool> UpdateExamWord(ExamSearchListViewModel_param param)
+        {
+            if (string.IsNullOrEmpty(param.WordID))
+                return false;
+
+            bool ChkUpdate = await _examRepo.UpdateExamWord(param.WordID, param.KidID, param.TestDate, param.Correct);
+
+            return ChkUpdate;
+        }
     }
 }

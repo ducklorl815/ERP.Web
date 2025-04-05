@@ -1,5 +1,8 @@
 ﻿using ERP.Web.Service.ViewModels;
 using Microsoft.AspNetCore.Mvc;
+
+
+
 namespace ERP.Web.Controllers
 {
     public partial class ExamController : Controller
@@ -9,7 +12,7 @@ namespace ERP.Web.Controllers
             param.CorrectType = "1";
             ExamSearchListViewModel_result result = await _examService.GetIndexAsync(param);
             if (Request.IsAjaxRequest())
-                return PartialView("_SearchList", result);
+                return PartialView("_ReTest", result);
             else
                 return View(result);
 
@@ -23,10 +26,11 @@ namespace ERP.Web.Controllers
 
         public async Task<IActionResult> GetList(ExamSearchListViewModel_param param)
         {
-            ExamSearchListViewModel_result result = await _examService.GetListAsync(param);
+
+            var result = await _examService.GetListAsync(param);
             if (Request.IsAjaxRequest())
             {
-                return PartialView("_SearchList", result);
+                return PartialView("_ReTest", result);
             }
             else
             {
