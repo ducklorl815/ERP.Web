@@ -13,6 +13,7 @@ namespace ERP.Web.Service.ViewModels
     public class ExamSearchListViewModel_param : PageViewModel
     {
         public List<string> ClassNameList { get; set; }
+        public string TestType { get; set; }
         public string CorrectType { get; set; }
         public string KidID { get; set; }
 

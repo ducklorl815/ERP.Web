@@ -20,16 +20,18 @@
     .answer-line {
         display: block;
         width: 100%;
-        border: none;
-        border-bottom: 1px;
-        font-size: 18px;
-        padding: 18px;
-        outline: none;
+        border: 0.5px solid #d7d5d5;
+        /* border-bottom: 1px black; */
+        font-size: 16px;
+        padding: 12px;
+        /* outline: outset; */
     }
+    
 
-    /* 片語部分強制換頁 */
+
+    /* 強制換頁 */
     .page-break {
-        page-break-before: always; /* 列印時片語會從新的一頁開始 */
+        page-break-before: always;
     }
 
     /* 提交按鈕置中 */
@@ -39,14 +41,16 @@
     }
 
     .exam-title {
+        font-size: 16px;
+        margin-top: 8px;
+        margin-bottom: 8px;
         font-weight: bold;
-        font-size: 8px;
     }
 
     .exam-section {
-        font-size: 18px;
-        margin-top: 20px;
-        margin-bottom: 15px;
+        font-size: 16px;
+        margin-top: 8px;
+        margin-bottom: 8px;
         font-weight: bold;
     }
 </style>
@@ -56,25 +60,22 @@
         var words = Model.VocabularyList.Where(x => x.Type == "Word").ToList();
         var phrases = Model.VocabularyList.Where(x => x.Type == "Phrase").ToList();
     }
-    @if (words.Any())
+
+    @if (words.Any() || phrases.Any())
     {
-        @for (int X = 0; X < 2; X++)
-        {
-            <div class="exam-container page-break">
-                <!-- 單字考卷 -->
+        <div class="exam-container">
+            <div style="display: flex; justify-content: space-between;">
+                <label class="exam-title">
+                    @Model.Title 英文試卷
+                </label>
+                <label class="exam-section mt-4">
+                    姓名:_________________________
+                </label>
+            </div>
 
-                <div style="display: flex; justify-content: space-between;">
-                    <label class="exam-section">
-                        單字測驗 ( 寫出中文所代表的意思 )
-                    </label>
-                    <label class="exam-title">
-                        @Model.Title 英文試卷
-                    </label>
-                    <label class="exam-section">
-                        姓名:_________________________
-                    </label>
-                </div>
-
+            @if (words.Any())
+            {
+                <div class="exam-section">單字測驗 (寫出中文所代表的意思)</div>
                 @for (int i = 0; i < words.Count; i++)
                 {
                     <div>
@@ -85,93 +86,61 @@
                         <input type="text" class="answer-line" name="answers[@i]" required />
                     </div>
                 }
-
-            </div>
-        }
-    }
-
-    @* 只有在單字考卷後才換頁，確保有內容時才顯示換頁標籤 *@
-    @if (words.Any())
-    {
-        <div class="exam-container page-break">
-            <div style="display: flex; justify-content: space-between;">
-                <label class="exam-section">
-                    單字測驗 ( 寫出中文所代表的意思 )
-                </label>
-                <label class="exam-title">
-                    @Model.Title 英文答案卷
-                </label>
-            </div>
-            <!-- 單字考卷答案部分 -->
-            @for (int i = 0; i < words.Count; i++)
-            {
-                <div>
-                    <span class="question-number">@(i + 1).</span>
-                    <span class="question-text">@words[i].Question</span>
-                </div>
-                <div class="answer-line">
-                    <span style="background-color:lightgray">@words[i].Answer</span>
-                </div>
             }
-        </div>
-    }
 
-    @* 只有在片語考卷存在時才強制換頁 *@
-    @if (phrases.Any())
-    {
-        @for (int y = 0; y < 2; y++)
-        {
-            <div class="exam-container page-break">
-                <!-- 片語考卷 -->
-                <div style="display: flex; justify-content: space-between;">
-                    <label class="exam-section">
-                        片語測驗 ( 寫出對應的問句或回答 )
-                    </label>
-                    <label class="exam-title">
-                        @Model.Title 英文試卷
-                    </label>
-                    <label class="exam-section">
-                        姓名:_________________________
-                    </label>
-                </div>
+            @if (phrases.Any())
+            {
+                <div class="exam-section">片語測驗 (寫出對應的問句或回答)</div>
                 @for (int i = 0; i < phrases.Count; i++)
                 {
                     <div>
-                        <span class="question-number">@(i + 1).</span>
+                        <span class="question-number">@(words.Count + i + 1).</span>
                         <span class="question-text">@phrases[i].Question</span>
                     </div>
                     <div>
                         <input type="text" class="answer-line" name="answers[@(words.Count + i)]" required />
                     </div>
                 }
-            </div>
-        }
+            }
+        </div>
 
-
+        <!-- 答案卷 -->
         <div class="exam-container page-break">
-            <!-- 片語考卷答案部分 -->
             <div style="display: flex; justify-content: space-between;">
-                <label class="exam-section">
-                    片語測驗 ( 寫出對應的問句或回答 )
-                </label>
                 <label class="exam-title">
                     @Model.Title 英文答案卷
                 </label>
             </div>
-            @for (int i = 0; i < phrases.Count; i++)
+
+            @if (words.Any())
             {
-                <div>
-                    <span class="question-number">@(i + 1).</span>
-                    <span class="question-text">@phrases[i].Question</span>
-                </div>
-                <div class="answer-line">
-                    <span style="background-color:lightgray">@phrases[i].Answer</span>
-                </div>
+                <div class="exam-section">單字測驗答案</div>
+                @for (int i = 0; i < words.Count; i++)
+                {
+                    <div>
+                        <span class="question-number">@(i + 1).</span>
+                        <span class="question-text">@words[i].Question</span>
+                    </div>
+                    <div class="answer-line">
+                        <span style="background-color:lightgray">@words[i].Answer</span>
+                    </div>
+                }
+            }
+
+            @if (phrases.Any())
+            {
+                <div class="exam-section">片語測驗答案</div>
+                @for (int i = 0; i < phrases.Count; i++)
+                {
+                    <div>
+                        <span class="question-number">@(words.Count + i + 1).</span>
+                        <span class="question-text">@phrases[i].Question</span>
+                    </div>
+                    <div class="answer-line">
+                        <span style="background-color:lightgray">@phrases[i].Answer</span>
+                    </div>
+                }
             }
         </div>
     }
-
-    @* <div class="submit-container">
-    <button type="submit">提交</button>
-    </div> *@
 </form>

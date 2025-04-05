@@ -6,6 +6,7 @@ namespace ERP.Web.Controllers
     {
         public async Task<IActionResult> ReTest(ExamSearchListViewModel_param param)
         {
+            param.CorrectType = "1";
             ExamSearchListViewModel_result result = await _examService.GetIndexAsync(param);
             if (Request.IsAjaxRequest())
                 return PartialView("_SearchList", result);
@@ -15,12 +16,9 @@ namespace ERP.Web.Controllers
         }
         public async Task<IActionResult> NewTest(ExamSearchListViewModel_param param)
         {
+            param.CorrectType = "0";
             ExamSearchListViewModel_result result = await _examService.GetIndexAsync(param);
-            if (Request.IsAjaxRequest())
-                return PartialView("_SearchList", result);
-            else
-                return View(result);
-
+            return View(result);
         }
 
         public async Task<IActionResult> GetList(ExamSearchListViewModel_param param)
@@ -45,9 +43,10 @@ namespace ERP.Web.Controllers
             var chkUpload = await _examService.GetUploadFileAsync(file);
             return Json("true");
         }
-        public async Task<IActionResult> Test(string Class, string KidID)
+        public async Task<IActionResult> Test(ExamSearchListViewModel_param param)
         {
-            var result = await _examService.GetExamDataAsync(Class, KidID);
+
+            var result = await _examService.GetExamDataAsync(param);
 
             return View(result);
         }

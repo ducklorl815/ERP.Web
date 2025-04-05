@@ -1,59 +1,58 @@
 ﻿@model ERP.Web.Service.ViewModels.ExamSearchListViewModel_result
 
-    <div class="modal fade" id="newTestModal" style="display: none;">
-    <div class="modal-dialog">
-        <div class="modal-content">
-            <div class="modal-header">
-                <h5 class="modal-title" id="newTestModalLabel">請填寫考試資訊</h5>
-                <button type="button" class="btn-close" data-bs-dismiss="modal" aria-label="Close"></button>
-            </div>
-            <div class="modal-body">
-                <form method="get" action="@Url.Action("Test", "Exam")">
-                    <label for="TestType" class="mt-3">科目：</label>
-                    <select id="TestType" name="TestType" class="form-select">
-                        <option value="">請選擇</option>
-                        @foreach (var testType in Model.TestTypeList)
-                        {
-                            <option value="@testType.Value">@testType.Text</option>
-                        }
-                    </select>
+<link rel="stylesheet" href="~/StaticFiles/lib/select2/dist/css/select2.css" />
 
-                    <label for="Class">選擇考卷：</label>
-                    <select id="Class" name="Class" class="form-select">
-                        @foreach (var className in Model.ClassNameList)
-                        {
-                            <option value="@className">@className</option>
-                        }
-                    </select>
+<!-- Excel 檔案上傳區 -->
+<form id="uploadForm" enctype="multipart/form-data">
+    <input type="file" id="fileInput" name="file" accept=".xlsx, .xls" />
+    <button class="btn btn-primary btn-sm" type="submit">上傳 Excel</button>
+</form>
+<!-- 狀態訊息 -->
+<p id="uploadStatus"></p>
 
-                    <label for="CorrectType">選擇題目類型：</label>
-                    <select id="CorrectType" name="CorrectType" class="form-select">
-                        <option value="">請選擇</option>
-                        @foreach (var item in Model.CorrectList)
-                        {
-                            <option value="@item.Value">@item.Text</option>
-                        }
-                    </select>
+<hr />
 
-                    <label for="KidID">選擇學生：</label>
-                    <select id="KidID" name="KidID" class="form-select">
-                        <option value="">請選擇</option>
-                        @foreach (var kid in Model.KidList)
-                        {
-                            <option value="@kid.Value">@kid.Text</option>
-                        }
-                    </select>
+<h2 class="mb-4">請填寫考試資訊</h2>
 
-                    <div class="modal-footer">
-                        <button type="button" class="btn btn-secondary" data-bs-dismiss="modal">關閉</button>
-                        <button type="submit" class="btn btn-primary">送出</button>
-                    </div>
-                </form>
-            </div>
-        </div>
+<form method="get" action="@Url.Action("Test", "Exam")">
+    <label for="TestType" class="mt-3">科目：</label>
+    <select id="TestType" name="TestType" class="form-select">
+        <option value="">請選擇</option>
+        @foreach (var testType in Model.TestTypeList)
+        {
+            <option value="@testType.Value">@testType.Text</option>
+        }
+    </select>
+
+    <label for="Class" class="mt-3">選擇考卷：</label>
+    <select id="Select2ClassNameList" name="ClassNameList" class="form-select" multiple>
+        @foreach (var className in Model.ClassNameList)
+        {
+            <option value="@className">@className</option>
+        }
+    </select>
+
+    <label for="KidID" class="mt-3">選擇學生：</label>
+    <select id="KidID" name="KidID" class="form-select">
+        <option value="">請選擇</option>
+        @foreach (var kid in Model.KidList)
+        {
+            <option value="@kid.Value">@kid.Text</option>
+        }
+    </select>
+
+    <div class="mt-4">
+        <button type="submit" class="btn btn-primary">送出</button>
     </div>
-</div>
-<!-- 引入 Select2 CSS -->
-<link href="https://cdn.jsdelivr.net/npm/select2@4.0.13/dist/css/select2.min.css" rel="stylesheet" />
-<!-- 引入 Select2 JS -->
-<script src="https://cdn.jsdelivr.net/npm/select2@4.0.13/dist/js/select2.min.js"></script>
+</form>
+
+<script src="~/StaticFiles/lib/select2/dist/js/select2.min.js"></script>
+<script>
+    $(function () {
+        $('#Select2ClassNameList').select2({
+        placeholder: '選擇考卷',
+            allowClear: true,
+            closeOnSelect: false,
+        });
+    });
+</script>

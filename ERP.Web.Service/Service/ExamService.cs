@@ -54,17 +54,18 @@ namespace ERP.Web.Service.Service
 
             return result;
         }
-        public async Task<ExamDataViewModel_result> GetExamDataAsync(string Class, string KidID)
+        public async Task<ExamDataViewModel_result> GetExamDataAsync(ExamSearchListViewModel_param param)
         {
 
             var result = new ExamDataViewModel_result
             {
                 VocabularyList = new List<Vocabulary>(),
-                Title = Class
+                Title = string.Empty
             };
+            result.Title = param.ClassNameList.Count() > 1 ? "聯合試題_" + DateTime.Now.ToString("yyyyMMdd") : param.ClassNameList[0];
 
             // 判斷今天是否出過考券
-            Guid KidTestIndexID = await _examRepo.ChkKidTest(Class, "English", KidID);
+            Guid KidTestIndexID = await _examRepo.ChkKidTest(result.Title, param.TestType, param.KidID);
             if (KidTestIndexID != Guid.Empty)
             {
                 // 取得今天出過的考試資料
@@ -73,10 +74,10 @@ namespace ERP.Web.Service.Service
             }
 
             //取得考試資料
-            result.VocabularyList = await GetExamData(Class, KidID);
+            result.VocabularyList = await GetExamData(param);
 
             // 出過的題目存入資料庫
-            Guid NewKidTestID = await _examRepo.InsertKidTestIndex(Class, "English", KidID);
+            Guid NewKidTestID = await _examRepo.InsertKidTestIndex(result.Title, param.TestType, param.KidID);
 
             foreach (var word in result.VocabularyList)
             {
@@ -90,47 +91,71 @@ namespace ERP.Web.Service.Service
         /// </summary>
         /// <param name="Class"></param>
         /// <returns></returns>
-        private async Task<List<Vocabulary>> GetExamData(string Class, string KidID)
+        private async Task<List<Vocabulary>> GetExamData(ExamSearchListViewModel_param param)
         {
-            Class = "I'll teach my dog 100 words HW 03";
-            var Category = string.Empty;
-            List<string> ClassArrey = new List<string>();
-            if (Class.Contains("Sp"))
-            {
-                ClassArrey = Class.Split("Sp").ToList();
-                Category = "Sp";
-            }
-            if (Class.Contains("HW"))
-            {
-                ClassArrey = Class.Split("HW").ToList();
-                Category = "HW";
-            }
-            var ClassName = ClassArrey[0];
-            var ClassNumChk = ClassArrey[1].Trim();
-            int ClassNum = int.Parse(ClassNumChk);
 
+            List<Vocabulary> finalQuestions = new List<Vocabulary>();
+            switch (param.TestType)
+            {
+                case "English":
+                    finalQuestions = await GetEnglishExamData(param);
+                    return finalQuestions;
+                case "Math":
+                    return finalQuestions;
+                default:
+                    return finalQuestions;
+            }
 
-            var listVocabulary = await _examRepo.GetExamDataAsync(ClassName, ClassNum, Category);
+        }
+
+        private async Task<List<Vocabulary>> GetEnglishExamData(ExamSearchListViewModel_param param)
+        {
+            List<Vocabulary> finalQuestions = new List<Vocabulary>(), listVocabulary = new List<Vocabulary>();
+            string FirstClassName = string.Empty;
+            int FirstNum = 0;
+
+            for (int i = 0; i < param.ClassNameList.Count(); i++)
+            {
+                var Category = string.Empty;
+                List<string> ClassArrey = new List<string>();
+                if (param.ClassNameList[i].Contains("Sp"))
+                {
+                    ClassArrey = param.ClassNameList[i].Split("Sp").ToList();
+                    Category = "Sp";
+                }
+                if (param.ClassNameList[i].Contains("HW"))
+                {
+                    ClassArrey = param.ClassNameList[i].Split("HW").ToList();
+                    Category = "HW";
+                }
+                string ClassName = ClassArrey[0];
+                string ClassNumChk = ClassArrey[1].Trim();
+                int ClassNum = int.Parse(ClassNumChk);
+                if (i == 0)
+                {
+                    FirstClassName = ClassName;
+                    FirstNum = ClassNum;
+                }
+
+                var NewVocabulary = await _examRepo.GetExamDataAsync(ClassName, ClassNum, Category);
+
+                listVocabulary.AddRange(NewVocabulary);
+            }
 
             // 依 ClassNum 降序排列（最新的在前）
             var groupedByClass = listVocabulary
-                .GroupBy(x => new { x.ClassNum, x.Category }) // 依 ClassNum 和 Category 分組
-                .OrderByDescending(g => g.Key.ClassNum == ClassNum) // 讓指定 ClassNum 優先
-                .ThenByDescending(g => g.Key.ClassNum) // 其他 ClassNum 維持降序
+                .GroupBy(x => new { x.ClassName, x.ClassNum, x.Category }) // 依 ClassNum 和 Category 分組
+                .OrderByDescending(g => g.Key.ClassNum == FirstNum && g.Key.ClassName == FirstClassName) // 讓指定 ClassNum 優先
+                .ThenByDescending(g => g.Key.ClassName == FirstClassName) // 依 ClassName 降序
+                .ThenByDescending(g => g.Key.ClassNum) // 依 ClassNum 降序
                 .ToList();
 
             // 設定權重（依課程遠近分配）
-            var distribution = new Dictionary<int, double>
-            {
-                { 0, 1 },   // 目前課程
-                { 1, 0.1 }, // 前一個課程
-                { 2, 0.1 }, // 前前一個課程
-                { 3, 0.1 }  // 其餘課程
-            };
+            var distribution = Enumerable.Range(0, param.ClassNameList.Count()).ToDictionary(i => i,
+                                i => (param.ClassNameList.Count() == 1 && i == 0) ? 1.0 : 0.3);
 
             int totalQuestions = 20;
 
-            List<Vocabulary> finalQuestions = new List<Vocabulary>();
 
             // 先處理前三個課程（依據 distribution 權重）
             for (int i = 0; i < Math.Min(4, groupedByClass.Count); i++)
@@ -143,7 +168,7 @@ namespace ERP.Web.Service.Service
                 // i = 0 時，不過濾 Correct，其他情況下過濾 Correct > 0，並依 Correct 降序排列
                 if (i != 0)
                 {
-                    words = words.Where(x => x.Correct > 0 && x.KidID == Guid.Parse(KidID))
+                    words = words.Where(x => x.Correct > 0 && x.KidID == Guid.Parse(param.KidID))
                                  .OrderByDescending(x => x.Correct) // 優先拿 Correct 較大的
                                  .ToList();
                 }
