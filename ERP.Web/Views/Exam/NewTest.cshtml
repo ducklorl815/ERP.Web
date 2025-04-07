@@ -55,4 +55,78 @@
             closeOnSelect: false,
         });
     });
+
+    $(document).ready(function () {
+        $("#uploadForm").submit(function (e) {
+            e.preventDefault(); // 防止表單提交
+
+            var formData = new FormData();
+            var fileInput = $("#fileInput")[0].files[0];
+
+            if (!fileInput) {
+                $("#uploadStatus").text("請選擇 Excel 檔案");
+                return;
+            }
+
+            formData.append("file", fileInput);
+
+            $.ajax({
+                url: "@Url.Action("Upload", "Exam")",
+                type: "POST",
+                data: formData,
+                processData: false,
+                contentType: false,
+                success: function (response) {
+                    $("#uploadStatus").text("上傳成功！");
+                },
+                error: function () {
+                    $("#uploadStatus").text("上傳失敗，請重試");
+                }
+            });
+        });
+
+        $(document).on("change", "#Class, #CorrectType, #KidID, #TestDate", function () {
+            var ClassNameList = $("#Class").val() || [];
+            var CorrectType = $("#CorrectType").val();
+            var KidID = $("#KidID").val();
+            var TestDate = $("#TestDate").val();
+            $.ajax({
+                url: '@Url.Action("GetList")',
+                type: 'GET',
+                traditional: true, // 讓 jQuery 正確傳遞陣列
+                data: {
+                    ClassNameList: ClassNameList,
+                    CorrectType: CorrectType,
+                    KidID: KidID,
+                    TestDate: TestDate
+                }
+            }).done(function (result) {
+                if (result.TestDate) {
+                    $("#TestDate").val(result.TestDate);
+                }
+                $('#partial').html(result);
+
+            });
+        });
+
+
+
+        var callback = function () {
+            var ClassName = $("#Class").val();
+            var CorrectType = $("#CorrectType").val();
+            var KidID = $("#KidID").val();
+            return {
+                method: "get",
+                url: '@Url.Action("GetList")',
+                footable: true,
+                data: {
+                    ClassName: ClassName,
+                    CorrectType: CorrectType,
+                    KidID: KidID
+                }
+            };
+        };
+        PageTurning(callback);
+
+    });
 </script>

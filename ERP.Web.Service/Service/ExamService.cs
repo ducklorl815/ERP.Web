@@ -171,7 +171,7 @@ namespace ERP.Web.Service.Service
                 .ToList();
 
             // 設定權重（依課程遠近分配）
-            var distribution = Enumerable.Range(0, param.ClassNameList.Count()).ToDictionary(i => i,
+            var distribution = Enumerable.Range(0, groupedByClass.Count()).ToDictionary(i => i,
                                 i => (param.ClassNameList.Count() == 1 && i == 0) ? 1.0 : 0.3);
 
             int totalQuestions = 20;
