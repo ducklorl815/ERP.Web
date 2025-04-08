@@ -248,6 +248,50 @@ namespace ERP.Web.Models.Respository
             }
         }
 
+        public async Task<int> GetNewTestCountAsync(ExamMainKeyword param)
+        {
+            var sqlparam = new DynamicParameters();
+
+            var sql = $@"
+                    SELECT  count(*)
+                    FROM KidsWorld.dbo.Vocabulary
+                        ";
+
+            #region 關鍵字搜尋
+            if (param.ClassNameList?.Any() == true)
+            {
+                sql += " AND kti.Class IN @Class";
+                sqlparam.Add("Class", param.ClassNameList);
+            }
+            if (!string.IsNullOrEmpty(param.KidID))
+            {
+                sqlparam.Add("KidID", param.KidID);
+                sql += $" AND km.ID = @KidID";
+            }
+            if (!string.IsNullOrEmpty(param.CorrectType))
+            {
+                sqlparam.Add("Correct", param.CorrectType);
+                sql += $" AND Correct = @Correct";
+            }
+            if (param.TestDate != DateTime.MinValue)
+            {
+                sqlparam.Add("TestDate", param.TestDate);
+                sql += $" AND CONVERT(DATE, kti.TestDate) = @TestDate";
+            }
+            #endregion
+
+            using var conn = new SqlConnection(_dBList.erp);
+            try
+            {
+                var result = await conn.QueryFirstOrDefaultAsync<int>(sql, sqlparam);
+                return result;
+            }
+            catch (Exception)
+            {
+                return int.MinValue;
+            }
+        }
+
         public async Task<List<ExamMainModel>> GetSearchListAsync(Paging pager, ExamMainKeyword param)
         {
             var sqlparam = new DynamicParameters();
@@ -345,6 +389,11 @@ namespace ERP.Web.Models.Respository
             {
                 return null;
             }
+        }
+
+        public async Task<List<ExamMainModel>> GettNewTestListAsync(Paging pager, ExamMainKeyword examKeyword)
+        {
+            throw new NotImplementedException();
         }
 
         public async Task<bool> InsertExamIndex(Guid ExamID, Guid KidTestIndexID)

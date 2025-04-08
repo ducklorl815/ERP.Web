@@ -20,7 +20,7 @@ namespace ERP.Web.Controllers
         public async Task<IActionResult> NewTest(ExamSearchListViewModel_param param)
         {
             param.CorrectType = "0";
-            ExamSearchListViewModel_result result = await _examService.GetIndexAsync(param);
+            ExamSearchListViewModel_result result = await _examService.GetNewTestAsync(param);
             return View(result);
         }
 

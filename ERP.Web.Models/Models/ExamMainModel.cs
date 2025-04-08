@@ -29,11 +29,18 @@
     {
         public Guid WordID { get; set; }
         public string Class { get; set; }
+        /// <summary>考卷類別 ex:English,Math</summary>
         public string TestType { get; set; }
+        /// <summary>文字內容規格 ex:Word,Phrase</summary>
+        public string Type { get; set; }
         public string Question { get; set; }
         public string Answer { get; set; }
         public string Cname { get; set; }
+        /// <summary>考試 對錯</summary>
         public int Correct { get; set; }
+        /// <summary>學校 專注</summary>
+        public int Focus { get; set; }
+        
         public DateTime TestDate { get; set; }
     }
 }

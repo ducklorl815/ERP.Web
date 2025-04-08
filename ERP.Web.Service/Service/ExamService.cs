@@ -316,5 +316,52 @@ namespace ERP.Web.Service.Service
 
             return ChkUpdate;
         }
+
+        public async Task<ExamSearchListViewModel_result> GetNewTestAsync(ExamSearchListViewModel_param param)
+        {
+            var result = new ExamSearchListViewModel_result();
+            //分頁功能
+            var ExamKeyword = new ExamMainKeyword
+            {
+                ClassNameList = param.ClassNameList,
+                CorrectType = param.CorrectType,
+            };
+
+            var datacount = await _examRepo.GetNewTestCountAsync(ExamKeyword);
+            var pager = new Paging(param.Page, param.PageSize, datacount);
+
+            result.Pager = pager;
+            result.ExamDataList = await _examRepo.GettNewTestListAsync(pager, ExamKeyword);
+
+            await PublicTaskAsync(result, param);
+
+            return result;
+        }
+
+        private async Task PublicTaskAsync(ExamSearchListViewModel_result result, ExamSearchListViewModel_param param)
+        {
+            // 並行非同步請求
+            var kidListTask = _examRepo.GetKidListAsync();
+            var testDateListTask = _examRepo.GetTestDateList(param.KidID);
+            var classNameListTask = _examRepo.GetExamListAsync();
+
+            await Task.WhenAll(kidListTask, testDateListTask, classNameListTask);
+
+            result.KidList = kidListTask.Result
+                .Select(x => new SelectListItem
+                {
+                    Text = x.Item2,
+                    Value = x.Item1.ToString().Trim()
+                }).ToList();
+
+            result.TestDateList = testDateListTask.Result
+                .Select(x => new SelectListItem
+                {
+                    Text = x.Date.ToString("yyyy-MM-dd"),
+                    Value = x.Date.ToString("yyyy-MM-dd")
+                }).ToList();
+
+            result.ClassNameList = classNameListTask.Result;
+        }
     }
 }
