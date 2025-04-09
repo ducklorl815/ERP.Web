@@ -258,26 +258,26 @@ namespace ERP.Web.Models.Respository
                         ";
 
             #region 關鍵字搜尋
-            if (param.ClassNameList?.Any() == true)
-            {
-                sql += " AND kti.Class IN @Class";
-                sqlparam.Add("Class", param.ClassNameList);
-            }
-            if (!string.IsNullOrEmpty(param.KidID))
-            {
-                sqlparam.Add("KidID", param.KidID);
-                sql += $" AND km.ID = @KidID";
-            }
-            if (!string.IsNullOrEmpty(param.CorrectType))
-            {
-                sqlparam.Add("Correct", param.CorrectType);
-                sql += $" AND Correct = @Correct";
-            }
-            if (param.TestDate != DateTime.MinValue)
-            {
-                sqlparam.Add("TestDate", param.TestDate);
-                sql += $" AND CONVERT(DATE, kti.TestDate) = @TestDate";
-            }
+            //if (param.ClassNameList?.Any() == true)
+            //{
+            //    sql += " AND kti.Class IN @Class";
+            //    sqlparam.Add("Class", param.ClassNameList);
+            //}
+            //if (!string.IsNullOrEmpty(param.KidID))
+            //{
+            //    sqlparam.Add("KidID", param.KidID);
+            //    sql += $" AND km.ID = @KidID";
+            //}
+            //if (!string.IsNullOrEmpty(param.CorrectType))
+            //{
+            //    sqlparam.Add("Correct", param.CorrectType);
+            //    sql += $" AND Correct = @Correct";
+            //}
+            //if (param.TestDate != DateTime.MinValue)
+            //{
+            //    sqlparam.Add("TestDate", param.TestDate);
+            //    sql += $" AND CONVERT(DATE, kti.TestDate) = @TestDate";
+            //}
             #endregion
 
             using var conn = new SqlConnection(_dBList.erp);
@@ -391,9 +391,9 @@ namespace ERP.Web.Models.Respository
             }
         }
 
-        public async Task<List<ExamMainModel>> GettNewTestListAsync(Paging pager, ExamMainKeyword examKeyword)
+        public async Task<List<ExamMainModel>> GetNewTestListAsync(Paging pager, ExamMainKeyword examKeyword)
         {
-            throw new NotImplementedException();
+            return null;
         }
 
         public async Task<bool> InsertExamIndex(Guid ExamID, Guid KidTestIndexID)

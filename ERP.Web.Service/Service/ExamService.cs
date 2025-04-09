@@ -174,7 +174,7 @@ namespace ERP.Web.Service.Service
             var distribution = Enumerable.Range(0, groupedByClass.Count()).ToDictionary(i => i,
                                 i => (param.ClassNameList.Count() == 1 && i == 0) ? 1.0 : 0.3);
 
-            int totalQuestions = 20;
+            int totalQuestions = param.ClassNameList.Count() == 1 ? groupedByClass[0].Count() : 20;
 
 
             // 先處理前三個課程（依據 distribution 權重）
@@ -331,7 +331,7 @@ namespace ERP.Web.Service.Service
             var pager = new Paging(param.Page, param.PageSize, datacount);
 
             result.Pager = pager;
-            result.ExamDataList = await _examRepo.GettNewTestListAsync(pager, ExamKeyword);
+            result.ExamDataList = await _examRepo.GetNewTestListAsync(pager, ExamKeyword);
 
             await PublicTaskAsync(result, param);
 

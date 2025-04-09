@@ -13,24 +13,28 @@
         </tr>
     </thead>
     <tbody>
-        @foreach (var item in Model.ExamDataList)
+        @if (Model.ExamDataList != null)
         {
-            <tr class="text-center align-middle">
-                <td>
-                    <input type="checkbox" class="form-check-input" name="selectedQuestions[@item.WordID]" />
-                </td>
-                <td>@item.Class</td>
-                <td><input type="text" class="form-control" value="@item.Question" /></td>
-                <td><input type="text" class="form-control" value="@item.Answer" /></td>
-                <td>
-                    <input type="checkbox" class="form-check-input correct-checkbox" @(item.Correct == 1 ? "checked" : "") />
-                </td>
-                <td data-testdate="@item.TestDate">@item.TestDate.ToString("yyyy/MM/dd")</td>
-                <td>
-                    <button class="btn btn-primary btn-sm" data-wordid="@item.WordID" onclick="CodeMainSave(this)">修正</button>
-                </td>
-            </tr>
+            @foreach (var item in Model.ExamDataList)
+            {
+                <tr class="text-center align-middle">
+                    <td>
+                        <input type="checkbox" class="form-check-input" name="selectedQuestions[@item.WordID]" />
+                    </td>
+                    <td>@item.Class</td>
+                    <td><input type="text" class="form-control" value="@item.Question" /></td>
+                    <td><input type="text" class="form-control" value="@item.Answer" /></td>
+                    <td>
+                        <input type="checkbox" class="form-check-input correct-checkbox" @(item.Correct == 1 ? "checked" : "") />
+                    </td>
+                    <td data-testdate="@item.TestDate">@item.TestDate.ToString("yyyy/MM/dd")</td>
+                    <td>
+                        <button class="btn btn-primary btn-sm" data-wordid="@item.WordID" onclick="CodeMainSave(this)">修正</button>
+                    </td>
+                </tr>
+            }
         }
+    
     </tbody>
 </table>
 
