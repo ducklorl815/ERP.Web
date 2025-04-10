@@ -40,7 +40,6 @@
         public int Correct { get; set; }
         /// <summary>學校 專注</summary>
         public int Focus { get; set; }
-        
         public DateTime TestDate { get; set; }
     }
 }

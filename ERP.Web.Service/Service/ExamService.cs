@@ -59,18 +59,7 @@ namespace ERP.Web.Service.Service
         {
             var result = await GetListAsync(param);
 
-            var tasks = new List<Task>
-            {
-                Task.Run(async()=>
-                    result.KidList = (await _examRepo.GetKidListAsync())
-                    .Select(x=> new SelectListItem{ Text = x.Item2,Value = x.Item1.ToString().Trim()}).ToList()),
-                Task.Run(async()=>
-                    result.TestDateList =(await _examRepo.GetTestDateList(param.KidID))
-                    .Select(x=> new SelectListItem{Text=x.Date.ToString(),Value=x.Date.ToString()}).ToList()),
-                Task.Run(async()=>
-                        result.ClassNameList = await _examRepo.GetExamListAsync())
-            };
-            await Task.WhenAll(tasks);
+            await PublicTaskAsync(result, param);
 
             return result;
         }
