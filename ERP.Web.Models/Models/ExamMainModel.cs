@@ -11,6 +11,7 @@
         public string Answer { get; set; } // 意思
         public Guid KidID { get; set; }
         public int Correct { get; set; }
+        public int Focus { get; set; }
     }
 
     public class KidTestIndex

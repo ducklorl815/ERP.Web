@@ -20,15 +20,23 @@
     .answer-line {
         display: block;
         width: 100%;
-        border: 0.5px solid #d7d5d5;
-        /* border-bottom: 1px black; */
-        font-size: 16px;
+        height: 60px;
+        font-size: 20px;
         padding: 12px;
-        /* outline: outset; */
+        border: 1px solid #e9e4e4;
+        background-image: repeating-linear-gradient( to bottom, transparent 0px, transparent 19px, #e9e4e4 19px, #e9e4e4 20px );
+        background-repeat: repeat-y;
+        background-size: 100% 100%;
+        box-sizing: border-box;
+        outline: none;
     }
-    
 
-
+    .answer-text {
+        position: relative;
+        top: 7px; /* 向下移動 5px，對齊書寫線 */
+        display: inline-block; /* 讓 span 可以有大小 */
+        font-size: 18px;
+    }
     /* 強制換頁 */
     .page-break {
         page-break-before: always;
@@ -122,7 +130,7 @@
                         <span class="question-text">@words[i].Question</span>
                     </div>
                     <div class="answer-line">
-                        <span style="background-color:lightgray">@words[i].Answer</span>
+                        <span class="answer-text">@words[i].Answer</span>
                     </div>
                 }
             }
@@ -137,7 +145,7 @@
                         <span class="question-text">@phrases[i].Question</span>
                     </div>
                     <div class="answer-line">
-                        <span style="background-color:lightgray">@phrases[i].Answer</span>
+                        <span class="answer-text">@phrases[i].Answer</span>
                     </div>
                 }
             }

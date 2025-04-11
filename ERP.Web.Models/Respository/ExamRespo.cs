@@ -92,14 +92,23 @@ namespace ERP.Web.Models.Respository
                 DECLARE @minRange INT = CASE WHEN @targetClass - 10 < 0 THEN 0 ELSE @targetClass - 10 END; 
                 DECLARE @MaxRange INT = @targetClass + 10; 
 
-                SELECT DISTINCT w.ID as WordID, Type, ClassNum, ClassName, Category, Question, Answer, km.ID as KidID,wi.Correct
+                SELECT DISTINCT w.ID as WordID
+				, Type
+				, ClassNum
+				, ClassName
+				, Category
+				, Question
+				, Answer
+				, Focus
+				, km.ID as KidID
+				,wi.Correct
                 FROM KidsWorld.dbo.Vocabulary w
                 LEFT JOIN KidsWorld.dbo.KidExamWordIndex wi ON wi.ExamID = w.ID
                 LEFT JOIN KidsWorld.dbo.KidTestIndex kti ON kti.ID = wi.KidTestIndexID
                 LEFT JOIN KidsWorld.dbo.KidMain km ON km.ID = kti.KidMainID
                 WHERE ClassName = @ClassName
                 AND Category = @Category
-                AND ClassNum BETWEEN @minRange AND @MaxRange;
+                AND ClassNum BETWEEN @minRange AND @MaxRange
             ";
 
 
