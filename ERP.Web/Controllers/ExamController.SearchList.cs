@@ -15,7 +15,6 @@ namespace ERP.Web.Controllers
                 return PartialView("_ReTest", result);
             else
                 return View(result);
-
         }
         public async Task<IActionResult> NewTest(ExamSearchListViewModel_param param)
         {
@@ -23,38 +22,26 @@ namespace ERP.Web.Controllers
             ExamSearchListViewModel_result result = await _examService.GetNewTestAsync(param);
             return View(result);
         }
-
         public async Task<IActionResult> GetList(ExamSearchListViewModel_param param)
         {
-
             var result = await _examService.GetListAsync(param);
             if (Request.IsAjaxRequest())
-            {
                 return PartialView("_ReTest", result);
-            }
             else
-            {
                 return View(result);
-            }
         }
         [HttpPost("upload")]
         public async Task<IActionResult> Upload(IFormFile file)
         {
             if (file == null || file.Length == 0)
-            {
                 return BadRequest("請上傳 Excel 檔案");
-            }
             var chkUpload = await _examService.GetUploadFileAsync(file);
             return Json("true");
         }
         public async Task<IActionResult> Test(ExamSearchListViewModel_param param)
         {
-
             var result = await _examService.GetExamDataAsync(param);
-
             return View(result);
         }
-
     }
-
 }

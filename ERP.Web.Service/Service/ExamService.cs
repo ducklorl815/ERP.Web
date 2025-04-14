@@ -161,7 +161,7 @@ namespace ERP.Web.Service.Service
 
             // 設定權重（依課程遠近分配）
             var distribution = Enumerable.Range(0, groupedByClass.Count()).ToDictionary(i => i,
-                                i => (param.ClassNameList.Count() == 1 && i == 0) ? 1.0 : 1/ groupedByClass.Count());
+                                i => (param.ClassNameList.Count() == 1 && i == 0) ? 1.0 : 1 / groupedByClass.Count());
 
             int totalQuestions = param.ClassNameList.Count() == 1 ? groupedByClass[0].Count() : 20;
 
@@ -179,6 +179,7 @@ namespace ERP.Web.Service.Service
                 {
                     words = words.Where(x => x.Correct > 0 && x.KidID == Guid.Parse(param.KidID))
                                  .OrderByDescending(x => x.Correct) // 優先拿 Correct 較大的
+                                 .OrderByDescending(y => y.Focus)
                                  .ToList();
                 }
 
@@ -243,8 +244,6 @@ namespace ERP.Web.Service.Service
                             ClassArrey = Class.Split("HW").ToList();
                             Category = "HW";
                         }
-
-                        var ClassName = ClassArrey[0];
                         var ClassNumChk = ClassArrey[1].Trim();
                         if (!int.TryParse(ClassNumChk, out int ClassNum))
                             return false;
@@ -262,7 +261,7 @@ namespace ERP.Web.Service.Service
                                     Type = Type,
                                     ClassNum = ClassNum,
                                     Category = Category,
-                                    ClassName = ClassName,
+                                    ClassName = ClassArrey[0].Trim(),
                                     Question = Question,
                                     Answer = Answer
                                 });

@@ -408,6 +408,7 @@ namespace ERP.Web.Models.Respository
                         SELECT ID
                               ,seq
                               ,Type
+                              ,ClassName  + ' ' + Category + ' ' + ClassNum as Class
                               ,Category
                               ,ClassName
                               ,ClassNum

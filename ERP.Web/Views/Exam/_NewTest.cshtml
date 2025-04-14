@@ -3,13 +3,12 @@
 <table class="table table-bordered table-hover">
     <thead class="table-light">
         <tr class="text-center">
-            <th class="col-1">選擇</th>
             <th class="col-2">課程</th>
-            <th class="col-4">問題</th>
+            <th class="col-1">類別</th>
+            <th class="col-3">問題</th>
             <th class="col-4">答案</th>
-            <th class="col-1">答錯</th>
-            <th class="col-2">時間</th>
-            <th class="col-1"><button class="btn btn-primary btn-sm" onclick="openModal()">修正</button></th>
+            <th class="col-1">專注</th>
+            <th class="col-1">功能</th>
         </tr>
     </thead>
     <tbody>
@@ -17,18 +16,18 @@
         {
             @foreach (var item in Model.ExamDataList)
             {
-                <tr class="text-center align-middle">
-                    <td>
-                        <input type="checkbox" class="form-check-input" name="selectedQuestions[@item.WordID]" />
-                    </td>
-                    <td>@item.Class</td>
+                <tr class="text-center">
+                    <td class="align-middle">@item.Class</td>
+                    <td class="align-middle">@item.Type</td>
                     <td><input type="text" class="form-control" value="@item.Question" /></td>
                     <td><input type="text" class="form-control" value="@item.Answer" /></td>
-                    <td>
-                        <input type="checkbox" class="form-check-input correct-checkbox" @(item.Correct == 1 ? "checked" : "") />
+                    <td class="align-middle text-center">
+                        <div class="d-flex justify-content-center align-items-center">
+                            <input type="checkbox" class="form-check-input correct-checkbox" @(item.Focus == 1 ? "checked" : "") />
+                        </div>
                     </td>
-                    <td data-testdate="@item.TestDate">@item.TestDate.ToString("yyyy/MM/dd")</td>
-                    <td>
+
+                    <td class="align-middle text-center">
                         <button class="btn btn-primary btn-sm" data-wordid="@item.WordID" onclick="CodeMainSave(this)">修正</button>
                     </td>
                 </tr>
