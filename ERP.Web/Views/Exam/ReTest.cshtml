@@ -93,18 +93,18 @@
 
 
         var callback = function () {
-            var ClassName = $("#Class").val();
-            var CorrectType = $("#CorrectType").val();
-            var KidID = $("#KidID").val();
+            // var ClassName = $("#Class").val();
+            // var CorrectType = $("#CorrectType").val();
+            // var KidID = $("#KidID").val();
             return {
                 method: "get",
                 url: '@Url.Action("GetList")',
                 footable: true,
-                data: {
-                    ClassName: ClassName,
-                    CorrectType: CorrectType,
-                    KidID: KidID
-                }
+                // data: {
+                //     ClassName: ClassName,
+                //     CorrectType: CorrectType,
+                //     KidID: KidID
+                // }
             };
         };
         PageTurning(callback);

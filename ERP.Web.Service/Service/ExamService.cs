@@ -4,6 +4,8 @@ using ERP.Web.Service.ViewModels;
 using ERP.Web.Utility.Paging;
 using Microsoft.AspNetCore.Http;
 using OfficeOpenXml;
+using System;
+using System.Security.Claims;
 using System.Web.Mvc;
 
 namespace ERP.Web.Service.Service
@@ -55,7 +57,7 @@ namespace ERP.Web.Service.Service
 
             return result;
         }
-        public async Task<ExamSearchListViewModel_result> GetIndexAsync(ExamSearchListViewModel_param param)
+        public async Task<ExamSearchListViewModel_result> GetReTestAsync(ExamSearchListViewModel_param param)
         {
             var result = await GetListAsync(param);
 
@@ -226,28 +228,25 @@ namespace ERP.Web.Service.Service
                     for (int i = 1; i < worksheets.Count; i++)
                     {
                         var worksheet = worksheets[i]; // 從第二個工作表開始讀取
-
                         if (worksheet.Dimension == null) continue; // 略過空的工作表
-
                         int rowCount = worksheet.Dimension.Rows;
-
-                        string Class = worksheet.Cells[1, 1].Text; // 以工作表名稱作為課程名稱
+                        string ClassName = worksheet.Cells[1, 1].Text; // 以工作表名稱作為課程名稱
                         string Category = string.Empty;
                         List<string> ClassArrey = new List<string>();
-                        if (Class.Contains("Sp"))
+                        if (ClassName.Contains("Sp"))
                         {
-                            ClassArrey = Class.Split("Sp").ToList();
+                            ClassArrey = ClassName.Split("Sp").ToList();
                             Category = "Sp";
                         }
-                        if (Class.Contains("HW"))
+                        if (ClassName.Contains("HW"))
                         {
-                            ClassArrey = Class.Split("HW").ToList();
+                            ClassArrey = ClassName.Split("HW").ToList();
                             Category = "HW";
                         }
                         var ClassNumChk = ClassArrey[1].Trim();
                         if (!int.TryParse(ClassNumChk, out int ClassNum))
                             return false;
-
+  
                         for (int row = 2; row <= rowCount; row++) // 從第 2 行開始，因為第 1 行是標題
                         {
                             string Type = worksheet.Cells[row, 1].Text.Trim();
@@ -259,9 +258,10 @@ namespace ERP.Web.Service.Service
                                 vocabularies.Add(new Vocabulary
                                 {
                                     Type = Type,
+                                    Class = ClassArrey[0].Trim(),
+                                    ClassName = ClassName,
                                     ClassNum = ClassNum,
                                     Category = Category,
-                                    ClassName = ClassArrey[0].Trim(),
                                     Question = Question,
                                     Answer = Answer
                                 });
@@ -272,7 +272,6 @@ namespace ERP.Web.Service.Service
             }
 
             // 儲存到資料庫
-            var result = await SaveToDatabase(vocabularies);
             return vocabularies.Count > 0 ? await SaveToDatabase(vocabularies) : false;
         }
 
@@ -285,13 +284,51 @@ namespace ERP.Web.Service.Service
                     // 檢查是否已有相同單字
                     bool checkWord = await _examRepo.chkSameWord(vocab);
                     if (!checkWord)
+                    {
+                        Guid LessionID = await GetLessionID(vocab);
+                        if (LessionID == Guid.Empty)
+                            return false;
+                        vocab.LessionID = LessionID;
                         await _examRepo.InsertWord(vocab);
+                    }
                 }
                 return true;
             }
             catch (Exception)
             {
                 return false;
+            }
+        }
+        private async Task<Guid> GetLessionID(Vocabulary param)
+        {
+            Guid LessionID = await _examRepo.ChkLessionID(param);
+            if (LessionID == Guid.Empty)
+            {
+                int LessionSort = await _examRepo.GetLessionSort();
+                var LessionData = new LessionModel
+                {
+                    ClassName = param.ClassName,
+                    ClassNum = param.ClassNum,
+                    TestType = "English",
+                    Category = param.Category,
+                    CategoryType = await GetCategory(param.Category),
+                    LessionSort = LessionSort,
+                };
+                LessionID = await _examRepo.InsertLessionID(LessionData);
+                return LessionID;
+            }
+            return LessionID;
+        }
+        private async Task<string> GetCategory(string Category)
+        {
+            switch (Category.ToUpper())
+            {
+                case "HW":
+                    return "Phrase";
+                case "SP":
+                    return "Word";
+                default:
+                    return "NONE";
             }
         }
 
@@ -317,11 +354,10 @@ namespace ERP.Web.Service.Service
 
             var datacount = await _examRepo.GetNewTestCountAsync(ExamKeyword);
             var pager = new Paging(param.Page, param.PageSize, datacount);
-
             result.Pager = pager;
             result.ExamDataList = await _examRepo.GetNewTestListAsync(pager, ExamKeyword);
 
-            await PublicTaskAsync(result, param);
+            //await PublicTaskAsync(result, param);
 
             return result;
         }
@@ -352,4 +388,5 @@ namespace ERP.Web.Service.Service
             result.ClassNameList = classNameListTask.Result;
         }
     }
+
 }

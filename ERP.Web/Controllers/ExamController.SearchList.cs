@@ -10,7 +10,7 @@ namespace ERP.Web.Controllers
         public async Task<IActionResult> ReTest(ExamSearchListViewModel_param param)
         {
             param.CorrectType = "1";
-            ExamSearchListViewModel_result result = await _examService.GetIndexAsync(param);
+            ExamSearchListViewModel_result result = await _examService.GetReTestAsync(param);
             if (Request.IsAjaxRequest())
                 return PartialView("_ReTest", result);
             else
@@ -18,9 +18,11 @@ namespace ERP.Web.Controllers
         }
         public async Task<IActionResult> NewTest(ExamSearchListViewModel_param param)
         {
-            param.CorrectType = "0";
             ExamSearchListViewModel_result result = await _examService.GetNewTestAsync(param);
-            return View(result);
+            if (Request.IsAjaxRequest())
+                return PartialView("_NewTest", result);
+            else
+                return View(result);
         }
         public async Task<IActionResult> GetList(ExamSearchListViewModel_param param)
         {

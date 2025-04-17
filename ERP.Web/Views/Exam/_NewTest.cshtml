@@ -1,6 +1,6 @@
-﻿<partial name="~/Views/Shared/_Page.cshtml" model="@Model.Pager" />
-
-<table class="table table-bordered table-hover">
+﻿
+<partial name="~/Views/Shared/_Page.cshtml" model="@Model.Pager" />
+<table id="formData" class="footable table table-stripped toggle-arrow-tiny">
     <thead class="table-light">
         <tr class="text-center">
             <th class="col-2">課程</th>
@@ -18,7 +18,7 @@
             {
                 <tr class="text-center">
                     <td class="align-middle">@item.Class</td>
-                    <td class="align-middle">@item.Type</td>
+                    <td class="align-middle">@item.CategoryType</td>
                     <td><input type="text" class="form-control" value="@item.Question" /></td>
                     <td><input type="text" class="form-control" value="@item.Answer" /></td>
                     <td class="align-middle text-center">
@@ -33,7 +33,6 @@
                 </tr>
             }
         }
-    
     </tbody>
 </table>
 

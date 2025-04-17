@@ -2,8 +2,10 @@
 using ERP.Web.Models.Models;
 using ERP.Web.Utility.Models;
 using ERP.Web.Utility.Paging;
+using Microsoft.AspNetCore.Mvc.RazorPages;
 using Microsoft.Extensions.Options;
 using System.Data.SqlClient;
+using System.Security.Claims;
 
 namespace ERP.Web.Models.Respository
 {
@@ -53,16 +55,12 @@ namespace ERP.Web.Models.Respository
             var sqlparam = new DynamicParameters();
             sqlparam.Add("Question", param.Question);
             sqlparam.Add("Answer", param.Answer);
-            sqlparam.Add("ClassName", param.ClassName);
-            sqlparam.Add("Category", param.Category);
 
             var sql = @"
                         SELECT TOP 1 1 
                           FROM KidsWorld.dbo.Vocabulary
                           WHERE Question = @Question
                           AND Answer = @Answer
-                          AND ClassName = @ClassName
-                          AND Category = @Category
                         "
             ;
 
@@ -164,8 +162,11 @@ namespace ERP.Web.Models.Respository
         public async Task<List<string>> GetExamListAsync()
         {
             var sql = @"
-                SELECT DISTINCT TOP 1000 ClassName  + ' ' + Category + ' ' + ClassNum as ClassName
-                  FROM KidsWorld.dbo.Vocabulary
+                    SELECT ClassName
+                      FROM KidsWorld.dbo.Lession
+                      WHERE Enabled = 1
+                      AND Deleted = 0
+                      Order by LessionSort desc,ClassNum desc
             ";
 
 
@@ -214,8 +215,9 @@ namespace ERP.Web.Models.Respository
                     SELECT  count(*)
                       FROM KidsWorld.dbo.KidExamWordIndex wl
                       JOIN KidsWorld.dbo.Vocabulary w ON w.ID = wl.ExamID
-                      JOIN KidsWorld.dbo.KidTestIndex kti ON kti.ID = wl.KidTestIndexID 
-                      JOIN KidsWorld.dbo.KidMain km ON km.ID = kti.KidMainID  
+					  JOIN KidsWorld.dbo.Lession les ON les.ID = w.LessionID
+                      JOIN KidsWorld.dbo.KidTestIndex kti ON kti.ID = wl.KidTestIndexID
+                      JOIN KidsWorld.dbo.KidMain km ON km.ID = kti.KidMainID
                       WHERE wl.Enabled = 1
                       AND wl.Deleted = 0
                       AND kti.Enabled = 1
@@ -262,8 +264,9 @@ namespace ERP.Web.Models.Respository
             var sqlparam = new DynamicParameters();
 
             var sql = $@"
-                    SELECT  count(*)
-                    FROM KidsWorld.dbo.Vocabulary
+			            SELECT COUNT(*)
+			            FROM KidsWorld.dbo.Vocabulary w
+			            JOIN KidsWorld.dbo.Lession les ON les.ID = w.LessionID
                         ";
 
             #region 關鍵字搜尋
@@ -307,9 +310,9 @@ namespace ERP.Web.Models.Respository
 
             var sql = $@"
                     SELECT 
-	                       kti.Class
-						  ,w.Category
-	                      ,kti.TestType
+	                       les.Class
+						  ,les.Category
+	                      ,les.TestType
 	                      ,w.ID as WordID
 	                      ,w.Question
 	                      ,w.Answer
@@ -318,6 +321,7 @@ namespace ERP.Web.Models.Respository
 	                      ,(CONVERT(DATE,kti.TestDate)) as TestDate
                       FROM KidsWorld.dbo.KidExamWordIndex wl
                       JOIN KidsWorld.dbo.Vocabulary w ON w.ID = wl.ExamID
+					  JOIN KidsWorld.dbo.Lession les ON les.ID = w.LessionID
                       JOIN KidsWorld.dbo.KidTestIndex kti ON kti.ID = wl.KidTestIndexID
                       JOIN KidsWorld.dbo.KidMain km ON km.ID = kti.KidMainID
                       WHERE wl.Enabled = 1
@@ -405,17 +409,18 @@ namespace ERP.Web.Models.Respository
             var sqlparam = new DynamicParameters();
 
             var sql = $@"
-                        SELECT ID
-                              ,seq
-                              ,Type
-                              ,ClassName  + ' ' + Category + ' ' + ClassNum as Class
-                              ,Category
-                              ,ClassName
-                              ,ClassNum
-                              ,Question
-                              ,Answer
-                              ,Focus
-                          FROM KidsWorld.dbo.Vocabulary
+			            SELECT w.ID as WordID,
+				               les.ClassName as Class,
+				               les.Category,
+				               les.CategoryType,
+				               les.ClassNum,
+				               les.LessionSort,
+				               les.TestType,
+				               Question,
+				               Answer,
+				               Focus
+			            FROM KidsWorld.dbo.Vocabulary w
+			            JOIN KidsWorld.dbo.Lession les ON les.ID = w.LessionID
                         ";
 
             #region 關鍵字搜尋
@@ -441,7 +446,7 @@ namespace ERP.Web.Models.Respository
             //}
             #endregion
 
-            sql += " ORDER BY seq desc ";
+            sql += "ORDER BY les.LessionSort DESC ";
 
             //分頁功能
             sqlparam.Add("Offset", pager.ItemStart - 1);
@@ -554,32 +559,23 @@ namespace ERP.Web.Models.Respository
         public async Task<bool> InsertWord(Vocabulary param)
         {
             var sqlparam = new DynamicParameters();
-            sqlparam.Add("Type", param.Type);
+            sqlparam.Add("LessionID", param.LessionID);
             sqlparam.Add("Question", param.Question);
             sqlparam.Add("Answer", param.Answer);
-            sqlparam.Add("ClassName", param.ClassName);
-            sqlparam.Add("ClassNum", param.ClassNum.ToString("D2"));
-            sqlparam.Add("Category", param.Category);
 
-            //sqlparam.Add("Class", $"{param.ClassName} Sp {param.ClassNum.ToString("D2")}");
+
             var sql = @"
                     INSERT INTO KidsWorld.dbo.Vocabulary
                                (
                                 ID
-                               ,Type
-                               ,ClassName
-                               ,ClassNum
-                               ,Category
+                               ,LessionID
                                ,Question
                                ,Answer
                                 )
                          VALUES
                                (
                                 newID()
-                               ,@Type
-                               ,@ClassName
-                               ,@ClassNum
-                               ,@Category
+                               ,@LessionID
                                ,@Question
                                ,@Answer
                                 )
@@ -636,6 +632,152 @@ namespace ERP.Web.Models.Respository
             catch
             {
                 return false;
+            }
+        }
+
+        public async Task<Guid> ChkLessionID(Vocabulary param)
+        {
+            var sqlparam = new DynamicParameters();
+            sqlparam.Add("ClassName", param.ClassName);
+
+            var sql = @"
+                    SELECT ID
+                      FROM KidsWorld.dbo.Lession
+                      WHERE ClassName = @ClassName
+                      AND Enabled = 1
+                      AND Deleted = 0
+                        "
+            ;
+
+            using var conn = new SqlConnection(_dBList.erp);
+
+            try
+            {
+                var result = await conn.QueryFirstOrDefaultAsync<Guid>(sql, sqlparam);
+                return result;
+
+            }
+            catch
+            {
+                return Guid.Empty;
+            }
+        }
+
+        public async Task<Guid> InsertLessionID(LessionModel param)
+        {
+            var sqlparam = new DynamicParameters();
+            sqlparam.Add("ClassName", param.ClassName);
+            sqlparam.Add("ClassNum", param.ClassNum);
+            sqlparam.Add("TestType", param.TestType);
+            sqlparam.Add("Category", param.Category);
+            sqlparam.Add("CategoryType", param.CategoryType);
+            sqlparam.Add("LessionSort", param.LessionSort);
+            var sql = @"
+                INSERT INTO KidsWorld.dbo.Lession
+                           (ID
+                           ,ClassName
+                           ,ClassNum
+                           ,TestType
+                           ,Category
+                           ,CategoryType
+                           ,LessionSort
+                           ,CreateDate
+                           ,ModifyDate
+                           ,Enabled
+                           ,Deleted)
+                     OUTPUT INSERTED.ID
+                     VALUES
+                           (NewID()
+                           ,@ClassName
+                           ,@ClassNum
+                           ,@TestType
+                           ,@Category
+                           ,@CategoryType
+                           ,@LessionSort
+                           ,GETDATE()
+                           ,GETDATE()
+                           ,1
+                           ,0)
+                        "
+            ;
+
+            using var conn = new SqlConnection(_dBList.erp);
+
+            try
+            {
+                var result = await conn.QueryFirstOrDefaultAsync<Guid>(sql, sqlparam);
+                return result;
+
+            }
+            catch
+            {
+                return Guid.Empty;
+            }
+        }
+
+        public async Task<int> GetClassNum(string ClassName)
+        {
+            var sqlparam = new DynamicParameters();
+            sqlparam.Add("ClassName", ClassName);
+
+            var sql = @"
+                    SELECT ClassNum
+                      FROM KidsWorld.dbo.Lession
+                      WHERE Enabled = 1
+                      AND Deleted = 0
+                      AND ClassName = @ClassName
+                        "
+            ;
+
+            using var conn = new SqlConnection(_dBList.erp);
+
+            try
+            {
+                var result = await conn.QueryFirstOrDefaultAsync<int>(sql, sqlparam);
+                if (result == 0)
+                {
+                    result = 1;
+                    return result;
+                }
+                  
+                return result + 1;
+
+            }
+            catch
+            {
+                return 0;
+            }
+        }
+
+        public async Task<int> GetLessionSort()
+        {
+            var sqlparam = new DynamicParameters();
+
+            var sql = @"
+                    SELECT LessionSort
+                      FROM KidsWorld.dbo.Lession
+                      WHERE Enabled = 1
+                      AND Deleted = 0
+                      Order by LessionSort desc
+                        "
+            ;
+
+            using var conn = new SqlConnection(_dBList.erp);
+
+            try
+            {
+                var result = await conn.QueryFirstOrDefaultAsync<int>(sql);
+                if (result == 0)
+                {
+                    result = 1;
+                    return result;
+                }
+                return result + 1;
+
+            }
+            catch
+            {
+                return 0;
             }
         }
     }

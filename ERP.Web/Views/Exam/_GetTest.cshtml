@@ -18,10 +18,11 @@
             <div class="col-4">
                 <label for="Select2ClassNameList" class="form-label">選擇考卷：</label>
                 <select id="Select2ClassNameList" name="ClassNameList" class="form-select" multiple>
-                    @foreach (var className in Model.ClassNameList)
-                    {
-                        <option value="@className">@className</option>
-                    }
+                    @if (Model.ClassNameList != null)
+                        @foreach (var className in Model.ClassNameList)
+                        {
+                            <option value="@className">@className</option>
+                        }
                 </select>
             </div>
 

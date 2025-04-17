@@ -6,7 +6,23 @@
 <!-- 取得考卷 -->
 <partial name="_GetTest" model="Model">
 <!-- 字庫區 -->
-<partial name="_NewTest" model="Model">
+        <div class="col-4">
+            <label for="SelectNewClassNameList" class="form-label">選擇考卷：</label>
+            <select id="SelectNewClassNameList" name="NewClassNameList" class="form-select">
+                @if (Model.ClassNameList != null)
+                {
+                    <option value="">請選擇</option>
+                    @foreach (var className in Model.ClassNameList)
+                    {
+                        <option value="@className">@className</option>
+                    }
+                }
+            </select>
+        </div>
+
+<div id="partialContainer">
+    @await Html.PartialAsync("_NewTest", Model)
+</div>
 
 <script src="~/StaticFiles/lib/select2/dist/js/select2.min.js"></script>
 <script>
@@ -64,11 +80,9 @@
                     TestDate: TestDate
                 }
             }).done(function (result) {
-                if (result.TestDate) {
-                    $("#TestDate").val(result.TestDate);
-                }
-                $('#partial').html(result);
-
+            debugger
+            console.log("++++")
+                        $('#partial').html(result);
             });
         });
 
@@ -80,7 +94,7 @@
             var KidID = $("#KidID").val();
             return {
                 method: "get",
-                url: '@Url.Action("GetList")',
+                url: '@Url.Action("NewTest")',
                 footable: true,
                 data: {
                     ClassName: ClassName,
