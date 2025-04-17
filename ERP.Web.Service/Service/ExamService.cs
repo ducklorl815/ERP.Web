@@ -357,7 +357,7 @@ namespace ERP.Web.Service.Service
             result.Pager = pager;
             result.ExamDataList = await _examRepo.GetNewTestListAsync(pager, ExamKeyword);
 
-            //await PublicTaskAsync(result, param);
+            await PublicTaskAsync(result, param);
 
             return result;
         }

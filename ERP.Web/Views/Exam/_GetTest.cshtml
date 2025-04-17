@@ -30,9 +30,12 @@
                 <label for="KidID" class="form-label">選擇學生：</label>
                 <select id="KidID" name="KidID" class="form-select">
                     <option value="">請選擇</option>
-                    @foreach (var kid in Model.KidList)
+                    @if(Model.KidList != null)
                     {
-                        <option value="@kid.Value">@kid.Text</option>
+                        @foreach (var kid in Model.KidList)
+                        {
+                            <option value="@kid.Value">@kid.Text</option>
+                        } 
                     }
                 </select>
             </div>

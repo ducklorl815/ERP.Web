@@ -20,9 +20,9 @@
             </select>
         </div>
 
-<div id="partialContainer">
-    @await Html.PartialAsync("_NewTest", Model)
-</div>
+        <div id="partialContainer" class="ibox-content ibox-list-content">
+            @await Html.PartialAsync("_NewTest", Model)
+        </div>
 
 <script src="~/StaticFiles/lib/select2/dist/js/select2.min.js"></script>
 <script>
