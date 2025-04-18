@@ -9,7 +9,8 @@ namespace ERP.Web.Controllers
     {
         public async Task<IActionResult> ReTest(ExamSearchListViewModel_param param)
         {
-            param.CorrectType = "1";
+            if (!Request.IsAjaxRequest())
+                param.CorrectType = "1";
             ExamSearchListViewModel_result result = await _examService.GetReTestAsync(param);
             if (Request.IsAjaxRequest())
                 return PartialView("_ReTest", result);
@@ -21,14 +22,6 @@ namespace ERP.Web.Controllers
             ExamSearchListViewModel_result result = await _examService.GetNewTestAsync(param);
             if (Request.IsAjaxRequest())
                 return PartialView("_NewTest", result);
-            else
-                return View(result);
-        }
-        public async Task<IActionResult> GetList(ExamSearchListViewModel_param param)
-        {
-            var result = await _examService.GetListAsync(param);
-            if (Request.IsAjaxRequest())
-                return PartialView("_ReTest", result);
             else
                 return View(result);
         }

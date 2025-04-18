@@ -72,7 +72,7 @@
             var KidID = $("#KidID").val();
             var TestDate = $("#TestDate").val();
             $.ajax({
-                url: '@Url.Action("GetList")',
+                url: '@Url.Action("ReTest")',
                 type: 'GET',
                 traditional: true, // 讓 jQuery 正確傳遞陣列
                 data: {
@@ -98,7 +98,7 @@
             // var KidID = $("#KidID").val();
             return {
                 method: "get",
-                url: '@Url.Action("GetList")',
+                url: '@Url.Action("ReTest")',
                 footable: true,
                 // data: {
                 //     ClassName: ClassName,

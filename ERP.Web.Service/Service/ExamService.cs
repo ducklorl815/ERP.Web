@@ -19,8 +19,26 @@ namespace ERP.Web.Service.Service
         {
             _examRepo = examRepo;
         }
+        public async Task<ExamSearchListViewModel_result> GetNewTestAsync(ExamSearchListViewModel_param param)
+        {
+            var result = new ExamSearchListViewModel_result();
+            //分頁功能
+            var ExamKeyword = new ExamMainKeyword
+            {
+                ClassNameList = param.ClassNameList,
+                CorrectType = param.CorrectType,
+            };
 
-        public async Task<ExamSearchListViewModel_result> GetListAsync(ExamSearchListViewModel_param param)
+            var datacount = await _examRepo.GetNewTestCountAsync(ExamKeyword);
+            var pager = new Paging(param.Page, param.PageSize, datacount);
+            result.Pager = pager;
+            result.ExamDataList = await _examRepo.GetNewTestListAsync(pager, ExamKeyword);
+
+            await PublicTaskAsync(result, param);
+
+            return result;
+        }
+        public async Task<ExamSearchListViewModel_result> GetReTestAsync(ExamSearchListViewModel_param param)
         {
             var result = new ExamSearchListViewModel_result()
             {
@@ -37,31 +55,33 @@ namespace ERP.Web.Service.Service
             if (param.TestDate != null)
                 ExamKeyword.TestDate = DateTime.Parse(param.TestDate);
 
-            var datacount = await _examRepo.GetListCountAsync(ExamKeyword);
+            var datacount = await _examRepo.GetReTestCountAsync(ExamKeyword);
             var pager = new Paging(param.Page, param.PageSize, datacount);
 
             result.Pager = pager;
-            result.ExamDataList = await _examRepo.GetSearchListAsync(pager, ExamKeyword);
-            var tasks = new List<Task>
-            {
-                Task.Run(async()=>
-                    result.KidList = (await _examRepo.GetKidListAsync())
-                    .Select(x=> new SelectListItem{ Text = x.Item2,Value = x.Item1.ToString().Trim()}).ToList()),
-                Task.Run(async()=>
-                    result.TestDateList =(await _examRepo.GetTestDateList(param.KidID))
-                    .Select(x=> new SelectListItem{Text=x.Date.ToString("yyyy/MM/dd"),Value=x.Date.ToString("yyyy/MM/dd")}).ToList()),
-                Task.Run(async()=>
-                        result.ClassNameList = await _examRepo.GetExamListAsync())
-            };
-            await Task.WhenAll(tasks);
+            result.ExamDataList = await _examRepo.GetReTestSearchListAsync(pager, ExamKeyword);
+            var kidListTask = await _examRepo.GetKidListAsync();
+            var testDateListTask = await _examRepo.GetTestDateList(param.KidID);
+            var classNameListTask = await _examRepo.GetExamListAsync();
 
-            return result;
-        }
-        public async Task<ExamSearchListViewModel_result> GetReTestAsync(ExamSearchListViewModel_param param)
-        {
-            var result = await GetListAsync(param);
+            //await Task.WhenAll(kidListTask, testDateListTask, classNameListTask);
 
-            await PublicTaskAsync(result, param);
+            result.KidList = kidListTask
+                .Select(x => new SelectListItem
+                {
+                    Text = x.Item2,
+                    Value = x.Item1.ToString().Trim()
+                }).ToList();
+
+            result.TestDateList = testDateListTask
+                .Select(x => new SelectListItem
+                {
+                    Text = x.Date.ToString("yyyy-MM-dd"),
+                    Value = x.Date.ToString("yyyy-MM-dd")
+                }).ToList();
+
+            result.ClassNameList = classNameListTask;
+            //await PublicTaskAsync(result, param);
 
             return result;
         }
@@ -77,6 +97,7 @@ namespace ERP.Web.Service.Service
 
             // 判斷今天是否出過考券
             Guid KidTestIndexID = await _examRepo.ChkKidTest(result.Title, param.TestType, param.KidID);
+
             if (KidTestIndexID != Guid.Empty)
             {
                 // 取得今天出過的考試資料
@@ -87,8 +108,10 @@ namespace ERP.Web.Service.Service
             //取得考試資料
             result.VocabularyList = await GetExamData(param);
 
+            Guid LessionID = await _examRepo.GetLessionID(result.Title);
+
             // 出過的題目存入資料庫
-            Guid NewKidTestID = await _examRepo.InsertKidTestIndex(result.Title, param.TestType, param.KidID);
+            Guid NewKidTestID = await _examRepo.InsertKidTestIndex(LessionID, param.TestType, param.KidID);
 
             foreach (var word in result.VocabularyList)
             {
@@ -123,32 +146,18 @@ namespace ERP.Web.Service.Service
         {
             List<Vocabulary> finalQuestions = new List<Vocabulary>(), listVocabulary = new List<Vocabulary>();
             string FirstClassName = string.Empty;
-            int FirstNum = 0;
 
             for (int i = 0; i < param.ClassNameList.Count(); i++)
             {
-                var Category = string.Empty;
-                List<string> ClassArrey = new List<string>();
-                if (param.ClassNameList[i].Contains("Sp"))
-                {
-                    ClassArrey = param.ClassNameList[i].Split("Sp").ToList();
-                    Category = "Sp";
-                }
-                if (param.ClassNameList[i].Contains("HW"))
-                {
-                    ClassArrey = param.ClassNameList[i].Split("HW").ToList();
-                    Category = "HW";
-                }
-                string ClassName = ClassArrey[0];
-                string ClassNumChk = ClassArrey[1].Trim();
-                int ClassNum = int.Parse(ClassNumChk);
+                string ClassName = param.ClassNameList[i];
+
+                // 若需要紀錄第一筆的 ClassName 跟 Num，可這樣做（可選）
                 if (i == 0)
                 {
-                    FirstClassName = ClassName;
-                    FirstNum = ClassNum;
+                        FirstClassName = ClassName;
                 }
 
-                var NewVocabulary = await _examRepo.GetExamDataAsync(ClassName, ClassNum, Category);
+                var NewVocabulary = await _examRepo.GetExamDataAsync(ClassName);
 
                 listVocabulary.AddRange(NewVocabulary);
             }
@@ -156,9 +165,7 @@ namespace ERP.Web.Service.Service
             // 依 ClassNum 降序排列（最新的在前）
             var groupedByClass = listVocabulary
                 .GroupBy(x => new { x.ClassName, x.ClassNum, x.Category }) // 依 ClassNum 和 Category 分組
-                .OrderByDescending(g => g.Key.ClassNum == FirstNum && g.Key.ClassName == FirstClassName) // 讓指定 ClassNum 優先
-                .ThenByDescending(g => g.Key.ClassName == FirstClassName) // 依 ClassName 降序
-                .ThenByDescending(g => g.Key.ClassNum) // 依 ClassNum 降序
+                .OrderByDescending(g => g.Key.ClassName == FirstClassName) 
                 .ToList();
 
             // 設定權重（依課程遠近分配）
@@ -200,7 +207,6 @@ namespace ERP.Web.Service.Service
             if (finalQuestions.Count < totalQuestions)
             {
                 int remainingSlots = totalQuestions - finalQuestions.Count;
-
                 var remainingWords = listVocabulary.Where(x => !finalQuestions.Contains(x))
                                                    .OrderBy(x => Guid.NewGuid())
                                                    .Take(remainingSlots) // 只補足夠的數量
@@ -249,7 +255,7 @@ namespace ERP.Web.Service.Service
   
                         for (int row = 2; row <= rowCount; row++) // 從第 2 行開始，因為第 1 行是標題
                         {
-                            string Type = worksheet.Cells[row, 1].Text.Trim();
+                            string CategoryType = worksheet.Cells[row, 1].Text.Trim();
                             string Question = worksheet.Cells[row, 2].Text.Trim();
                             string Answer = worksheet.Cells[row, 3].Text.Trim();
 
@@ -257,7 +263,7 @@ namespace ERP.Web.Service.Service
                             {
                                 vocabularies.Add(new Vocabulary
                                 {
-                                    Type = Type,
+                                    CategoryType = CategoryType,
                                     Class = ClassArrey[0].Trim(),
                                     ClassName = ClassName,
                                     ClassNum = ClassNum,
@@ -342,25 +348,6 @@ namespace ERP.Web.Service.Service
             return ChkUpdate;
         }
 
-        public async Task<ExamSearchListViewModel_result> GetNewTestAsync(ExamSearchListViewModel_param param)
-        {
-            var result = new ExamSearchListViewModel_result();
-            //分頁功能
-            var ExamKeyword = new ExamMainKeyword
-            {
-                ClassNameList = param.ClassNameList,
-                CorrectType = param.CorrectType,
-            };
-
-            var datacount = await _examRepo.GetNewTestCountAsync(ExamKeyword);
-            var pager = new Paging(param.Page, param.PageSize, datacount);
-            result.Pager = pager;
-            result.ExamDataList = await _examRepo.GetNewTestListAsync(pager, ExamKeyword);
-
-            await PublicTaskAsync(result, param);
-
-            return result;
-        }
 
         private async Task PublicTaskAsync(ExamSearchListViewModel_result result, ExamSearchListViewModel_param param)
         {

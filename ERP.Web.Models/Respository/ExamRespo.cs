@@ -19,20 +19,21 @@ namespace ERP.Web.Models.Respository
             _dBList = dbList.Value;
         }
 
-        public async Task<Guid> ChkKidTest(string Class, string TestType, string KidID)
+        public async Task<Guid> ChkKidTest(string ClassName, string TestType, string KidID)
         {
             var sqlparam = new DynamicParameters();
-            sqlparam.Add("Class", Class);
+            sqlparam.Add("ClassName", ClassName);
             sqlparam.Add("TestType", TestType);
             if (Guid.TryParse(KidID, out Guid KidMainID))
                 sqlparam.Add("KidMainID", KidMainID);
             var sql = @"
-                    SELECT ID
-                    FROM KidsWorld.dbo.KidTestIndex
-                    WHERE Class = @Class
-                    AND TestType = @TestType
-                    AND CONVERT(DATE, TestDate) = CONVERT(DATE, GETDATE())
-                    AND KidMainID = @KidMainID
+                    SELECT kti.ID
+                    FROM KidsWorld.dbo.KidTestIndex kti
+					JOIN KidsWorld.dbo.Lession les ON kti.LessionID = les.ID
+                    WHERE les.ClassName = @ClassName
+                    AND les.TestType = @TestType
+                    AND CONVERT(DATE, kti.TestDate) = CONVERT(DATE, GETDATE())
+                    AND kti.KidMainID = @KidMainID
             ";
 
 
@@ -78,20 +79,14 @@ namespace ERP.Web.Models.Respository
             }
         }
 
-        public async Task<List<Vocabulary>> GetExamDataAsync(string ClassName, int ClassNum, string Category)
+        public async Task<List<Vocabulary>> GetExamDataAsync(string ClassName)
         {
             var sqlparam = new DynamicParameters();
             sqlparam.Add("ClassName", ClassName);
-            sqlparam.Add("ClassNum", ClassNum);
-            sqlparam.Add("Category", Category);
 
             var sql = @"
-                DECLARE @targetClass INT = @ClassNum;
-                DECLARE @minRange INT = CASE WHEN @targetClass - 10 < 0 THEN 0 ELSE @targetClass - 10 END; 
-                DECLARE @MaxRange INT = @targetClass + 10; 
-
                 SELECT DISTINCT w.ID as WordID
-				, Type
+				, TestType
 				, ClassNum
 				, ClassName
 				, Category
@@ -101,12 +96,11 @@ namespace ERP.Web.Models.Respository
 				, km.ID as KidID
 				,wi.Correct
                 FROM KidsWorld.dbo.Vocabulary w
+				JOIN KidsWorld.dbo.Lession les ON les.ID = w.LessionID
                 LEFT JOIN KidsWorld.dbo.KidExamWordIndex wi ON wi.ExamID = w.ID
                 LEFT JOIN KidsWorld.dbo.KidTestIndex kti ON kti.ID = wi.KidTestIndexID
                 LEFT JOIN KidsWorld.dbo.KidMain km ON km.ID = kti.KidMainID
                 WHERE ClassName = @ClassName
-                AND Category = @Category
-                AND ClassNum BETWEEN @minRange AND @MaxRange
             ";
 
 
@@ -131,18 +125,20 @@ namespace ERP.Web.Models.Respository
             var sql = @"
                 SELECT 
                 v.ID,
-                v.Type,
-                v.ClassNum,
-                v.Category,
-                v.ClassName,
+                les.TestType,
+                les.ClassNum,
+                les.Category,
+				les.CategoryType,
+                les.ClassName,
                 v.Question,
                 v.Answer
                 FROM KidsWorld.dbo.Vocabulary v
                 JOIN KidsWorld.dbo.KidExamWordIndex ke ON v.ID = ke.ExamID
-                JOIN KidsWorld.dbo.KidTestIndex kt ON ke.KidTestIndexID = kt.ID
-                WHERE kt.ID = @KidTestIndexID 
+                JOIN KidsWorld.dbo.KidTestIndex kti ON ke.KidTestIndexID = kti.ID
+				JOIN KidsWorld.dbo.Lession les ON kti.LessionID = les.ID
+                WHERE kti.ID = @KidTestIndexID 
                 AND ke.Enabled = 1 AND ke.Deleted = 0
-                AND kt.Enabled = 1 AND kt.Deleted = 0
+                AND kti.Enabled = 1 AND kti.Deleted = 0
             ";
 
 
@@ -207,7 +203,7 @@ namespace ERP.Web.Models.Respository
             }
         }
 
-        public async Task<int> GetListCountAsync(ExamMainKeyword param)
+        public async Task<int> GetReTestCountAsync(ExamMainKeyword param)
         {
             var sqlparam = new DynamicParameters();
 
@@ -304,13 +300,13 @@ namespace ERP.Web.Models.Respository
             }
         }
 
-        public async Task<List<ExamMainModel>> GetSearchListAsync(Paging pager, ExamMainKeyword param)
+        public async Task<List<ExamMainModel>> GetReTestSearchListAsync(Paging pager, ExamMainKeyword param)
         {
             var sqlparam = new DynamicParameters();
 
             var sql = $@"
                     SELECT 
-	                       les.Class
+	                       les.ClassName
 						  ,les.Category
 	                      ,les.TestType
 	                      ,w.ID as WordID
@@ -333,7 +329,7 @@ namespace ERP.Web.Models.Respository
             #region 關鍵字搜尋
             if (param.ClassNameList?.Any() == true)
             {
-                sql += " AND kti.Class IN @Class";
+                sql += " AND les.ClassName IN @ClassName";
                 sqlparam.Add("Class", param.ClassNameList);
             }
 
@@ -410,7 +406,7 @@ namespace ERP.Web.Models.Respository
 
             var sql = $@"
 			            SELECT w.ID as WordID,
-				               les.ClassName as Class,
+				               les.ClassName,
 				               les.Category,
 				               les.CategoryType,
 				               les.ClassNum,
@@ -511,34 +507,31 @@ namespace ERP.Web.Models.Respository
             }
         }
 
-        public async Task<Guid> InsertKidTestIndex(string Class, string TestType, string KidID)
+        public async Task<Guid> InsertKidTestIndex(Guid LessionID, string TestType, string KidID)
         {
             var sqlparam = new DynamicParameters();
-            sqlparam.Add("Class", Class);
-            sqlparam.Add("TestType", TestType);
+            sqlparam.Add("LessionID", LessionID);
             if (Guid.TryParse(KidID, out Guid KidMainID))
                 sqlparam.Add("KidMainID", KidMainID);
 
             var sql = @"
                     INSERT INTO KidsWorld.dbo.KidTestIndex
-                               (ID
+                               (
+                                ID
                                ,KidMainID
-                               ,Class
-                               ,TestType
+                               ,LessionID
                                ,TestDate
                                ,Enabled
                                ,Deleted)
                          OUTPUT INSERTED.ID
                          VALUES
-                               (
-		                       NEWID()
+                               (NEWID()
                                ,@KidMainID
-                               ,@Class
-                               ,@TestType
+                               ,@LessionID
                                ,GETDATE()
                                ,1
                                ,0
-		                       )
+                                )
                         "
             ;
 
@@ -778,6 +771,34 @@ namespace ERP.Web.Models.Respository
             catch
             {
                 return 0;
+            }
+        }
+
+        public async Task<Guid> GetLessionID(string ClassName)
+        {
+            var sqlparam = new DynamicParameters();
+            sqlparam.Add("ClassName", ClassName);
+            var sql = @"
+                        SELECT ID
+                          FROM KidsWorld.dbo.Lession
+                          WHERE ClassName = @ClassName
+                          AND Enabled = 1
+                          AND Deleted = 0
+                        "
+            ;
+
+            using var conn = new SqlConnection(_dBList.erp);
+
+            try
+            {
+                var result = await conn.QueryFirstOrDefaultAsync<Guid>(sql, sqlparam);
+
+                return result;
+
+            }
+            catch
+            {
+                return Guid.Empty;
             }
         }
     }

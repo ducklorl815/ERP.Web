@@ -65,8 +65,8 @@
 
 <form method="post" action="@Url.Action("Submit", "Exam")">
     @{
-        var words = Model.VocabularyList.Where(x => x.Type == "Word").ToList();
-        var phrases = Model.VocabularyList.Where(x => x.Type == "Phrase").ToList();
+        var words = Model.VocabularyList.Where(x => x.CategoryType == "Word").ToList();
+        var phrases = Model.VocabularyList.Where(x => x.CategoryType == "Phrase").ToList();
     }
 
     @if (words.Any() || phrases.Any())

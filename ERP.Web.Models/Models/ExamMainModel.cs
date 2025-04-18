@@ -3,7 +3,7 @@
     public class Vocabulary
     {
         public Guid WordID { get; set; }
-        public string Type { get; set; } // 類別 片語_Phrase 單字_Word
+        public string CategoryType { get; set; } // 類別 片語_Phrase 單字_Word
         public string Class { get; set; }
         public int ClassNum { get; set; } // 課程編號
         public string Category { get; set; } // 類別
@@ -31,7 +31,7 @@
     public class ExamMainModel
     {
         public Guid WordID { get; set; }
-        public string Class { get; set; }
+        public string ClassName { get; set; }
         /// <summary>考卷類別 ex:English,Math</summary>
         public string TestType { get; set; }
         /// <summary>文字內容規格 ex:Word,Phrase</summary>
