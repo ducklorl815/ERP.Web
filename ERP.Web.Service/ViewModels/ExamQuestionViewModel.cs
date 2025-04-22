@@ -19,7 +19,8 @@ namespace ERP.Web.Service.ViewModels
         public string KidID { get; set; }
         public string WordID { get; set; }
         public bool Correct { get; set; }
-        public bool FirstTest { get; set; } // 優先試題
+        public bool Focus { get; set; }// 優先試題
+
 
     }
     public class ExamSearchListViewModel_result : ExamSearchListViewModel_param

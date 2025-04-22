@@ -347,7 +347,16 @@ namespace ERP.Web.Service.Service
 
             return ChkUpdate;
         }
+        public async Task<bool> UpdateFocusWord(ExamSearchListViewModel_param param)
+        {
+            if (string.IsNullOrEmpty(param.WordID))
+                return false;
+            bool ChkInsert = await _examRepo.ChkFocusWord(param.WordID, param.KidID);
+            
+            bool ChkUpdate = ChkInsert ? await _examRepo.UpdateFocusWord(param.WordID, param.KidID, param.Focus) : await _examRepo.InsertFocusWord(param.WordID, param.KidID, param.Focus);
 
+            return ChkUpdate;
+        }
 
         private async Task PublicTaskAsync(ExamSearchListViewModel_result result, ExamSearchListViewModel_param param)
         {
@@ -374,6 +383,8 @@ namespace ERP.Web.Service.Service
 
             result.ClassNameList = classNameListTask.Result;
         }
+
+
     }
 
 }

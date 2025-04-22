@@ -85,20 +85,22 @@ namespace ERP.Web.Models.Respository
             sqlparam.Add("ClassName", ClassName);
 
             var sql = @"
-                SELECT DISTINCT w.ID as WordID
-				, TestType
-				, ClassNum
-				, ClassName
-				, Category
-				, Question
-				, Answer
-				, Focus
-				, km.ID as KidID
-				,wi.Correct
+                SELECT DISTINCT w.ID as WordID,
+				les.TestType,
+				les.ClassNum,
+				les.Category,
+				les.CategoryType,
+				ClassName,
+				Question,
+				Answer,
+				case when wi.Focus is not null then wi.Focus else 0 end as Focus,
+				km.ID as KidID,
+				case when kwi.Correct is not null then kwi.Correct else 0 end as Correct
                 FROM KidsWorld.dbo.Vocabulary w
+				LEFT JOIN KidsWorld.dbo.VocabularyIndex wi ON wi.WordID = w.ID 
 				JOIN KidsWorld.dbo.Lession les ON les.ID = w.LessionID
-                LEFT JOIN KidsWorld.dbo.KidExamWordIndex wi ON wi.ExamID = w.ID
-                LEFT JOIN KidsWorld.dbo.KidTestIndex kti ON kti.ID = wi.KidTestIndexID
+                LEFT JOIN KidsWorld.dbo.KidExamWordIndex kwi ON kwi.ExamID = w.ID
+                LEFT JOIN KidsWorld.dbo.KidTestIndex kti ON kti.ID = kwi.KidTestIndexID
                 LEFT JOIN KidsWorld.dbo.KidMain km ON km.ID = kti.KidMainID
                 WHERE ClassName = @ClassName
             ";
@@ -263,19 +265,20 @@ namespace ERP.Web.Models.Respository
 			            SELECT COUNT(*)
 			            FROM KidsWorld.dbo.Vocabulary w
 			            JOIN KidsWorld.dbo.Lession les ON les.ID = w.LessionID
+						LEFT JOIN KidsWorld.dbo.VocabularyIndex wi ON wi.WordID = w.ID
                         ";
 
             #region 關鍵字搜尋
-            //if (param.ClassNameList?.Any() == true)
-            //{
-            //    sql += " AND kti.Class IN @Class";
-            //    sqlparam.Add("Class", param.ClassNameList);
-            //}
-            //if (!string.IsNullOrEmpty(param.KidID))
-            //{
-            //    sqlparam.Add("KidID", param.KidID);
-            //    sql += $" AND km.ID = @KidID";
-            //}
+            if (param.ClassNameList?.Any() == true)
+            {
+                sql += " AND les.ClassName IN @Class";
+                sqlparam.Add("Class", param.ClassNameList);
+            }
+            if (!string.IsNullOrEmpty(param.KidID))
+            {
+                sqlparam.Add("KidID", param.KidID);
+                sql += $" AND km.ID = @KidID";
+            }
             //if (!string.IsNullOrEmpty(param.CorrectType))
             //{
             //    sqlparam.Add("Correct", param.CorrectType);
@@ -405,7 +408,7 @@ namespace ERP.Web.Models.Respository
             var sqlparam = new DynamicParameters();
 
             var sql = $@"
-			            SELECT w.ID as WordID,
+						SELECT w.ID as WordID,
 				               les.ClassName,
 				               les.Category,
 				               les.CategoryType,
@@ -414,22 +417,25 @@ namespace ERP.Web.Models.Respository
 				               les.TestType,
 				               Question,
 				               Answer,
-				               Focus
+				               case when wi.Focus is NULL then 0
+									ELSE wi.Focus 
+							   end as 'Focus'
 			            FROM KidsWorld.dbo.Vocabulary w
 			            JOIN KidsWorld.dbo.Lession les ON les.ID = w.LessionID
+						LEFT JOIN KidsWorld.dbo.VocabularyIndex wi ON wi.WordID = w.ID
                         ";
 
             #region 關鍵字搜尋
-            //if (param.ClassNameList?.Any() == true)
-            //{
-            //    sql += " AND kti.Class IN @Class";
-            //    sqlparam.Add("Class", param.ClassNameList);
-            //}
-            //if (!string.IsNullOrEmpty(param.KidID))
-            //{
-            //    sqlparam.Add("KidID", param.KidID);
-            //    sql += $" AND km.ID = @KidID";
-            //}
+            if (param.ClassNameList?.Any() == true)
+            {
+                sql += " AND les.ClassName IN @Class";
+                sqlparam.Add("Class", param.ClassNameList);
+            }
+            if (!string.IsNullOrEmpty(param.KidID))
+            {
+                sqlparam.Add("KidID", param.KidID);
+                sql += $" AND km.ID = @KidID";
+            }
             //if (!string.IsNullOrEmpty(param.CorrectType))
             //{
             //    sqlparam.Add("Correct", param.CorrectType);
@@ -442,7 +448,7 @@ namespace ERP.Web.Models.Respository
             //}
             #endregion
 
-            sql += "ORDER BY les.LessionSort DESC ";
+            sql += " ORDER BY les.LessionSort DESC ";
 
             //分頁功能
             sqlparam.Add("Offset", pager.ItemStart - 1);
@@ -591,7 +597,6 @@ namespace ERP.Web.Models.Respository
 
         public async Task<bool> UpdateExamWord(string WordID, string KidID, string TestDate, bool Correct)
         {
-
             var sqlparam = new DynamicParameters();
             sqlparam.Add("ExamID", WordID);
             sqlparam.Add("KidMainID", KidID);
@@ -732,7 +737,7 @@ namespace ERP.Web.Models.Respository
                     result = 1;
                     return result;
                 }
-                  
+
                 return result + 1;
 
             }
@@ -799,6 +804,103 @@ namespace ERP.Web.Models.Respository
             catch
             {
                 return Guid.Empty;
+            }
+        }
+
+        public async Task<bool> UpdateFocusWord(string WordID, string KidMainID, bool Focus)
+        {
+            var sqlparam = new DynamicParameters();
+            sqlparam.Add("WordID", WordID);
+            sqlparam.Add("KidMainID", KidMainID);
+            sqlparam.Add("Focus", Focus);
+            var sql = @"
+						 UPDATE KidsWorld.dbo.VocabularyIndex
+                           SET Focus = @Focus
+                              ,FocusDate = GETDATE()
+                         WHERE WordID = @WordID
+                         AND KidMainID = @KidMainID
+                        "
+            ;
+
+            using var conn = new SqlConnection(_dBList.erp);
+
+            try
+            {
+                var result = await conn.ExecuteAsync(sql, sqlparam);
+                return result > 0;
+            }
+            catch
+            {
+                return false;
+            }
+        }
+
+        public async Task<bool> ChkFocusWord(string WordID, string KidMainID)
+        {
+            var sqlparam = new DynamicParameters();
+            sqlparam.Add("WordID", WordID);
+            sqlparam.Add("KidMainID", KidMainID);
+            var sql = @"
+                        SELECT TOP 1 1
+                          FROM KidsWorld.dbo.VocabularyIndex
+                          WHERE KidMainID = @KidMainID
+                          AND WordID = @WordID
+                          AND Enabled = 1
+                          AND Deleted = 0
+                        "
+            ;
+
+            using var conn = new SqlConnection(_dBList.erp);
+
+            try
+            {
+                var result = await conn.QueryFirstOrDefaultAsync<int>(sql, sqlparam);
+                return result > 0;
+
+            }
+            catch
+            {
+                return false;
+            }
+        }
+
+        public async Task<bool> InsertFocusWord(string WordID, string KidMainID, bool Focus)
+        {
+            var sqlparam = new DynamicParameters();
+            sqlparam.Add("WordID", WordID);
+            sqlparam.Add("KidMainID", KidMainID);
+            sqlparam.Add("Focus", Focus);
+            var sql = @"
+                INSERT INTO KidsWorld.dbo.VocabularyIndex
+                           (ID
+                           ,KidMainID
+                           ,WordID
+                           ,Focus
+                           ,FocusDate
+                           ,Enabled
+                           ,Deleted)
+                     VALUES
+                           (NEWID()
+                           ,@KidMainID
+                           ,@WordID
+                           ,@Focus
+                           ,GETDATE()
+                           ,1
+                           ,0)
+                        "
+            ;
+
+            using var conn = new SqlConnection(_dBList.erp);
+
+            try
+            {
+                var result = await conn.ExecuteAsync(sql, sqlparam);
+                return result > 0;
+
+            }
+            catch
+            {
+                return false;
             }
         }
     }
