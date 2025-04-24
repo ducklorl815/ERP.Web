@@ -19,11 +19,11 @@
                 <tr class="text-center">
                     <td class="align-middle">@item.ClassName</td>
                     <td class="align-middle">@item.CategoryType</td>
-                    <td><input type="text" class="form-control" value="@item.Question" /></td>
-                    <td><input type="text" class="form-control" value="@item.Answer" /></td>
+                    <td><input type="text" class="form-control question" value="@item.Question" /></td>
+                    <td><input type="text" class="form-control answer" value="@item.Answer" /></td>
                     <td class="align-middle text-center">
                         <div class="d-flex justify-content-center align-items-center">
-                            <input type="checkbox" class="form-check-input focus-checkbox" @(item.Focus == 1 ? "checked" : "") />
+                            <input type="checkbox" class="form-check-input checkbox-light focus-checkbox" @(item.Focus == 1 ? "checked" : "") />
                         </div>
                     </td>
 

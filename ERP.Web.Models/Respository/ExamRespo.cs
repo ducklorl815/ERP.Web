@@ -423,13 +423,14 @@ namespace ERP.Web.Models.Respository
 			            FROM KidsWorld.dbo.Vocabulary w
 			            JOIN KidsWorld.dbo.Lession les ON les.ID = w.LessionID
 						LEFT JOIN KidsWorld.dbo.VocabularyIndex wi ON wi.WordID = w.ID
+                        where 1 = 1
                         ";
 
             #region 關鍵字搜尋
             if (param.ClassNameList?.Any() == true)
             {
-                sql += " AND les.ClassName IN @Class";
                 sqlparam.Add("Class", param.ClassNameList);
+                sql += " AND les.ClassName IN @Class";
             }
             if (!string.IsNullOrEmpty(param.KidID))
             {
@@ -835,7 +836,7 @@ namespace ERP.Web.Models.Respository
             }
         }
 
-        public async Task<bool> ChkFocusWord(string WordID, string KidMainID)
+        public async Task<bool> ChkVocabIndex(string WordID, string KidMainID)
         {
             var sqlparam = new DynamicParameters();
             sqlparam.Add("WordID", WordID);
@@ -897,6 +898,33 @@ namespace ERP.Web.Models.Respository
                 var result = await conn.ExecuteAsync(sql, sqlparam);
                 return result > 0;
 
+            }
+            catch
+            {
+                return false;
+            }
+        }
+
+        public async Task<bool> UpdateWord(string ID, string Question, string Answer)
+        {
+            var sqlparam = new DynamicParameters();
+            sqlparam.Add("ID", ID);
+            sqlparam.Add("Question", Question);
+            sqlparam.Add("Answer", Answer);
+            var sql = @"
+                    UPDATE KidsWorld.dbo.Vocabulary
+                       SET Question = @Question
+                          ,Answer = @Answer
+                     WHERE ID = @ID
+                        "
+            ;
+
+            using var conn = new SqlConnection(_dBList.erp);
+
+            try
+            {
+                var result = await conn.ExecuteAsync(sql, sqlparam);
+                return result > 0;
             }
             catch
             {

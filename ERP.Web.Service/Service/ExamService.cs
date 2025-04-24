@@ -154,7 +154,7 @@ namespace ERP.Web.Service.Service
                 // 若需要紀錄第一筆的 ClassName 跟 Num，可這樣做（可選）
                 if (i == 0)
                 {
-                        FirstClassName = ClassName;
+                    FirstClassName = ClassName;
                 }
 
                 var NewVocabulary = await _examRepo.GetExamDataAsync(ClassName);
@@ -165,7 +165,7 @@ namespace ERP.Web.Service.Service
             // 依 ClassNum 降序排列（最新的在前）
             var groupedByClass = listVocabulary
                 .GroupBy(x => new { x.ClassName, x.ClassNum, x.Category }) // 依 ClassNum 和 Category 分組
-                .OrderByDescending(g => g.Key.ClassName == FirstClassName) 
+                .OrderByDescending(g => g.Key.ClassName == FirstClassName)
                 .ToList();
 
             // 設定權重（依課程遠近分配）
@@ -252,7 +252,7 @@ namespace ERP.Web.Service.Service
                         var ClassNumChk = ClassArrey[1].Trim();
                         if (!int.TryParse(ClassNumChk, out int ClassNum))
                             return false;
-  
+
                         for (int row = 2; row <= rowCount; row++) // 從第 2 行開始，因為第 1 行是標題
                         {
                             string CategoryType = worksheet.Cells[row, 1].Text.Trim();
@@ -347,15 +347,18 @@ namespace ERP.Web.Service.Service
 
             return ChkUpdate;
         }
-        public async Task<bool> UpdateFocusWord(ExamSearchListViewModel_param param)
+        public async Task<bool> UpdateNewTestWord(ExamSearchListViewModel_param param)
         {
             if (string.IsNullOrEmpty(param.WordID))
                 return false;
-            bool ChkInsert = await _examRepo.ChkFocusWord(param.WordID, param.KidID);
-            
-            bool ChkUpdate = ChkInsert ? await _examRepo.UpdateFocusWord(param.WordID, param.KidID, param.Focus) : await _examRepo.InsertFocusWord(param.WordID, param.KidID, param.Focus);
 
-            return ChkUpdate;
+            bool ChkFocusInsert = await _examRepo.ChkVocabIndex(param.WordID, param.KidID);
+            bool ChkFocusUpdate = ChkFocusInsert ? await _examRepo.UpdateFocusWord(param.WordID, param.KidID, param.Focus) : await _examRepo.InsertFocusWord(param.WordID, param.KidID, param.Focus);
+            bool ChkUpdateWord = false;
+            if (!string.IsNullOrEmpty(param.Question) && !string.IsNullOrEmpty(param.Answer))
+                ChkUpdateWord = await _examRepo.UpdateWord(param.WordID, param.Question, param.Answer);
+
+            return (ChkFocusUpdate && ChkUpdateWord);
         }
 
         private async Task PublicTaskAsync(ExamSearchListViewModel_result result, ExamSearchListViewModel_param param)

@@ -1,0 +1,27 @@
+﻿.checkbox-light {
+    -webkit-appearance: none;
+    -moz-appearance: none;
+    appearance: none;
+    width: 16px;
+    height: 16px;
+    border: 1px solid #ccc;
+    border-radius: 4px;
+    outline: none;
+    transition: background-color 0.3s ease;
+    position: relative;
+}
+
+    .checkbox-light:checked {
+        background-color: #d1dade;
+    }
+
+        .checkbox-light:checked::before {
+            content: '✔'; /* Checkmark icon */
+            position: absolute;
+            top: 40%;
+            left: 40%;
+            transform: translate(-40%, -40%);
+            color: #585c5d;
+            font-size: 10px;
+        }
+

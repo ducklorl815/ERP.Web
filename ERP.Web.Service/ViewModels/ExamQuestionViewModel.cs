@@ -21,7 +21,8 @@ namespace ERP.Web.Service.ViewModels
         public bool Correct { get; set; }
         public bool Focus { get; set; }// 優先試題
 
-
+        public string Question { get; set; }
+        public string Answer { get; set; } // 正確答案
     }
     public class ExamSearchListViewModel_result : ExamSearchListViewModel_param
     {

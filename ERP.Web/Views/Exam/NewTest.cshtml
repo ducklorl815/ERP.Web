@@ -1,6 +1,7 @@
 ﻿@model ERP.Web.Service.ViewModels.ExamSearchListViewModel_result
 
 <link rel="stylesheet" href="~/StaticFiles/lib/select2/dist/css/select2.css" />
+<link href="~/css/chkboxstyle.css" rel="stylesheet" />
 <!-- Excel 檔案上傳區 -->
 <partial name="_UploadForm" model="Model">
     <!-- 取得考卷 -->
@@ -21,7 +22,7 @@
         </div>
 
         <div id="partialContainer" class="ibox-content ibox-list-content">
-            @await Html.PartialAsync("_NewTest", Model)
+            <partial name="_NewTest" model="Model">
         </div>
 
         <script src="~/StaticFiles/lib/select2/dist/js/select2.min.js"></script>
@@ -105,6 +106,8 @@
                 const $row = $(e).closest("tr");
                 const wordID = $(e).data("wordid");
                 const isFocus = $row.find(".focus-checkbox").prop("checked");
+                const question = $row.find(".question").val();
+                const answer = $row.find(".answer").val();
                 const kidID = $("#KidID").val();
 
                 if (!wordID) {
@@ -117,13 +120,19 @@
                     return;
                 }
 
+                if (!question || !answer) {
+                    alert("欄位資訊不可空白！");
+                    return;
+                }
                 $.ajax({
-                    url: '@Url.Action("UpdateFocusWord", "Exam")',
+                    url: '@Url.Action("UpdateNewTestWord", "Exam")',
                     type: 'POST',
                     data: {
                         WordID: wordID,
                         KidID: kidID,
-                        Focus: isFocus
+                        Focus: isFocus,
+                        Question: question,
+                        Answer: answer
                     },
                     success: function () {
                         alert("資料已成功提交！");

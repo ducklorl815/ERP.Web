@@ -14,9 +14,9 @@ namespace ERP.Web.Controllers
             return Json(result);
 
         }
-        public async Task<IActionResult> UpdateFocusWord(ExamSearchListViewModel_param param)
+        public async Task<IActionResult> UpdateNewTestWord(ExamSearchListViewModel_param param)
         {
-            var result = await _examService.UpdateFocusWord(param);
+            var result = await _examService.UpdateNewTestWord(param);
 
             return Json(result);
 

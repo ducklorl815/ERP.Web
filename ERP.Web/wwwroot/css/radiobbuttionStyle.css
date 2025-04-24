@@ -1,0 +1,29 @@
+﻿.radiobutton-light {
+    -webkit-appearance: none;
+    -moz-appearance: none;
+    appearance: none;
+    width: 16px;
+    height: 16px;
+    border: 2px solid #ccc;
+    border-radius: 50%;
+    outline: none;
+    transition: border-color 0.3s ease;
+    position: relative;
+}
+
+    .radiobutton-light:checked {
+        border-color: #d1dade;
+    }
+
+        .radiobutton-light:checked::before {
+            content: ''; /* Empty circle */
+            position: absolute;
+            top: 50%;
+            left: 50%;
+            transform: translate(-50%, -50%);
+            width: 8px;
+            height: 8px;
+            border-radius: 50%;
+            background-color: #0091DA;
+            transition: background-color 0.3s ease;
+        }
