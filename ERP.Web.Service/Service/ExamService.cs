@@ -235,21 +235,22 @@ namespace ERP.Web.Service.Service
                         if (worksheet.Dimension == null) continue; // 略過空的工作表
                         int rowCount = worksheet.Dimension.Rows;
                         string ClassName = worksheet.Cells[1, 1].Text; // 以工作表名稱作為課程名稱
-                        string Category = string.Empty;
-                        List<string> ClassArrey = new List<string>();
-                        if (ClassName.Contains("Sp"))
-                        {
-                            ClassArrey = ClassName.Split("Sp").ToList();
-                            Category = "Sp";
-                        }
-                        if (ClassName.Contains("HW"))
-                        {
-                            ClassArrey = ClassName.Split("HW").ToList();
-                            Category = "HW";
-                        }
-                        var ClassNumChk = ClassArrey[1].Trim();
-                        if (!int.TryParse(ClassNumChk, out int ClassNum))
-                            return false;
+
+                        //string Category = string.Empty;
+                        //List<string> ClassArrey = new List<string>();
+                        //if (ClassName.Contains("Sp"))
+                        //{
+                        //    ClassArrey = ClassName.Split("Sp").ToList();
+                        //    Category = "Sp";
+                        //}
+                        //if (ClassName.Contains("HW"))
+                        //{
+                        //    ClassArrey = ClassName.Split("HW").ToList();
+                        //    Category = "HW";
+                        //}
+                        //var ClassNumChk = ClassArrey[1].Trim();
+                        //if (!int.TryParse(ClassNumChk, out int ClassNum))
+                        //    return false;
 
                         for (int row = 2; row <= rowCount; row++) // 從第 2 行開始，因為第 1 行是標題
                         {
@@ -266,10 +267,10 @@ namespace ERP.Web.Service.Service
                                 vocabularies.Add(new Vocabulary
                                 {
                                     CategoryType = CategoryType,
-                                    Class = ClassArrey[0].Trim(),
+                                    //Class = ClassArrey[0].Trim(),
                                     ClassName = ClassName,
-                                    ClassNum = ClassNum,
-                                    Category = Category,
+                                    //ClassNum = ClassNum,
+                                    //Category = Category,
                                     Question = Question,
                                     Answer = Answer
                                 });
