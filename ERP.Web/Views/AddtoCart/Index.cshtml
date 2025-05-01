@@ -1,0 +1,318 @@
+﻿
+<style>
+    .draggable-item {
+        width: 120px;
+        height: 80px;
+        border: 2px dashed #0d6efd;
+        border-radius: 12px;
+        background-color: #f8f9fa;
+        color: #0d6efd;
+        font-weight: bold;
+        display: flex;
+        align-items: center;
+        justify-content: center;
+        text-align: center;
+        cursor: grab;
+        user-select: none;
+        transition: all 0.3s ease;
+    }
+
+        .draggable-item:hover {
+            background-color: #e7f1ff;
+            box-shadow: 0 4px 8px rgba(13, 110, 253, 0.2);
+        }
+</style>
+
+
+<!-- 排版區域 -->
+<div style="display: flex; gap: 30px; align-items: flex-start;">
+    <!-- 拖曳選單 -->
+    <div id="itemList" style="display: flex; flex-direction: column; gap: 10px;">
+        <div class="draggable-item" draggable="true" data-type="amount_reward">
+            💰 滿額折扣
+        </div>
+        <div class="draggable-item" draggable="true" data-type="holiday_discount">
+            🎉 節慶折扣
+        </div>
+        <div class="draggable-item" draggable="true" data-type="member_level">
+            🏅 會員等級
+        </div>
+    </div>
+
+    <!-- 購物車 -->
+    <div id="cartZone" style="width:800px; height:500px; border:2px dashed gray; padding:10px;">
+        購物車
+    </div>
+
+</div>
+<!-- 複選泡泡框 -->
+<div class="modal fade" id="memberModal" tabindex="-1" aria-labelledby="memberModalLabel" aria-hidden="true">
+    <div class="modal-dialog">
+        <div class="modal-content">
+            <div class="modal-header">
+                <h5 class="modal-title" id="memberModalLabel">選擇會員等級</h5>
+            </div>
+            <div class="modal-body">
+                <div style="display: flex; flex-direction: column; gap: 10px;">
+                    <div>
+                        <input type="checkbox" id="diamond" />
+                        <label for="diamond">鑽五福</label>
+                    </div>
+                    <div>
+                        <input type="checkbox" id="gold" />
+                        <label for="gold">金五福</label>
+                    </div>
+                    <div>
+                        <input type="checkbox" id="silver" />
+                        <label for="silver">銀五福</label>
+                    </div>
+                    <div>
+                        <input type="checkbox" id="bronze" />
+                        <label for="bronze">銅五福</label>
+                    </div>
+                    <div>
+                        <input type="checkbox" id="special" />
+                        <label for="special">特五福</label>
+                    </div>
+                </div>
+            </div>
+            <div class="modal-footer">
+                <button type="button" id="btnConfirmMemberLevel" class="btn btn-primary">確定</button>
+            </div>
+        </div>
+    </div>
+</div>
+<!-- 滿額條件 Modal -->
+<div class="modal fade" id="amountConditionModal" tabindex="-1">
+    <div class="modal-dialog">
+        <div class="modal-content">
+            <div class="modal-header">
+                <h5 class="modal-title">設定滿額送條件</h5>
+            </div>
+            <div class="modal-body">
+                <label>消費金額上限：</label>
+                <input type="number" id="amountLimit" class="form-control" placeholder="例如：10000" />
+            </div>
+            <div class="modal-footer">
+                <button type="button" id="btnConfirmAmountCondition" class="btn btn-primary">確定</button>
+            </div>
+        </div>
+    </div>
+</div>
+
+<!-- 節慶折扣設定Modal -->
+<div class="modal fade" id="discountModal" tabindex="-1" role="dialog">
+    <div class="modal-dialog" role="document">
+        <div class="modal-content">
+            <div class="modal-header">
+                <h5 class="modal-title">設定節慶折扣活動</h5>
+            </div>
+            <div class="modal-body">
+                <div>
+                    <label>選擇節日：</label>
+                    <select id="holidaySelect" class="form-control">
+                        <option value="">請選擇</option>
+                        <option value="農曆新年">農曆新年</option>
+                        <option value="端午節">端午節</option>
+                        <option value="中秋節">中秋節</option>
+                        <option value="聖誕節">聖誕節</option>
+                    </select>
+                </div>
+                <div style="margin-top:10px;">
+                    <label>開始日期：</label>
+                    <input type="date" id="discountStartDate" class="form-control" />
+                </div>
+                <div style="margin-top:10px;">
+                    <label>結束日期：</label>
+                    <input type="date" id="discountEndDate" class="form-control" />
+                </div>
+            </div>
+            <div class="modal-footer">
+                <button type="button" id="btnConfirmDiscount" class="btn btn-primary">確定</button>
+            </div>
+        </div>
+    </div>
+</div>
+
+
+
+<script>
+    document.addEventListener('DOMContentLoaded', function () {
+
+        // ✅ 節日對應的預設日期
+        const holidayDateMap = {
+            "農曆新年": { start: "2025-01-28", end: "2025-02-06" },
+            "端午節": { start: "2025-05-31", end: "2025-06-02" },
+            "中秋節": { start: "2025-09-05", end: "2025-09-08" },
+            "聖誕節": { start: "2025-12-24", end: "2025-12-26" }
+        };
+
+        let draggedItemType = null;
+
+        const holidaySelect = document.getElementById('holidaySelect');
+        const startInput = document.getElementById('discountStartDate');
+        const endInput = document.getElementById('discountEndDate');
+        const cartZone = document.getElementById('cartZone');
+        const btnConfirmDiscount = document.getElementById('btnConfirmDiscount');
+        const discountModalEl = document.getElementById('discountModal');
+        const amountConditionModal = document.getElementById('amountConditionModal');
+        const btnConfirmAmountCondition = document.getElementById('btnConfirmAmountCondition');
+
+        const popup = document.getElementById('memberModal');
+        const levelSelect = document.getElementById('levelSelect');
+        const btnConfirmMemberLevel = document.getElementById('btnConfirmMemberLevel');
+        const btnCancelPopup = document.getElementById('btnCancelPopup');
+
+        // ✅ 設定拖曳事件
+        document.querySelectorAll('.draggable-item').forEach(item => {
+            item.addEventListener('dragstart', function (e) {
+                draggedItemType = this.dataset.type;
+            });
+        });
+
+        // ✅ 節日選擇後自動填入預設日期
+        if (holidaySelect) {
+            holidaySelect.addEventListener('change', function () {
+                let selected = this.value;
+
+                if (holidayDateMap[selected]) {
+                    startInput.value = holidayDateMap[selected].start;
+                    endInput.value = holidayDateMap[selected].end;
+                    startInput.setAttribute('readonly', true);
+                    endInput.setAttribute('readonly', true);
+                } else {
+                    startInput.value = '';
+                    endInput.value = '';
+                    startInput.removeAttribute('readonly');
+                    endInput.removeAttribute('readonly');
+                }
+            });
+        }
+
+        // ✅ 拖曳到購物車區時顯示 Modal 或 Popup
+        if (cartZone) {
+            cartZone.addEventListener('dragover', function (e) {
+                e.preventDefault();
+            });
+
+            cartZone.addEventListener('drop', function (e) {
+                e.preventDefault();
+
+                if (draggedItemType === 'holiday_discount') {
+                    const discountModal = new bootstrap.Modal(discountModalEl);
+                    discountModal.show();
+                } else if (draggedItemType === 'amount_reward') {
+                    const amountModal = new bootstrap.Modal(amountConditionModal);
+                    amountModal.show();
+                } else if (draggedItemType === 'member_level') {
+                    const memberModal = new bootstrap.Modal(popup);
+                    memberModal.show();
+                }
+            });
+        }
+
+        // ✅ 確認節日折扣
+        if (btnConfirmDiscount) {
+            btnConfirmDiscount.addEventListener('click', function () {
+                let holiday = holidaySelect.value;
+                let startDate = startInput.value;
+                let endDate = endInput.value;
+
+                if (!holiday) {
+                    alert('請選擇一個節日');
+                    return;
+                }
+                if (!startDate || !endDate || new Date(startDate) > new Date(endDate)) {
+                    alert('請正確設定開始與結束日期');
+                    return;
+                }
+
+                let data = {
+                    type: draggedItemType,
+                    holiday: holiday,
+                    startDate: startDate,
+                    endDate: endDate
+                };
+
+                console.log('送出節慶折扣活動資料：', data);
+
+                // 前端顯示到購物車畫面
+                cartZone.innerHTML += `<div>🎉 ${holiday}折扣: ${startDate} ~ ${endDate}</div>`;
+
+                // 關閉 modal
+                const modal = bootstrap.Modal.getInstance(discountModalEl);
+                modal.hide();
+            });
+        }
+
+        // ✅ 確認滿額條件
+        if (btnConfirmAmountCondition) {
+            btnConfirmAmountCondition.addEventListener('click', function () {
+                let limit = parseInt(document.getElementById('amountLimit').value);
+                if (!limit || limit <= 0) {
+                    alert('請輸入正確的金額上限');
+                    return;
+                }
+
+                let data = {
+                    type: draggedItemType,
+                    amountLimit: limit
+                };
+
+                console.log('送出條件:', data);
+
+                // 顯示在購物車
+                cartZone.innerHTML += `<div>💰 消費滿 ${limit.toLocaleString()} 元，套用對應折扣碼</div>`;
+
+                bootstrap.Modal.getInstance(amountConditionModal).hide();
+            });
+        }
+
+
+        // ✅ 確認會員等級設定
+        if (btnConfirmMemberLevel) {
+            btnConfirmMemberLevel.addEventListener('click', function () {
+                // ✅ 找出所有被勾選的 checkbox
+                let checkedBoxes = document.querySelectorAll('#memberModal input[type="checkbox"]:checked');
+
+                // 如果沒有勾選任何會員等級，顯示提示
+                if (checkedBoxes.length === 0) {
+                    alert('請選擇一個會員等級');
+                    return;
+                }
+
+                // 取得所有勾選的會員等級對應的 label 文字
+                let selectedLevels = Array.from(checkedBoxes).map(box => {
+                    let label = document.querySelector(`label[for="${box.id}"]`);
+                    return label ? label.textContent.trim() : ''; // 取得對應的 label 文字
+                });
+
+                let data = {
+                    type: draggedItemType,
+                    memberLevels: selectedLevels
+                };
+
+                console.log('送出會員等級設定:', data);
+
+                // 顯示到購物車
+                cartZone.innerHTML += `<div>🏅 會員等級：${selectedLevels.join(', ')} 專屬折扣</div>`;
+
+                bootstrap.Modal.getInstance(popup).hide();
+                // 隱藏 popup
+                popup.style.display = 'none';
+            });
+        }
+
+
+        // ✅ 取消 popup
+        if (btnCancelPopup) {
+            btnCancelPopup.addEventListener('click', function () {
+                popup.style.display = 'none';
+            });
+        }
+
+    });
+
+</script>
+
+
