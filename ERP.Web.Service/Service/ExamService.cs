@@ -4,8 +4,6 @@ using ERP.Web.Service.ViewModels;
 using ERP.Web.Utility.Paging;
 using Microsoft.AspNetCore.Http;
 using OfficeOpenXml;
-using System;
-using System.Security.Claims;
 using System.Web.Mvc;
 
 namespace ERP.Web.Service.Service
@@ -258,6 +256,10 @@ namespace ERP.Web.Service.Service
                             string CategoryType = worksheet.Cells[row, 1].Text.Trim();
                             string Question = worksheet.Cells[row, 2].Text.Trim();
                             string Answer = worksheet.Cells[row, 3].Text.Trim();
+                            string ChkDone = worksheet.Cells[row, 4].Text.Trim().ToLower();
+                            string Grade = worksheet.Cells[row, 5].Text.Trim().ToLower();
+                            string TestType = worksheet.Cells[row, 6].Text.Trim().ToLower();
+
 
                             if (!string.IsNullOrEmpty(Question) && !string.IsNullOrEmpty(Answer))
                             {
@@ -287,8 +289,13 @@ namespace ERP.Web.Service.Service
             {
                 foreach (var vocab in vocabularies)
                 {
+                    #region debug
+                    //await _examRepo.chkUpdateWord(vocab);
+                    #endregion
+
                     // 檢查是否已有相同單字
                     bool checkWord = await _examRepo.chkSameWord(vocab);
+
                     if (!checkWord)
                     {
                         Guid LessionID = await GetLessionID(vocab);
@@ -317,7 +324,7 @@ namespace ERP.Web.Service.Service
                     ClassNum = param.ClassNum,
                     TestType = "English",
                     Category = param.Category,
-                    CategoryType = await GetCategory(param.Category),
+                    CategoryType = param.CategoryType,
                     LessionSort = LessionSort,
                 };
                 LessionID = await _examRepo.InsertLessionID(LessionData);

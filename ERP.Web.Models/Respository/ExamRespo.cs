@@ -2,10 +2,8 @@
 using ERP.Web.Models.Models;
 using ERP.Web.Utility.Models;
 using ERP.Web.Utility.Paging;
-using Microsoft.AspNetCore.Mvc.RazorPages;
 using Microsoft.Extensions.Options;
 using System.Data.SqlClient;
-using System.Security.Claims;
 
 namespace ERP.Web.Models.Respository
 {
@@ -50,7 +48,34 @@ namespace ERP.Web.Models.Respository
                 return Guid.Empty;
             }
         }
+        public async Task<bool> chkUpdateWord(Vocabulary param)
+        {
+            var sqlparam = new DynamicParameters();
+            sqlparam.Add("Question", param.Question);
+            sqlparam.Add("Answer", param.Answer);
+            sqlparam.Add("CategoryType", param.CategoryType);
 
+            var sql = @"
+                        UPDATE KidsWorld.dbo.Vocabulary
+                        SET CategoryType = @CategoryType
+                        WHERE Question = @Question
+                        AND Answer = @Answer
+                        "
+            ;
+
+            using var conn = new SqlConnection(_dBList.erp);
+
+            try
+            {
+                var result = await conn.ExecuteAsync(sql, sqlparam);
+                return result > 0;
+
+            }
+            catch
+            {
+                return false;
+            }
+        }
         public async Task<bool> chkSameWord(Vocabulary param)
         {
             var sqlparam = new DynamicParameters();
