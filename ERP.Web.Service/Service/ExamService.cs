@@ -235,42 +235,23 @@ namespace ERP.Web.Service.Service
                         if (worksheet.Dimension == null) continue; // 略過空的工作表
                         int rowCount = worksheet.Dimension.Rows;
                         string ClassName = worksheet.Cells[1, 1].Text; // 以工作表名稱作為課程名稱
-
-                        //string Category = string.Empty;
-                        //List<string> ClassArrey = new List<string>();
-                        //if (ClassName.Contains("Sp"))
-                        //{
-                        //    ClassArrey = ClassName.Split("Sp").ToList();
-                        //    Category = "Sp";
-                        //}
-                        //if (ClassName.Contains("HW"))
-                        //{
-                        //    ClassArrey = ClassName.Split("HW").ToList();
-                        //    Category = "HW";
-                        //}
-                        //var ClassNumChk = ClassArrey[1].Trim();
-                        //if (!int.TryParse(ClassNumChk, out int ClassNum))
-                        //    return false;
+                        string ChkDone = worksheet.Cells[1, 4].Text.Trim().ToLower();
+                        string Grade = worksheet.Cells[1, 5].Text.Trim().ToLower();
+                        string TestType = worksheet.Cells[1, 6].Text.Trim().ToLower();
 
                         for (int row = 2; row <= rowCount; row++) // 從第 2 行開始，因為第 1 行是標題
                         {
                             string CategoryType = worksheet.Cells[row, 1].Text.Trim();
                             string Question = worksheet.Cells[row, 2].Text.Trim();
                             string Answer = worksheet.Cells[row, 3].Text.Trim();
-                            string ChkDone = worksheet.Cells[row, 4].Text.Trim().ToLower();
-                            string Grade = worksheet.Cells[row, 5].Text.Trim().ToLower();
-                            string TestType = worksheet.Cells[row, 6].Text.Trim().ToLower();
-
 
                             if (!string.IsNullOrEmpty(Question) && !string.IsNullOrEmpty(Answer))
                             {
                                 vocabularies.Add(new Vocabulary
                                 {
                                     CategoryType = CategoryType,
-                                    //Class = ClassArrey[0].Trim(),
                                     ClassName = ClassName,
-                                    //ClassNum = ClassNum,
-                                    //Category = Category,
+                                    TestType = TestType,
                                     Question = Question,
                                     Answer = Answer
                                 });
@@ -291,7 +272,7 @@ namespace ERP.Web.Service.Service
                 foreach (var vocab in vocabularies)
                 {
                     #region debug
-                    //await _examRepo.chkUpdateWord(vocab);
+                    await _examRepo.chkUpdateWord(vocab);
                     #endregion
 
                     // 檢查是否已有相同單字
@@ -322,28 +303,13 @@ namespace ERP.Web.Service.Service
                 var LessionData = new LessionModel
                 {
                     ClassName = param.ClassName,
-                    ClassNum = param.ClassNum,
-                    TestType = "English",
-                    Category = param.Category,
-                    CategoryType = param.CategoryType,
+                    TestType = param.TestType,
                     LessionSort = LessionSort,
                 };
                 LessionID = await _examRepo.InsertLessionID(LessionData);
                 return LessionID;
             }
             return LessionID;
-        }
-        private async Task<string> GetCategory(string Category)
-        {
-            switch (Category.ToUpper())
-            {
-                case "HW":
-                    return "Phrase";
-                case "SP":
-                    return "Word";
-                default:
-                    return "NONE";
-            }
         }
 
         public async Task<bool> UpdateExamWord(ExamSearchListViewModel_param param)

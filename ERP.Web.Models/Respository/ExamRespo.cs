@@ -189,7 +189,7 @@ namespace ERP.Web.Models.Respository
                       FROM KidsWorld.dbo.Lession
                       WHERE Enabled = 1
                       AND Deleted = 0
-                      Order by LessionSort desc,ClassNum desc
+                      Order by LessionSort desc
             ";
 
 
@@ -435,9 +435,7 @@ namespace ERP.Web.Models.Respository
             var sql = $@"
 						SELECT w.ID as WordID,
 				               les.ClassName,
-				               les.Category,
-				               les.CategoryType,
-				               les.ClassNum,
+				               CategoryType,
 				               les.LessionSort,
 				               les.TestType,
 				               Question,
@@ -587,13 +585,14 @@ namespace ERP.Web.Models.Respository
             sqlparam.Add("LessionID", param.LessionID);
             sqlparam.Add("Question", param.Question);
             sqlparam.Add("Answer", param.Answer);
-
+            sqlparam.Add("CategoryType", param.CategoryType);
 
             var sql = @"
                     INSERT INTO KidsWorld.dbo.Vocabulary
                                (
                                 ID
                                ,LessionID
+                               ,CategoryType
                                ,Question
                                ,Answer
                                 )
@@ -601,6 +600,7 @@ namespace ERP.Web.Models.Respository
                                (
                                 newID()
                                ,@LessionID
+                               ,@CategoryType
                                ,@Question
                                ,@Answer
                                 )
@@ -691,19 +691,13 @@ namespace ERP.Web.Models.Respository
         {
             var sqlparam = new DynamicParameters();
             sqlparam.Add("ClassName", param.ClassName);
-            sqlparam.Add("ClassNum", param.ClassNum);
             sqlparam.Add("TestType", param.TestType);
-            sqlparam.Add("Category", param.Category);
-            sqlparam.Add("CategoryType", param.CategoryType);
             sqlparam.Add("LessionSort", param.LessionSort);
             var sql = @"
                 INSERT INTO KidsWorld.dbo.Lession
                            (ID
                            ,ClassName
-                           ,ClassNum
                            ,TestType
-                           ,Category
-                           ,CategoryType
                            ,LessionSort
                            ,CreateDate
                            ,ModifyDate
@@ -713,10 +707,7 @@ namespace ERP.Web.Models.Respository
                      VALUES
                            (NewID()
                            ,@ClassName
-                           ,@ClassNum
                            ,@TestType
-                           ,@Category
-                           ,@CategoryType
                            ,@LessionSort
                            ,GETDATE()
                            ,GETDATE()

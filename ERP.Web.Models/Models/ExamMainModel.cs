@@ -14,6 +14,8 @@
         public int Correct { get; set; }
         public int Focus { get; set; }
         public Guid LessionID { get; set; }
+        public string TestType { get; set; } 
+        
     }
 
     public class KidTestIndex
