@@ -54,7 +54,7 @@ namespace ERP.Web.Service.Service
                 ExamKeyword.TestDate = DateTime.Parse(param.TestDate);
 
             var datacount = await _examRepo.GetReTestCountAsync(ExamKeyword);
-            var pager = new Paging(param.Page, param.PageSize, datacount);
+            var pager = new Paging(param.Page, datacount, datacount);
 
             result.Pager = pager;
             result.ExamDataList = await _examRepo.GetReTestSearchListAsync(pager, ExamKeyword);
@@ -80,6 +80,56 @@ namespace ERP.Web.Service.Service
 
             result.ClassNameList = classNameListTask;
             //await PublicTaskAsync(result, param);
+
+            return result;
+        }
+        public async Task<ExamDataViewModel_result> GetReExamDataAsync(ReExamSearchListViewModel_param param)
+        {
+
+            var result = new ExamDataViewModel_result
+            {
+                VocabularyList = new List<Vocabulary>(),
+                Title = string.Empty
+            };
+            result.Title = param.ClassName;
+
+            // 判斷今天是否出過考券
+            Guid KidTestIndexID = await _examRepo.ChkKidTest(result.Title, param.TestType, param.KidID);
+
+            if (KidTestIndexID != Guid.Empty)
+            {
+                // 取得今天出過的考試資料
+                result.VocabularyList = await _examRepo.GetExamFromExamIndex(KidTestIndexID);
+                return result;
+            }
+            var VocabularyList = new List<Vocabulary>();
+            //取得考試資料
+            foreach (var item in param.selectedWordIDs)
+            {
+                var Vocabulary = await _examRepo.GetReExamVocab(item);
+                VocabularyList.Add(Vocabulary);
+            }
+
+            result.VocabularyList = VocabularyList.OrderByDescending(x => Guid.NewGuid())
+                .OrderByDescending(x => x.CategoryType.ToLower() == "word")
+                .ToList();
+
+            int LessionSort = await _examRepo.GetLessionSort();
+            var LessionData = new LessionModel
+            {
+                ClassName = param.ClassName,
+                TestType = param.TestType,
+                LessionSort = LessionSort,
+            };
+            Guid LessionID = await _examRepo.InsertLessionID(LessionData);
+
+            // 出過的題目存入資料庫
+            Guid NewKidTestID = await _examRepo.InsertKidTestIndex(LessionID, param.TestType, param.KidID);
+
+            foreach (var word in result.VocabularyList)
+            {
+                await _examRepo.InsertExamIndex(word.WordID, NewKidTestID);
+            }
 
             return result;
         }
@@ -239,6 +289,9 @@ namespace ERP.Web.Service.Service
                         string Grade = worksheet.Cells[1, 5].Text.Trim().ToLower();
                         string TestType = worksheet.Cells[1, 6].Text.Trim().ToLower();
 
+                        if (ChkDone == "done")
+                            continue;
+
                         for (int row = 2; row <= rowCount; row++) // 從第 2 行開始，因為第 1 行是標題
                         {
                             string CategoryType = worksheet.Cells[row, 1].Text.Trim();
@@ -360,7 +413,6 @@ namespace ERP.Web.Service.Service
 
             result.ClassNameList = classNameListTask.Result;
         }
-
 
     }
 

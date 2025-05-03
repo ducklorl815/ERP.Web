@@ -38,5 +38,11 @@ namespace ERP.Web.Controllers
             var result = await _examService.GetExamDataAsync(param);
             return View(result);
         }
+
+        public async Task<IActionResult> ReExam(ReExamSearchListViewModel_param param)
+        {
+            var result = await _examService.GetReExamDataAsync(param);
+            return View("Test", result);
+        }
     }
 }

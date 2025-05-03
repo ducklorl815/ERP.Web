@@ -76,11 +76,11 @@
                     ClassNameList: ClassNameList,
                     CorrectType: CorrectType,
                     KidID: KidID,
-                    TestDate:TestDate
+                    TestDate: TestDate
                 }
             }).done(function (result) {
                 if (result.TestDate) {
-                $("#TestDate").val(result.TestDate);
+                    $("#TestDate").val(result.TestDate);
                 }
                 $('#partial').html(result);
 
@@ -113,7 +113,7 @@
         var Correct = $(e).closest("tr").find(".correct-checkbox").prop("checked");
         var TestDate = $(e).closest("tr").find("td[data-testdate]").data("testdate");;
         var KidID = $("#KidID").val();
-        
+
         if (WordID) {
             $.ajax({
                 url: '@Url.Action("UpdateExamWord", "Exam")',  // 更改為您的提交動作
@@ -143,22 +143,21 @@
         $("input[name^='selectedQuestions']:checked").each(function () {
             selectedWordIDs.push($(this).val());
         });
-
         // 顯示已選擇的題目數量
-        $("#selectedWordCountValue").html("&nbsp;" + selectedWordIDs.length);
-        // 取得 TestType 值並設定
+        $("#selectedWordCountValue").text(selectedWordIDs.length);
+        selectedWordIDs.forEach(function (id) {
+            $("#examForm").append(`<input type="hidden" name="selectedWordIDs" value="${id}" />`);
+        });
+        // 設定條件選單的值
         var testType = $("#TestType").val();
         $("#modalTestType").val(testType).change();
 
-
-        // 取得 KidID 值並設定
         var kidID = $("#KidID").val();
         $("#modalKidID").val(kidID).change();
 
-
-    // 使用 Bootstrap 的 modal 方法打開視窗
-    var modal = new bootstrap.Modal(document.getElementById('examModal'));
-    modal.show();
+        // 開啟 Modal
+        var modal = new bootstrap.Modal(document.getElementById('examModal'));
+        modal.show();
     }
 
 
@@ -167,41 +166,21 @@
         if (modal) modal.hide();
     }
 
-    function submitExamData() {
-        var selectedWordIDs = [];
-        $("input[name^='selectedQuestions']:checked").each(function () {
-            selectedWordIDs.push($(this).val());
-        });
 
+    function submitExamData() {
+        // 驗證欄位
         var KidID = $("#modalKidID").val();
         var TestType = $("#modalTestType").val();
-        var CorrectType = $("#modalCorrectType").val();
-        var ClassName = $("#modalClass").val(); // 多選
+        var ClassName = $("#modalClass").val();
 
-        // **驗證所有欄位是否選擇**
-        if (!KidID || !TestType || !CorrectType || !ClassName.length) {
-            alert("請確保所有選項均已選擇！");
+        if (!KidID || !TestType || !ClassName) {
+            alert("請確保所有欄位均已填寫！");
             return;
         }
 
-        // **提交數據到後端**
-        $.ajax({
-            url: '@Url.Action("Submit", "Exam")',
-            type: 'POST',
-            data: {
-                selectedWordIDs: selectedWordIDs,
-                KidID: KidID,
-                TestType: TestType,
-                CorrectType: CorrectType,
-                ClassName: ClassName
-            },
-            success: function (response) {
-                alert("資料已成功提交！");
-                closeModal(); // 關閉 Modal
-            },
-            error: function (xhr, status, error) {
-                alert("提交失敗，請再試一次！");
-            }
-        });
+        $("#examForm").submit();
     }
+
+
+
 </script>

@@ -153,9 +153,7 @@ namespace ERP.Web.Models.Respository
                 SELECT 
                 v.ID,
                 les.TestType,
-                les.ClassNum,
-                les.Category,
-				les.CategoryType,
+				v.CategoryType,
                 les.ClassName,
                 v.Question,
                 v.Answer
@@ -335,7 +333,6 @@ namespace ERP.Web.Models.Respository
             var sql = $@"
                     SELECT 
 	                       les.ClassName
-						  ,les.Category
 	                      ,les.TestType
 	                      ,w.ID as WordID
 	                      ,w.Question
@@ -945,6 +942,33 @@ namespace ERP.Web.Models.Respository
             catch
             {
                 return false;
+            }
+        }
+
+        public async Task<Vocabulary> GetReExamVocab(string ID)
+        {
+            var sqlparam = new DynamicParameters();
+            sqlparam.Add("ID", ID);
+            var sql = @"
+                    SELECT ID as WordID
+	                      ,CategoryType
+                          ,Question
+                          ,Answer
+                      FROM KidsWorld.dbo.Vocabulary
+                      where ID =@ID
+                        "
+            ;
+
+            using var conn = new SqlConnection(_dBList.erp);
+
+            try
+            {
+                var result = await conn.QueryFirstOrDefaultAsync<Vocabulary>(sql, sqlparam);
+                return result;
+            }
+            catch
+            {
+                return null;
             }
         }
     }

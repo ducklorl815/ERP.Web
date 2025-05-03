@@ -61,4 +61,13 @@ namespace ERP.Web.Service.ViewModels
         public List<Vocabulary> VocabularyList { get; set; }
         public string Title { get; set; }
     }
+
+    public class ReExamSearchListViewModel_param
+    {
+        public List<string> selectedWordIDs { get; set; }
+        public string KidID { get; set; }
+        public string TestType { get; set; }
+        public string CorrectType { get; set; }
+        public string ClassName { get; set; }
+    }
 }

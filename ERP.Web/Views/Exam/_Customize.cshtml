@@ -1,67 +1,69 @@
-﻿<!-- ✅ 最外層一定要是 .modal，且 ID 設在這層 -->
-<div id="examModal" class="modal fade" tabindex="-1" aria-labelledby="examModalLabel" aria-hidden="true">
-    <div class="modal-dialog">
-        <div class="modal-content">
-            <!-- Modal header -->
-            <div class="modal-header">
-                <h5 class="modal-title" id="examModalLabel">設定考卷</h5>
-                <button type="button" class="btn-close" data-bs-dismiss="modal" aria-label="Close"></button>
-            </div>
+﻿<!-- 表單包住整個 modal -->
+<form id="examForm" method="post" action="@Url.Action("ReExam", "Exam")">
+    <div id="examModal" class="modal fade" tabindex="-1" aria-labelledby="examModalLabel" aria-hidden="true">
+        <div class="modal-dialog">
+            <div class="modal-content">
+                <!-- Modal header -->
+                <div class="modal-header">
+                    <h5 class="modal-title" id="examModalLabel">設定考卷</h5>
+                    <button type="button" class="btn-close" data-bs-dismiss="modal" aria-label="Close"></button>
+                </div>
 
-            <!-- Modal body -->
-            <div class="modal-body">
-                <!-- 顯示選擇的題目數量 -->
-                <h3 id="selectedWordCount" class="d-flex justify-content-start mb-3">
-                    已選擇題目數量 : <span id="selectedWordCountValue">0</span>&nbsp;題
-                </h3>
+                <!-- Modal body -->
+                <div class="modal-body">
+                    <h3 id="selectedWordCount" class="d-flex justify-content-start mb-3">
+                        已選擇題目數量 : <span id="selectedWordCountValue">0</span>&nbsp;題
+                    </h3>
 
-                <h3 class="d-flex justify-content-start">請選擇考卷條件</h3>
+                    <h3 class="d-flex justify-content-start">請選擇考卷條件</h3>
 
-                <!-- 科目選擇區域 -->
-                <div class="row mb-2">
-                    <label for="TestType" class="col-sm-3 col-form-label font-weight-bold text-sm-right">科目：</label>
-                    <div class="col-sm-8">
-                        <select id="modalTestType" name="modalTestType" class="form-control form-control-sm">
-                            <option value="">請選擇</option>
-                            @foreach (var modalTestType in Model.TestTypeList)
-                            {
-                                <option value="@modalTestType.Value">@modalTestType.Text</option>
-                            }
-                        </select>
+                    <!-- 科目 -->
+                    <div class="row mb-2">
+                        <label for="TestType" class="col-sm-3 col-form-label font-weight-bold text-sm-right">科目：</label>
+                        <div class="col-sm-8">
+                            <select id="modalTestType" name="TestType" class="form-control form-control-sm">
+                                <option value="">請選擇</option>
+                                @foreach (var modalTestType in Model.TestTypeList)
+                                {
+                                    <option value="@modalTestType.Value">@modalTestType.Text</option>
+                                }
+                            </select>
+                        </div>
+                    </div>
+
+                    <!-- 考卷名稱 -->
+                    <div class="row mb-2">
+                        <label for="modalClass" class="col-sm-3 col-form-label font-weight-bold text-sm-right">輸入考卷名稱：</label>
+                        <div class="col-sm-8">
+                            <input name="ClassName" id="modalClass" type="text" class="form-control form-control-sm" value="聯合試題_@DateTime.Now.ToString("yyyyMMdd")" />
+                        </div>
+                    </div>
+
+                    <!-- 學生 -->
+                    <div class="row mb-2">
+                        <label for="KidID" class="col-sm-3 col-form-label font-weight-bold text-sm-right">選擇學生：</label>
+                        <div class="col-sm-8">
+                            <select id="modalKidID" name="KidID" class="form-control form-control-sm">
+                                <option value="">請選擇</option>
+                                @foreach (var modalKidID in Model.KidList)
+                                {
+                                    <option value="@modalKidID.Value">@modalKidID.Text</option>
+                                }
+                            </select>
+                        </div>
                     </div>
                 </div>
 
-                <!-- 題目類型選擇區域 -->
-                <div class="row mb-2">
-                    <label for="CorrectType" class="col-sm-3 col-form-label font-weight-bold text-sm-right">輸入考卷名稱：</label>
-                    <div class="col-sm-8">
-                        <input id="modalCorrectType" type="text" class="form-control form-control-sm" value="" />
-                    </div>
+                <!-- Modal footer -->
+                <div class="modal-footer">
+                    <button type="submit" class="btn btn-sm btn-success mr-1">確定</button>
+                    <button type="button" class="btn btn-secondary" data-bs-dismiss="modal" onclick="closeModal()">關閉</button>
                 </div>
-
-                <!-- 學生選擇區域 -->
-                <div class="row mb-2">
-                    <label for="KidID" class="col-sm-3 col-form-label font-weight-bold text-sm-right">選擇學生：</label>
-                    <div class="col-sm-8">
-                        <select id="modalKidID" name="modalKidID" class="form-control form-control-sm">
-                            <option value="">請選擇</option>
-                            @foreach (var modalKidID in Model.KidList)
-                            {
-                                <option value="@modalKidID.Value">@modalKidID.Text</option>
-                            }
-                        </select>
-                    </div>
-                </div>
-            </div>
-
-            <!-- Modal footer -->
-            <div class="modal-footer">
-                <button class="btn btn-sm btn-success mr-1" onclick="submitExamData()">確定</button>
-                <button type="button" class="btn btn-secondary" data-bs-dismiss="modal" onclick="closeModal()">關閉</button>
             </div>
         </div>
     </div>
-</div>
+</form>
+
 <!-- Bootstrap 5 JS (包含 Modal 功能) -->
 
 <script src="https://cdn.jsdelivr.net/npm/bootstrap@5.3.3/dist/js/bootstrap.bundle.min.js"></script>

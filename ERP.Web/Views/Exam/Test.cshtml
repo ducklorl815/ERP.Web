@@ -63,7 +63,7 @@
     }
 </style>
 
-<form method="post" action="@Url.Action("Submit", "Exam")">
+<form method="post" id="TestView" action="@Url.Action("Submit", "Exam")">
     @{
         var words = Model.VocabularyList.Where(x => x.CategoryType == "Word").ToList();
         var phrases = Model.VocabularyList.Where(x => x.CategoryType == "Phrase").ToList();
