@@ -54,7 +54,7 @@ namespace ERP.Web.Service.Service
                 ExamKeyword.TestDate = DateTime.Parse(param.TestDate);
 
             var datacount = await _examRepo.GetReTestCountAsync(ExamKeyword);
-            var pager = new Paging(param.Page, datacount, datacount);
+            var pager = new Paging(param.Page, datacount != 0 ? datacount : param.PageSize, datacount);
 
             result.Pager = pager;
             result.ExamDataList = await _examRepo.GetReTestSearchListAsync(pager, ExamKeyword);
@@ -88,6 +88,7 @@ namespace ERP.Web.Service.Service
 
             var result = new ExamDataViewModel_result
             {
+                scoreTable = new ScoreTable(),
                 VocabularyList = new List<Vocabulary>(),
                 Title = string.Empty
             };
@@ -100,6 +101,7 @@ namespace ERP.Web.Service.Service
             {
                 // 取得今天出過的考試資料
                 result.VocabularyList = await _examRepo.GetExamFromExamIndex(KidTestIndexID);
+                await CalculateScore(result.VocabularyList, result);
                 return result;
             }
             var VocabularyList = new List<Vocabulary>();
@@ -114,6 +116,8 @@ namespace ERP.Web.Service.Service
                 .OrderByDescending(x => x.CategoryType.ToLower() == "word")
                 .ToList();
 
+            await CalculateScore(result.VocabularyList, result);
+
             int LessionSort = await _examRepo.GetLessionSort();
             var LessionData = new LessionModel
             {
@@ -124,7 +128,7 @@ namespace ERP.Web.Service.Service
             Guid LessionID = await _examRepo.InsertLessionID(LessionData);
 
             // 出過的題目存入資料庫
-            Guid NewKidTestID = await _examRepo.InsertKidTestIndex(LessionID, param.TestType, param.KidID);
+            Guid NewKidTestID = await _examRepo.InsertKidTestIndex(LessionID, param.KidID);
 
             foreach (var word in result.VocabularyList)
             {
@@ -138,6 +142,7 @@ namespace ERP.Web.Service.Service
 
             var result = new ExamDataViewModel_result
             {
+                scoreTable = new ScoreTable(),
                 VocabularyList = new List<Vocabulary>(),
                 Title = string.Empty
             };
@@ -150,16 +155,19 @@ namespace ERP.Web.Service.Service
             {
                 // 取得今天出過的考試資料
                 result.VocabularyList = await _examRepo.GetExamFromExamIndex(KidTestIndexID);
+                await CalculateScore(result.VocabularyList, result);
                 return result;
             }
 
             //取得考試資料
             result.VocabularyList = await GetExamData(param);
 
+            await CalculateScore(result.VocabularyList, result);
+
             Guid LessionID = await _examRepo.GetLessionID(result.Title);
 
             // 出過的題目存入資料庫
-            Guid NewKidTestID = await _examRepo.InsertKidTestIndex(LessionID, param.TestType, param.KidID);
+            Guid NewKidTestID = await _examRepo.InsertKidTestIndex(LessionID, param.KidID);
 
             foreach (var word in result.VocabularyList)
             {
@@ -289,8 +297,8 @@ namespace ERP.Web.Service.Service
                         string Grade = worksheet.Cells[1, 5].Text.Trim().ToLower();
                         string TestType = worksheet.Cells[1, 6].Text.Trim().ToLower();
 
-                        if (ChkDone == "done")
-                            continue;
+                        //if (ChkDone == "done")
+                        //    continue;
 
                         for (int row = 2; row <= rowCount; row++) // 從第 2 行開始，因為第 1 行是標題
                         {
@@ -412,6 +420,51 @@ namespace ERP.Web.Service.Service
                 }).ToList();
 
             result.ClassNameList = classNameListTask.Result;
+        }
+        public async Task<ExamDataViewModel_result> CalculateScore(List<Vocabulary> vocabularyList, ExamDataViewModel_result result)
+        {
+            if (vocabularyList == null || vocabularyList.Count == 0)
+                throw new ArgumentException("Vocabulary list cannot be empty.");
+
+            // 題型分類
+            int wordCount = vocabularyList.Count(x => x.CategoryType.Equals("word", StringComparison.OrdinalIgnoreCase));
+            int phraseCount = vocabularyList.Count(x => x.CategoryType.Equals("phrase", StringComparison.OrdinalIgnoreCase));
+            int totalCount = wordCount + phraseCount;
+
+            int wordScore = 0;
+            int phraseScore = 0;
+
+            //若只有單一題型，平均分數
+            if (wordCount == 0 && phraseCount > 0)
+            {
+                phraseScore = RoundToEven(result.scoreTable.totalScore / phraseCount);
+            }
+            else if (phraseCount == 0 && wordCount > 0)
+            {
+                wordScore = RoundToEven(result.scoreTable.totalScore / wordCount);
+            }
+            else
+            {
+                //有兩種題型時，依比重分配
+                double totalWeight = result.scoreTable.wordWeight + result.scoreTable.phraseWeight;
+                if (Math.Abs(totalWeight - 1.0) > 0.0001)
+                    throw new InvalidOperationException($"比重總和必須為 1.0，目前為 {totalWeight:F2}，請調整比重。");
+
+                wordScore = RoundToEven(result.scoreTable.totalScore * result.scoreTable.wordWeight / wordCount);
+                phraseScore = RoundToEven(result.scoreTable.totalScore * result.scoreTable.phraseWeight / phraseCount);
+            }
+
+            result.scoreTable.WordScore = wordScore;
+            result.scoreTable.PhraseScore = phraseScore;
+
+            return result;
+        }
+
+        //四捨五入為「偶數」整數
+        private int RoundToEven(double value)
+        {
+            int rounded = (int)Math.Round(value);
+            return rounded % 2 == 0 ? rounded : rounded + 1;
         }
 
     }

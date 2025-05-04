@@ -21,7 +21,7 @@ namespace ERP.Web.Models.Respository
         {
             var sqlparam = new DynamicParameters();
             sqlparam.Add("ClassName", ClassName);
-            sqlparam.Add("TestType", TestType);
+            sqlparam.Add("TestType", TestType.ToLower());
             if (Guid.TryParse(KidID, out Guid KidMainID))
                 sqlparam.Add("KidMainID", KidMainID);
             var sql = @"
@@ -112,9 +112,7 @@ namespace ERP.Web.Models.Respository
             var sql = @"
                 SELECT DISTINCT w.ID as WordID,
 				les.TestType,
-				les.ClassNum,
-				les.Category,
-				les.CategoryType,
+				w.CategoryType,
 				ClassName,
 				Question,
 				Answer,
@@ -514,7 +512,7 @@ namespace ERP.Web.Models.Respository
                                ,@KidTestIndexID
                                ,GETDATE()
                                ,GETDATE()
-                               ,1
+                               ,15
                                ,0
 		                       )
                         "
@@ -534,7 +532,7 @@ namespace ERP.Web.Models.Respository
             }
         }
 
-        public async Task<Guid> InsertKidTestIndex(Guid LessionID, string TestType, string KidID)
+        public async Task<Guid> InsertKidTestIndex(Guid LessionID, string KidID)
         {
             var sqlparam = new DynamicParameters();
             sqlparam.Add("LessionID", LessionID);

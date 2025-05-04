@@ -58,9 +58,21 @@ namespace ERP.Web.Service.ViewModels
 
     public class ExamDataViewModel_result
     {
+        public int score { get; set; }
+        public ScoreTable scoreTable { get; set; }
         public List<Vocabulary> VocabularyList { get; set; }
         public string Title { get; set; }
     }
+
+    public class ScoreTable
+    {
+        public int WordScore { get; set; }
+        public int PhraseScore { get; set; }
+        public double wordWeight = 0.3;
+        public double phraseWeight = 0.7;
+        public int totalScore = 100;
+    }
+
 
     public class ReExamSearchListViewModel_param
     {

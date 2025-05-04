@@ -83,7 +83,7 @@
 
             @if (words.Any())
             {
-                <div class="exam-section">單字測驗 (寫出中文所代表的意思)</div>
+                <div class="exam-section">單字測驗 (寫出中文所代表的意思) 每題 @Model.scoreTable.WordScore 分</div>
                 @for (int i = 0; i < words.Count; i++)
                 {
                     <div>
@@ -98,7 +98,7 @@
 
             @if (phrases.Any())
             {
-                <div class="exam-section">片語測驗 (寫出對應的問句或回答)</div>
+                <div class="exam-section">片語測驗 (寫出對應的問句或回答) 每題 @Model.scoreTable.PhraseScore 分</div>
                 @for (int i = 0; i < phrases.Count; i++)
                 {
                     <div>
