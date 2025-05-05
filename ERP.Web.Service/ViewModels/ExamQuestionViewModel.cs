@@ -68,6 +68,8 @@ namespace ERP.Web.Service.ViewModels
     {
         public int WordScore { get; set; }
         public int PhraseScore { get; set; }
+        public int MentalMathScore { get; set; }
+
         public double wordWeight = 0.3;
         public double phraseWeight = 0.7;
         public int totalScore = 100;

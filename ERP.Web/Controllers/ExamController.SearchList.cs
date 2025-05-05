@@ -44,5 +44,12 @@ namespace ERP.Web.Controllers
             var result = await _examService.GetReExamDataAsync(param);
             return View("Test", result);
         }
+
+        [HttpPost]
+        public async Task<IActionResult> GenerateQuestions(int level, string KidID)
+        {
+            var result = await _examService.GenerateQuestions(level, KidID);
+            return View("Test", result);
+        }
     }
 }

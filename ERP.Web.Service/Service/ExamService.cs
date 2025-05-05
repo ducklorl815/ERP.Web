@@ -330,6 +330,9 @@ namespace ERP.Web.Service.Service
         {
             try
             {
+                Guid LessionID = await GetLessionID(vocabularies[0].ClassName, vocabularies[0].TestType);
+                if (LessionID == Guid.Empty)
+                    return false;
                 foreach (var vocab in vocabularies)
                 {
                     #region debug
@@ -341,9 +344,6 @@ namespace ERP.Web.Service.Service
 
                     if (!checkWord)
                     {
-                        Guid LessionID = await GetLessionID(vocab);
-                        if (LessionID == Guid.Empty)
-                            return false;
                         vocab.LessionID = LessionID;
                         await _examRepo.InsertWord(vocab);
                     }
@@ -355,21 +355,16 @@ namespace ERP.Web.Service.Service
                 return false;
             }
         }
-        private async Task<Guid> GetLessionID(Vocabulary param)
+        private async Task<Guid> GetLessionID(string ClassName, string TestType)
         {
-            Guid LessionID = await _examRepo.ChkLessionID(param);
-            if (LessionID == Guid.Empty)
+            int LessionSort = await _examRepo.GetLessionSort();
+            var LessionData = new LessionModel
             {
-                int LessionSort = await _examRepo.GetLessionSort();
-                var LessionData = new LessionModel
-                {
-                    ClassName = param.ClassName,
-                    TestType = param.TestType,
-                    LessionSort = LessionSort,
-                };
-                LessionID = await _examRepo.InsertLessionID(LessionData);
-                return LessionID;
-            }
+                ClassName = ClassName,
+                TestType = TestType,
+                LessionSort = LessionSort,
+            };
+            Guid LessionID = await _examRepo.InsertLessionID(LessionData);
             return LessionID;
         }
 
@@ -429,10 +424,17 @@ namespace ERP.Web.Service.Service
             // 題型分類
             int wordCount = vocabularyList.Count(x => x.CategoryType.Equals("word", StringComparison.OrdinalIgnoreCase));
             int phraseCount = vocabularyList.Count(x => x.CategoryType.Equals("phrase", StringComparison.OrdinalIgnoreCase));
+            int MentalMathCount = vocabularyList.Count(x => x.CategoryType.Equals("MentalMathScore", StringComparison.OrdinalIgnoreCase));
             int totalCount = wordCount + phraseCount;
 
             int wordScore = 0;
             int phraseScore = 0;
+            int MentalMathScore = 0;
+
+            if (MentalMathCount > 0)
+            {
+                MentalMathScore = RoundToEven(result.scoreTable.totalScore / MentalMathCount);
+            }
 
             //若只有單一題型，平均分數
             if (wordCount == 0 && phraseCount > 0)
@@ -456,6 +458,7 @@ namespace ERP.Web.Service.Service
 
             result.scoreTable.WordScore = wordScore;
             result.scoreTable.PhraseScore = phraseScore;
+            result.scoreTable.MentalMathScore = MentalMathScore;
 
             return result;
         }
@@ -465,6 +468,87 @@ namespace ERP.Web.Service.Service
         {
             int rounded = (int)Math.Round(value);
             return rounded % 2 == 0 ? rounded : rounded + 1;
+        }
+
+        public async Task<ExamDataViewModel_result> GenerateQuestions(int MentalLevel, string KidID)
+        {
+            var result = new ExamDataViewModel_result
+            {
+                scoreTable = new ScoreTable(),
+                VocabularyList = new List<Vocabulary>(),
+                Title = string.Empty
+            };
+            var entries = new List<Vocabulary>();
+            var rnd = new Random();
+            var ClassName = $"MentalMath{MentalLevel}_{DateTime.Now.ToString("yyyyMMdd")}";
+            var TestType = "Math";
+            Guid LessionID = await _examRepo.ChkLessionID(ClassName);
+            LessionID = await GetLessionID(ClassName, TestType);
+            // 判斷今天是否出過考券
+            Guid KidTestIndexID = await _examRepo.ChkKidTest(ClassName, TestType, KidID);
+
+            if (KidTestIndexID != Guid.Empty)
+            {
+                // 取得今天出過的考試資料
+                result.VocabularyList = await _examRepo.GetExamFromExamIndex(KidTestIndexID);
+                await CalculateScore(result.VocabularyList, result);
+                return result;
+            }
+
+            // 出過的題目存入資料庫
+            Guid NewKidTestID = await _examRepo.InsertKidTestIndex(LessionID, KidID);
+
+            for (int i = 0; i < 30; i++)
+            {
+                int count = (MentalLevel == 10) ? 4 : 5;
+                int negativeRangeCount = (MentalLevel == 10) ? 1 : 2;
+
+                List<int> numbers = Enumerable.Range(0, count)
+                    .Select(_ => rnd.Next(1, 10))
+                    .ToList();
+
+                var indicesToReplace = new HashSet<int>();
+                while (indicesToReplace.Count < negativeRangeCount)
+                {
+                    indicesToReplace.Add(rnd.Next(0, count));
+                }
+
+                foreach (int idx in indicesToReplace)
+                {
+                    numbers[idx] = rnd.Next(-9, 10);
+                }
+
+                var questionText = string.Join(" + ", numbers.Select(n => n < 0 ? $"({n})" : n.ToString()));
+
+                var entry = new Vocabulary
+                {
+                    CategoryType = "MentalMath",
+                    Question = questionText,
+                    Answer = numbers.Sum().ToString(),
+                    ClassName = ClassName,
+                    TestType = TestType
+                };
+
+                entries.Add(entry);
+            }
+
+            foreach (var question in entries)
+            {
+                question.LessionID = LessionID;
+                await _examRepo.InsertWord(question);
+                Guid WordID = await _examRepo.GetWordID(question.Question, question.Answer);
+                question.WordID = WordID;
+            }
+
+            result.VocabularyList = entries;
+            await CalculateScore(result.VocabularyList, result);
+
+            foreach (var word in result.VocabularyList)
+            {
+                await _examRepo.InsertExamIndex(word.WordID, NewKidTestID);
+            }
+            result.Title = ClassName;
+            return result;
         }
 
     }

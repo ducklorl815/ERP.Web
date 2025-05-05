@@ -654,10 +654,10 @@ namespace ERP.Web.Models.Respository
             }
         }
 
-        public async Task<Guid> ChkLessionID(Vocabulary param)
+        public async Task<Guid> ChkLessionID(string ClassName)
         {
             var sqlparam = new DynamicParameters();
-            sqlparam.Add("ClassName", param.ClassName);
+            sqlparam.Add("ClassName", ClassName);
 
             var sql = @"
                     SELECT ID
@@ -967,6 +967,33 @@ namespace ERP.Web.Models.Respository
             catch
             {
                 return null;
+            }
+        }
+
+        public async Task<Guid> GetWordID(string Question, string Answer)
+        {
+            var sqlparam = new DynamicParameters();
+            sqlparam.Add("Question", Question);
+            sqlparam.Add("Answer", Answer);
+            var sql = @"
+                        SELECT ID
+                          FROM KidsWorld.dbo.Vocabulary
+                          WHERE Question = @Question
+                          AND Answer = @Answer
+                        "
+            ;
+
+            using var conn = new SqlConnection(_dBList.erp);
+
+            try
+            {
+                var result = await conn.QueryFirstOrDefaultAsync<Guid>(sql, sqlparam);
+                return result;
+
+            }
+            catch
+            {
+                return Guid.Empty;
             }
         }
     }

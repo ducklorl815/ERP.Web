@@ -67,6 +67,7 @@
     @{
         var words = Model.VocabularyList.Where(x => x.CategoryType == "Word").ToList();
         var phrases = Model.VocabularyList.Where(x => x.CategoryType == "Phrase").ToList();
+        var mentalMath = Model.VocabularyList.Where(x => x.CategoryType == "MentalMath").ToList();
     }
 
     @if (words.Any() || phrases.Any())
@@ -150,5 +151,34 @@
                 }
             }
         </div>
+    }
+
+    @if (mentalMath.Any())
+    {
+        <div class="exam-section">心算測驗 (填入答案) 每題 @Model.scoreTable.MentalMathScore 分</div>
+        @for (int i = 0; i < mentalMath.Count; i++)
+        {
+            <div>
+                <span class="question-number">@(words.Count + phrases.Count + i + 1).</span>
+                <span class="question-text">@mentalMath[i].Question</span>
+            </div>
+            <div>
+                <input type="text" class="answer-line" name="answers[@(words.Count + phrases.Count + i)]" required />
+            </div>
+        }
+    }
+    @if (mentalMath.Any())
+    {
+        <div class="exam-section">心算測驗答案</div>
+        @for (int i = 0; i < mentalMath.Count; i++)
+        {
+            <div>
+                <span class="question-number">@(words.Count + phrases.Count + i + 1).</span>
+                <span class="question-text">@mentalMath[i].Question</span>
+            </div>
+            <div class="answer-line">
+                <span class="answer-text">@mentalMath[i].Answer</span>
+            </div>
+        }
     }
 </form>

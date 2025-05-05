@@ -14,8 +14,8 @@
         public int Correct { get; set; }
         public int Focus { get; set; }
         public Guid LessionID { get; set; }
-        public string TestType { get; set; } 
-        
+        public string TestType { get; set; }
+
     }
 
     public class KidTestIndex
@@ -56,5 +56,21 @@
         public string Category { get; set; }
         public string CategoryType { get; set; }
         public int LessionSort { get; set; }
+    }
+
+    public class MentalQuestion
+    {
+        public Guid ID { get; set; }
+
+        public int MentalLevel { get; set; } // 9 or 10
+
+        public int Number1 { get; set; }
+        public int Number2 { get; set; }
+        public int Number3 { get; set; }
+        public int Number4 { get; set; }
+        public int? Number5 { get; set; } // 只有 9級才會用到
+
+        public int Answer { get; set; }
+
     }
 }

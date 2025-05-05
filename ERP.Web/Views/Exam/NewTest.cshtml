@@ -3,144 +3,175 @@
 <link rel="stylesheet" href="~/StaticFiles/lib/select2/dist/css/select2.css" />
 <link href="~/css/chkboxstyle.css" rel="stylesheet" />
 <!-- Excel 檔案上傳區 -->
-<partial name="_UploadForm" model="Model">
-    <!-- 取得考卷 -->
+<div>
+    <partial name="_UploadForm" model="Model">
+</div>
+<div>
+    <form id="generateForm" method="post" action="/Exam/GenerateQuestions">
+        <input type="hidden" name="level" id="levelInput" />
+        <input type="hidden" name="KidID" id="KidIDInput" />
+    </form>
+
+    <button onclick="submitGenerateForm(10)">產生 10 級題目</button>
+    <button onclick="submitGenerateForm(9)">產生 9 級題目</button>
+</div>
+
+<!-- 取得考卷 -->
+<div>
     <partial name="_GetTest" model="Model">
-        <!-- 字庫區 -->
-        <div class="col-4">
-            <label for="SelectNewClassNameList" class="form-label">選擇考卷：</label>
-            <select id="SelectNewClassNameList" name="NewClassNameList" class="form-select">
-                @if (Model.ClassNameList != null)
-                {
-                    <option value="">請選擇</option>
-                    @foreach (var className in Model.ClassNameList)
-                    {
-                        <option value="@className">@className</option>
-                    }
-                }
-            </select>
-        </div>
-
-        <div id="partialContainer" class="ibox-content ibox-list-content">
-            <partial name="_NewTest" model="Model">
-        </div>
-
-        <script src="~/StaticFiles/lib/select2/dist/js/select2.min.js"></script>
-        <script>
-            $(function () {
-                $('#Select2ClassNameList').select2({
-                    placeholder: '選擇考卷',
-                    allowClear: true,
-                    closeOnSelect: false,
-                });
-            });
-
-            $(document).ready(function () {
-                // Excel 檔案上傳區
-                $("#uploadForm").submit(function (e) {
-                    e.preventDefault(); // 防止表單提交
-
-                    var formData = new FormData();
-                    var fileInput = $("#fileInput")[0].files[0];
-
-                    if (!fileInput) {
-                        $("#uploadStatus").text("請選擇 Excel 檔案");
-                        return;
-                    }
-
-                    formData.append("file", fileInput);
-
-                    $.ajax({
-                        url: "@Url.Action("Upload", "Exam")",
-                        type: "POST",
-                        data: formData,
-                        processData: false,
-                        contentType: false,
-                        success: function (response) {
-                            $("#uploadStatus").text("上傳成功！");
-                        },
-                        error: function () {
-                            $("#uploadStatus").text("上傳失敗，請重試");
-                        }
-                    });
-                });
-
-                $(document).on("change", "#SelectNewClassNameList , #KidID", function () {
-                    var ClassNameList = $("#SelectNewClassNameList").val() || [];
-                    var KidID = $("#KidID").val();
-                    $.ajax({
-                        url: '@Url.Action("NewTest")',
-                        type: 'GET',
-                        traditional: true, // 讓 jQuery 正確傳遞陣列
-                        data: {
-                            ClassNameList: ClassNameList,
-                            KidID: KidID
-                        }
-                    }).done(function (result) {
-                        $('#partialContainer').html(result);
-                    });
-                });
+</div>
 
 
+<!-- 字庫區 -->
+<div class="col-4">
+    <label for="SelectNewClassNameList" class="form-label">選擇考卷：</label>
+    <select id="SelectNewClassNameList" name="NewClassNameList" class="form-select">
+        @if (Model.ClassNameList != null)
+        {
+            <option value="">請選擇</option>
+            @foreach (var className in Model.ClassNameList)
+            {
+                <option value="@className">@className</option>
+            }
+        }
+    </select>
+</div>
 
-                var callback = function () {
-                    var ClassName = $("#Class").val();
-                    var CorrectType = $("#CorrectType").val();
-                    var KidID = $("#KidID").val();
-                    return {
-                        method: "get",
-                        url: '@Url.Action("NewTest")',
-                        footable: true,
-                        data: {
-                            ClassName: ClassName,
-                            CorrectType: CorrectType,
-                            KidID: KidID
-                        }
-                    };
-                };
-                PageTurning(callback);
+<div id="partialContainer" class="ibox-content ibox-list-content">
+    <partial name="_NewTest" model="Model">
+</div>
 
-            });
+<script src="~/StaticFiles/lib/select2/dist/js/select2.min.js"></script>
+<script>
+    $(function () {
+        $('#Select2ClassNameList').select2({
+            placeholder: '選擇考卷',
+            allowClear: true,
+            closeOnSelect: false,
+        });
+    });
 
-            function CodeMainSave(e) {
-                const $row = $(e).closest("tr");
-                const wordID = $(e).data("wordid");
-                const isFocus = $row.find(".focus-checkbox").prop("checked");
-                const question = $row.find(".question").val();
-                const answer = $row.find(".answer").val();
-                const kidID = $("#KidID").val();
+    $(document).ready(function () {
+        // Excel 檔案上傳區
+        $("#uploadForm").submit(function (e) {
+            e.preventDefault(); // 防止表單提交
 
-                if (!wordID) {
-                    alert("請輸入考券名稱！");
-                    return;
-                }
+            var formData = new FormData();
+            var fileInput = $("#fileInput")[0].files[0];
 
-                if (!kidID) {
-                    alert("請選擇學生！");
-                    return;
-                }
-
-                if (!question || !answer) {
-                    alert("欄位資訊不可空白！");
-                    return;
-                }
-                $.ajax({
-                    url: '@Url.Action("UpdateNewTestWord", "Exam")',
-                    type: 'POST',
-                    data: {
-                        WordID: wordID,
-                        KidID: kidID,
-                        Focus: isFocus,
-                        Question: question,
-                        Answer: answer
-                    },
-                    success: function () {
-                        alert("資料已成功提交！");
-                    },
-                    error: function () {
-                        alert("提交失敗，請再試一次！");
-                    }
-                });
+            if (!fileInput) {
+                $("#uploadStatus").text("請選擇 Excel 檔案");
+                return;
             }
 
-        </script>
+            formData.append("file", fileInput);
+
+            $.ajax({
+                url: "@Url.Action("Upload", "Exam")",
+                type: "POST",
+                data: formData,
+                processData: false,
+                contentType: false,
+                success: function (response) {
+                    $("#uploadStatus").text("上傳成功！");
+                },
+                error: function () {
+                    $("#uploadStatus").text("上傳失敗，請重試");
+                }
+            });
+        });
+
+        $(document).on("change", "#SelectNewClassNameList , #KidID", function () {
+            var ClassNameList = $("#SelectNewClassNameList").val() || [];
+            var KidID = $("#KidID").val();
+            $.ajax({
+                url: '@Url.Action("NewTest")',
+                type: 'GET',
+                traditional: true, // 讓 jQuery 正確傳遞陣列
+                data: {
+                    ClassNameList: ClassNameList,
+                    KidID: KidID
+                }
+            }).done(function (result) {
+                $('#partialContainer').html(result);
+            });
+        });
+
+
+
+        var callback = function () {
+            var ClassName = $("#Class").val();
+            var CorrectType = $("#CorrectType").val();
+            var KidID = $("#KidID").val();
+            return {
+                method: "get",
+                url: '@Url.Action("NewTest")',
+                footable: true,
+                data: {
+                    ClassName: ClassName,
+                    CorrectType: CorrectType,
+                    KidID: KidID
+                }
+            };
+        };
+        PageTurning(callback);
+
+    });
+
+    function CodeMainSave(e) {
+        const $row = $(e).closest("tr");
+        const wordID = $(e).data("wordid");
+        const isFocus = $row.find(".focus-checkbox").prop("checked");
+        const question = $row.find(".question").val();
+        const answer = $row.find(".answer").val();
+        const kidID = $("#KidID").val();
+
+        if (!wordID) {
+            alert("請輸入考券名稱！");
+            return;
+        }
+
+        if (!kidID) {
+            alert("請選擇學生！");
+            return;
+        }
+
+        if (!question || !answer) {
+            alert("欄位資訊不可空白！");
+            return;
+        }
+        $.ajax({
+            url: '@Url.Action("UpdateNewTestWord", "Exam")',
+            type: 'POST',
+            data: {
+                WordID: wordID,
+                KidID: kidID,
+                Focus: isFocus,
+                Question: question,
+                Answer: answer
+            },
+            success: function () {
+                alert("資料已成功提交！");
+            },
+            error: function () {
+                alert("提交失敗，請再試一次！");
+            }
+        });
+    }
+
+
+
+    function submitGenerateForm(level) {
+        var KidID = $("#KidID").val();
+
+        if (!KidID) {
+            alert("請先輸入 KidID！");
+            return;
+        }
+        // 寫入 hidden 欄位
+        $("#levelInput").val(level);
+        $("#KidIDInput").val(KidID);
+
+        $("#generateForm").submit();
+    }
+</script>
