@@ -297,8 +297,8 @@ namespace ERP.Web.Service.Service
                         string Grade = worksheet.Cells[1, 5].Text.Trim().ToLower();
                         string TestType = worksheet.Cells[1, 6].Text.Trim().ToLower();
 
-                        //if (ChkDone == "done")
-                        //    continue;
+                        if (ChkDone == "done")
+                            continue;
 
                         for (int row = 2; row <= rowCount; row++) // 從第 2 行開始，因為第 1 行是標題
                         {
@@ -330,15 +330,15 @@ namespace ERP.Web.Service.Service
         {
             try
             {
-                Guid LessionID = await GetLessionID(vocabularies[0].ClassName, vocabularies[0].TestType);
-                if (LessionID == Guid.Empty)
-                    return false;
+
                 foreach (var vocab in vocabularies)
                 {
                     #region debug
-                    await _examRepo.chkUpdateWord(vocab);
+                    //await _examRepo.chkUpdateWord(vocab);
                     #endregion
-
+                    Guid LessionID = await GetLessionID(vocab.ClassName, vocab.TestType);
+                    if (LessionID == Guid.Empty)
+                        return false;
                     // 檢查是否已有相同單字
                     bool checkWord = await _examRepo.chkSameWord(vocab);
 
@@ -357,6 +357,11 @@ namespace ERP.Web.Service.Service
         }
         private async Task<Guid> GetLessionID(string ClassName, string TestType)
         {
+            Guid LessionID = await _examRepo.GetLessionID(ClassName);
+            if (LessionID != Guid.Empty)
+            {
+                return LessionID;
+            }
             int LessionSort = await _examRepo.GetLessionSort();
             var LessionData = new LessionModel
             {
@@ -364,7 +369,7 @@ namespace ERP.Web.Service.Service
                 TestType = TestType,
                 LessionSort = LessionSort,
             };
-            Guid LessionID = await _examRepo.InsertLessionID(LessionData);
+            LessionID = await _examRepo.InsertLessionID(LessionData);
             return LessionID;
         }
 
