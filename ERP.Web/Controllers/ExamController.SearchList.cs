@@ -1,8 +1,6 @@
 ﻿using ERP.Web.Service.ViewModels;
 using Microsoft.AspNetCore.Mvc;
 
-
-
 namespace ERP.Web.Controllers
 {
     public partial class ExamController : Controller

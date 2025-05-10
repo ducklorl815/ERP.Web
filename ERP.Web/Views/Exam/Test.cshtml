@@ -1,4 +1,6 @@
 ﻿@model ERP.Web.Service.ViewModels.ExamDataViewModel_result
+@using System.Text.RegularExpressions
+
 @{
     Layout = null;  // 禁用布局
 }
@@ -60,6 +62,31 @@
         margin-top: 8px;
         margin-bottom: 8px;
         font-weight: bold;
+    }
+
+    .mental-math-block {
+        font-size: 24px;
+        line-height: 36px;
+        margin-bottom: 10px;
+        white-space: pre-wrap; /* 保留換行 */
+        font-family: 'Courier New', Courier, monospace; /* 等寬字體方便對齊 */
+    }
+
+    .mental-math-table {
+        width: 100%;
+        border-collapse: collapse; /* 去掉單元格邊框間的空隙 */
+    }
+
+        .mental-math-table td {
+            text-align: center; /* 中央對齊 */
+            padding: 5px;
+        }
+
+    .divider {
+        width: 100%; /* 和上面的數字寬度一致 */
+        height: 1px; /* 細線 */
+        background-color: #000; /* 顏色可自定義 */
+        margin-top: 5px; /* 微調位置 */
     }
 </style>
 
@@ -158,26 +185,66 @@
         <div class="exam-section">心算測驗 (填入答案) 每題 @Model.scoreTable.MentalMathScore 分</div>
         @for (int i = 0; i < mentalMath.Count; i++)
         {
-            <div>
-                <span class="question-number">@(words.Count + phrases.Count + i + 1).</span>
-                <span class="question-text">@mentalMath[i].Question</span>
-            </div>
-            <div>
-                <input type="text" class="answer-line" name="answers[@(words.Count + phrases.Count + i)]" required />
+            var numbers = Regex.Matches(mentalMath[i].Question, @"-?\d+")
+            .Cast<Match>()
+            .Select(m => m.Value)
+            .ToList();
+
+            <div class="d-flex mb-3">
+                <div class="question-number me-2" style="min-width: 40px;">
+                    @(words.Count + phrases.Count + i + 1).
+                </div>
+                <div>
+                    <table class="mental-math-table">
+                        <tbody>
+                            @foreach (var n in numbers)
+                            {
+                                <tr>
+                                    <td>@n</td>
+                                </tr>
+                            }
+                        </tbody>
+                    </table>
+                    <!-- 在最後一個數字的底部加分隔線 -->
+                    <div class="divider"></div>
+                    <input type="text" class="border-0" name="answers[@(words.Count + phrases.Count + i)]" required />
+                </div>
             </div>
         }
     }
+
+
+
     @if (mentalMath.Any())
     {
         <div class="exam-section">心算測驗答案</div>
         @for (int i = 0; i < mentalMath.Count; i++)
         {
-            <div>
-                <span class="question-number">@(words.Count + phrases.Count + i + 1).</span>
-                <span class="question-text">@mentalMath[i].Question</span>
-            </div>
-            <div class="answer-line">
-                <span class="answer-text">@mentalMath[i].Answer</span>
+            var numbers = Regex.Matches(mentalMath[i].Question, @"-?\d+")
+            .Cast<Match>()
+            .Select(m => m.Value)
+            .ToList();
+
+            <div class="d-flex mb-3">
+                <div class="question-number me-2" style="min-width: 40px;">
+                    @(words.Count + phrases.Count + i + 1).
+                </div>
+                <div>
+                    <table class="mental-math-table">
+                        <tbody>
+                            @foreach (var n in numbers)
+                            {
+                                <tr><td>@n</td></tr>
+                            }
+                            <br />
+                            <tr><td>_____</td></tr>
+                        </tbody>
+                    </table>
+                    <input type="text" class="answer-line" name="answers[@(words.Count + phrases.Count + i)]" required />
+                </div>
+                <div class="answer-line">
+                    <span class="answer-text">@mentalMath[i].Answer</span>
+                </div>
             </div>
         }
     }
