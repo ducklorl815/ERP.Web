@@ -87,7 +87,25 @@
         background-color: #000; /* 顏色可自定義 */
         margin-top: 5px; /* 微調位置 */
     }
+
 </style>
+@Html.Raw(@"
+    <style>
+        @media print {
+            .page-break {
+                display: block !important;
+                page-break-after: always;
+                break-after: page;
+            }
+        }
+        @media (min-width: 768px) {
+            .col-md-2-4 {
+                flex: 0 0 auto;
+                width: 20%;
+            }
+        }
+    </style>
+")
 
 <form method="post" id="TestView" action="@Url.Action("Submit", "Exam")">
     @{
@@ -180,81 +198,92 @@
     }
 
 
+@{
+    int itemsPerPage = 10;
+    int totalPages = (int)Math.Ceiling((double)mentalMath.Count / itemsPerPage);
+}
+
     @if (mentalMath.Any())
     {
-        <div class="exam-section">心算測驗 (填入答案) 每題 @Model.scoreTable.MentalMathScore 分</div>
-        <div class="container">
-            <div class="row">
-                @for (int i = 0; i < mentalMath.Count; i++)
+
+
+        @for (int page = 0; page < totalPages; page++)
+        {
+            <div class="page-break">
+                @if (page == 0)
                 {
-                    var numbers = Regex.Matches(mentalMath[i].Question, @"-?\d+")
-                    .Cast<Match>()
-                    .Select(m => m.Value)
-                    .ToList();
+                    <div class="exam-section">心算測驗 (填入答案) 每題 @Model.scoreTable.MentalMathScore 分</div>
 
-                    <div class="col-12 col-md-2 mb-4 text-center">
-                        <!-- 題號 -->
-                        <div class="question-number mb-1 text-start fw-bold " style="font-size:24px">
-                            @(i + 1).
-                        </div>
-                        <!-- 題目與答案框 -->
-                        <div class="question-box border rounded p-2">
-                            <table class="mental-math-table mx-auto">
-                                <tbody>
-                                    @foreach (var n in numbers)
-                                    {
-                                        <tr>
-                                            <td>@n</td>
-                                        </tr>
-                                    }
-                                </tbody>
-                            </table>
-                            <div class="divider"></div>
-                            <input type="text" class="border-0 text-center w-100 p-3" name="answers[@(words.Count + phrases.Count + i)]" required />
-                        </div>
-                    </div>
                 }
-            </div>
-        </div>
-    }
+                <div class="container">
+                    <div class="row">
+                        @for (int i = page * itemsPerPage; i < Math.Min((page + 1) * itemsPerPage, mentalMath.Count); i++)
+                        {
+                            var numbers = Regex.Matches(mentalMath[i].Question, @"-?\d+")
+                            .Cast<Match>()
+                            .Select(m => m.Value)
+                            .ToList();
 
+                            <div class="col-12 col-md-2-4 mb-4 text-center">
+                                <div class="question-number mb-1 text-start fw-bold" style="font-size:24px">
+                                    @(i + 1).
+                                </div>
+                                <div class="question-box border rounded p-2">
+                                    <table class="mental-math-table mx-auto">
+                                        <tbody>
+                                            @foreach (var n in numbers)
+                                            {
+                                                <tr><td>@n</td></tr>
+                                            }
+                                        </tbody>
+                                    </table>
+                                    <div class="divider"></div>
+                                    <input type="text" class="border-0 text-center w-100 p-3" style="font-size:24px" value="@mentalMath[i].Answer" />
+                                </div>
+                            </div>
+                        }
+                    </div>
+                </div>
+            </div>
+        }
+    }
 
     @if (mentalMath.Any())
     {
         <div class="exam-section">心算測驗答案</div>
-        <div class="container">
-            <div class="row">
-                @for (int i = 0; i < mentalMath.Count; i++)
-                {
-                    var numbers = Regex.Matches(mentalMath[i].Question, @"-?\d+")
-                    .Cast<Match>()
-                    .Select(m => m.Value)
-                    .ToList();
 
-                    <div class="col-12 col-md-2 mb-4 text-center">
-                        <!-- 題號 -->
-                        <div class="question-number mb-1 text-start fw-bold" style="font-size:24px">
-                            @(i + 1).
+        @for (int page = 0; page < totalPages; page++)
+        {
+            <div class="container page-break">
+                <div class="row">
+                    @for (int i = page * itemsPerPage; i < Math.Min((page + 1) * itemsPerPage, mentalMath.Count); i++)
+                    {
+                        var numbers = Regex.Matches(mentalMath[i].Question, @"-?\d+")
+                        .Cast<Match>()
+                        .Select(m => m.Value)
+                        .ToList();
+
+                        <div class="col-12 col-md-4 mb-4 text-center">
+                            <div class="question-number mb-1 text-start fw-bold" style="font-size:24px">
+                                @(i + 1).
+                            </div>
+                            <div class="question-box border rounded p-2">
+                                <table class="mental-math-table mx-auto">
+                                    <tbody>
+                                        @foreach (var n in numbers)
+                                        {
+                                            <tr><td>@n</td></tr>
+                                        }
+                                    </tbody>
+                                </table>
+                                <div class="divider"></div>
+                                <input type="text" class="border-0 text-center w-100 p-3" style="font-size:24px" value="@mentalMath[i].Answer" />
+                            </div>
                         </div>
-                        <!-- 題目與答案框 -->
-                        <div class="question-box border rounded p-2">
-                            <table class="mental-math-table mx-auto">
-                                <tbody>
-                                    @foreach (var n in numbers)
-                                    {
-                                        <tr>
-                                            <td>@n</td>
-                                        </tr>
-                                    }
-                                </tbody>
-                            </table>
-                            <div class="divider"></div>
-                            <input type="text" class="border-0 text-center w-100 p-3" style="font-size:24px" value="@mentalMath[i].Answer" />
-                        </div>
-                    </div>
-                }
+                    }
+                </div>
             </div>
-        </div>
+        }
     }
 
 

@@ -228,7 +228,7 @@ namespace ERP.Web.Service.Service
             var distribution = Enumerable.Range(0, groupedByClass.Count()).ToDictionary(i => i,
                                 i => (param.ClassNameList.Count() == 1 && i == 0) ? 1.0 : 1 / groupedByClass.Count());
 
-            int totalQuestions = param.ClassNameList.Count() == 1 ? groupedByClass[0].Count() : 20;
+            int totalQuestions = param.ClassNameList.Count() == 1 ? groupedByClass[0].Count() : 30;
 
 
             // 先處理前三個課程（依據 distribution 權重）
