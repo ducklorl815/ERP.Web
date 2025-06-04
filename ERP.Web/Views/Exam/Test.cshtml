@@ -212,8 +212,14 @@
             <div class="page-break">
                 @if (page == 0)
                 {
-                    <div class="exam-section">心算測驗 (填入答案) 每題 @Model.scoreTable.MentalMathScore 分</div>
-
+                    <div style="display: flex; justify-content: space-between;">
+                        <label class="exam-title">
+                            @Model.Title 數學試卷 心算測驗 (填入答案) 每題 @Model.scoreTable.MentalMathScore 分
+                        </label>
+                        <label class="exam-section mt-4">
+                            姓名:______________________________
+                        </label>
+                    </div>
                 }
                 <div class="container">
                     <div class="row">
