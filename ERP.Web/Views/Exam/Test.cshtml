@@ -198,10 +198,10 @@
     }
 
 
-@{
-    int itemsPerPage = 10;
-    int totalPages = (int)Math.Ceiling((double)mentalMath.Count / itemsPerPage);
-}
+    @{
+        int itemsPerPage = 10;
+        int totalPages = (int)Math.Ceiling((double)mentalMath.Count / itemsPerPage);
+    }
 
     @if (mentalMath.Any())
     {
@@ -238,7 +238,7 @@
                                         </tbody>
                                     </table>
                                     <div class="divider"></div>
-                                    <input type="text" class="border-0 text-center w-100 p-3" style="font-size:24px" value="@mentalMath[i].Answer" />
+                                    <input type="text" class="border-0 text-center w-100 p-3" style="font-size:24px" />
                                 </div>
                             </div>
                         }
@@ -246,41 +246,42 @@
                 </div>
             </div>
         }
-    }
-
-    @if (mentalMath.Any())
-    {
-        <div class="exam-section">心算測驗答案</div>
 
         @for (int page = 0; page < totalPages; page++)
         {
-            <div class="container page-break">
-                <div class="row">
-                    @for (int i = page * itemsPerPage; i < Math.Min((page + 1) * itemsPerPage, mentalMath.Count); i++)
-                    {
-                        var numbers = Regex.Matches(mentalMath[i].Question, @"-?\d+")
-                        .Cast<Match>()
-                        .Select(m => m.Value)
-                        .ToList();
+            <div class="page-break">
+                @if (page == 0)
+                {
+                    <div class="exam-section">心算測驗答案</div>
+                }
+                <div class="container">
+                    <div class="row">
+                        @for (int i = page * itemsPerPage; i < Math.Min((page + 1) * itemsPerPage, mentalMath.Count); i++)
+                        {
+                            var numbers = Regex.Matches(mentalMath[i].Question, @"-?\d+")
+                            .Cast<Match>()
+                            .Select(m => m.Value)
+                            .ToList();
 
-                        <div class="col-12 col-md-4 mb-4 text-center">
-                            <div class="question-number mb-1 text-start fw-bold" style="font-size:24px">
-                                @(i + 1).
+                            <div class="col-12 col-md-2-4 mb-4 text-center">
+                                <div class="question-number mb-1 text-start fw-bold" style="font-size:24px">
+                                    @(i + 1).
+                                </div>
+                                <div class="question-box border rounded p-2">
+                                    <table class="mental-math-table mx-auto">
+                                        <tbody>
+                                            @foreach (var n in numbers)
+                                            {
+                                                <tr><td>@n</td></tr>
+                                            }
+                                        </tbody>
+                                    </table>
+                                    <div class="divider"></div>
+                                    <input type="text" class="border-0 text-center w-100 p-3" style="font-size:24px" value="@mentalMath[i].Answer" />
+                                </div>
                             </div>
-                            <div class="question-box border rounded p-2">
-                                <table class="mental-math-table mx-auto">
-                                    <tbody>
-                                        @foreach (var n in numbers)
-                                        {
-                                            <tr><td>@n</td></tr>
-                                        }
-                                    </tbody>
-                                </table>
-                                <div class="divider"></div>
-                                <input type="text" class="border-0 text-center w-100 p-3" style="font-size:24px" value="@mentalMath[i].Answer" />
-                            </div>
-                        </div>
-                    }
+                        }
+                    </div>
                 </div>
             </div>
         }

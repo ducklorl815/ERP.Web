@@ -429,8 +429,8 @@ namespace ERP.Web.Service.Service
             // 題型分類
             int wordCount = vocabularyList.Count(x => x.CategoryType.Equals("word", StringComparison.OrdinalIgnoreCase));
             int phraseCount = vocabularyList.Count(x => x.CategoryType.Equals("phrase", StringComparison.OrdinalIgnoreCase));
-            int MentalMathCount = vocabularyList.Count(x => x.CategoryType.Equals("MentalMathScore", StringComparison.OrdinalIgnoreCase));
-            int totalCount = wordCount + phraseCount;
+            int MentalMathCount = vocabularyList.Count(x => x.CategoryType.Equals("MentalMath", StringComparison.OrdinalIgnoreCase));
+            int totalCount = wordCount + phraseCount+ MentalMathCount;
 
             int wordScore = 0;
             int phraseScore = 0;
