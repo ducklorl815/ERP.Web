@@ -119,7 +119,7 @@
         <div class="exam-container">
             <div style="display: flex; justify-content: space-between;">
                 <label class="exam-title">
-                    @Model.Title 英文試卷
+                    @Model.Title 英文試卷_@DateTime.Now.ToString("yyyyMMdd")
                 </label>
                 <label class="exam-section mt-4">
                     姓名:_________________________
@@ -131,11 +131,11 @@
                 <div class="exam-section">單字測驗 (寫出中文所代表的意思) 每題 @Model.scoreTable.WordScore 分</div>
                 @for (int i = 0; i < words.Count; i++)
                 {
-                    <div>
+                    <div >
                         <span class="question-number">@(i + 1).</span>
                         <span class="question-text">@words[i].Question</span>
                     </div>
-                    <div>
+                    <div >
                         <input type="text" class="answer-line" name="answers[@i]" required />
                     </div>
                 }
@@ -214,7 +214,7 @@
                 {
                     <div style="display: flex; justify-content: space-between;">
                         <label class="exam-title">
-                            @Model.Title 數學試卷 心算測驗 (填入答案) 每題 @Model.scoreTable.MentalMathScore 分
+                            @Model.Title 數學試卷_@DateTime.Now.ToString("yyyyMMdd") 心算測驗 (填入答案) 每題 @Model.scoreTable.MentalMathScore 分
                         </label>
                         <label class="exam-section mt-4">
                             姓名:______________________________
