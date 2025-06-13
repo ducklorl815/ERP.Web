@@ -430,7 +430,7 @@ namespace ERP.Web.Service.Service
             int wordCount = vocabularyList.Count(x => x.CategoryType.Equals("word", StringComparison.OrdinalIgnoreCase));
             int phraseCount = vocabularyList.Count(x => x.CategoryType.Equals("phrase", StringComparison.OrdinalIgnoreCase));
             int MentalMathCount = vocabularyList.Count(x => x.CategoryType.Equals("MentalMath", StringComparison.OrdinalIgnoreCase));
-            int totalCount = wordCount + phraseCount+ MentalMathCount;
+            int totalCount = wordCount + phraseCount + MentalMathCount;
 
             int wordScore = 0;
             int phraseScore = 0;
@@ -506,21 +506,31 @@ namespace ERP.Web.Service.Service
             for (int i = 0; i < 30; i++)
             {
                 int count = (MentalLevel == 10) ? 4 : 5;
-                int negativeRangeCount = (MentalLevel == 10) ? 1 : 2;
+                List<int> numbers = new List<int>();
+                int currentSum = 0;
 
-                List<int> numbers = Enumerable.Range(0, count)
-                    .Select(_ => rnd.Next(1, 10))
-                    .ToList();
+                // 第1個數字只能是正數
+                int firstNumber = rnd.Next(1, 10);
+                numbers.Add(firstNumber);
+                currentSum = firstNumber;
 
-                var indicesToReplace = new HashSet<int>();
-                while (indicesToReplace.Count < negativeRangeCount)
+                for (int j = 1; j < count; j++)
                 {
-                    indicesToReplace.Add(rnd.Next(0, count));
-                }
+                    int nextNumber = 0;
 
-                foreach (int idx in indicesToReplace)
-                {
-                    numbers[idx] = rnd.Next(-9, 10);
+                    // 如果 currentSum 為 0，就不能做減法
+                    if (currentSum == 0 || rnd.Next(0, 2) == 0) // 加法
+                    {
+                        nextNumber = rnd.Next(1, 10); // +1~+9
+                    }
+                    else // 減法
+                    {
+                        int maxSubtract = Math.Min(9, currentSum); // 最多減掉 currentSum
+                        nextNumber = -rnd.Next(1, maxSubtract + 1); // -1 ~ -maxSubtract
+                    }
+
+                    currentSum += nextNumber;
+                    numbers.Add(nextNumber);
                 }
 
                 var questionText = string.Join(" + ", numbers.Select(n => n < 0 ? $"({n})" : n.ToString()));
@@ -529,13 +539,14 @@ namespace ERP.Web.Service.Service
                 {
                     CategoryType = "MentalMath",
                     Question = questionText,
-                    Answer = numbers.Sum().ToString(),
+                    Answer = currentSum.ToString(),
                     ClassName = ClassName,
                     TestType = TestType
                 };
 
                 entries.Add(entry);
             }
+
 
             foreach (var question in entries)
             {
