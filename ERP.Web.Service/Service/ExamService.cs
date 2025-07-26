@@ -505,7 +505,7 @@ namespace ERP.Web.Service.Service
 
             for (int i = 0; i < 30; i++)
             {
-                int count = (MentalLevel == 10) ? 4 : 5;
+                int count = (MentalLevel == 10) ? 4 : 6;
                 List<int> numbers = new List<int>();
                 int currentSum = 0;
 
