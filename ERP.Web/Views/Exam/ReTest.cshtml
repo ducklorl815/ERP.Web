@@ -34,6 +34,30 @@
 </div>
 
 <script>
+    // 全域變數
+    var selectedWordIDs = [];
+
+    // 事件委派綁定，放在 DOMContentLoaded 內，只需綁定一次
+    document.addEventListener('DOMContentLoaded', function () {
+        document.body.addEventListener('change', function (event) {
+            const el = event.target;
+            if (el.matches && el.matches("input[type='checkbox'][name^='selectedQuestions']")) {
+                const wordID = el.value;
+                if (el.checked) {
+                    if (!selectedWordIDs.includes(wordID)) {
+                        selectedWordIDs.push(wordID);
+                    }
+                } else {
+                    selectedWordIDs = selectedWordIDs.filter(id => id !== wordID);
+                }
+
+                document.cookie = "SelectedWordIDs=" + encodeURIComponent(selectedWordIDs) + "; path=/";
+                console.log("目前選取的 WordIDs:", selectedWordIDs);
+            }
+        });
+    });
+
+
     $(document).ready(function () {
         $("#uploadForm").submit(function (e) {
             e.preventDefault(); // 防止表單提交
@@ -139,15 +163,16 @@
 
 
     function openModal() {
-        var selectedWordIDs = [];
-        $("input[name^='selectedQuestions']:checked").each(function () {
-            selectedWordIDs.push($(this).val());
-        });
+        //$("input[name^='selectedQuestions']:checked").each(function () {
+        //    selectedWordIDs.push($(this).val());
+        //});
         // 顯示已選擇的題目數量
         $("#selectedWordCountValue").text(selectedWordIDs.length);
         selectedWordIDs.forEach(function (id) {
             $("#examForm").append(`<input type="hidden" name="selectedWordIDs" value="${id}" />`);
         });
+
+        console.log(selectedWordIDs)
         // 設定條件選單的值
         var testType = $("#TestType").val();
         $("#modalTestType").val(testType).change();

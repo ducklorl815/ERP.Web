@@ -54,7 +54,7 @@ namespace ERP.Web.Service.Service
                 ExamKeyword.TestDate = DateTime.Parse(param.TestDate);
 
             var datacount = await _examRepo.GetReTestCountAsync(ExamKeyword);
-            var pager = new Paging(param.Page, datacount != 0 ? datacount : param.PageSize, datacount);
+            var pager = new Paging(param.Page, param.PageSize, datacount);
 
             result.Pager = pager;
             result.ExamDataList = await _examRepo.GetReTestSearchListAsync(pager, ExamKeyword);
