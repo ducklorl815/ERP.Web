@@ -11,7 +11,7 @@
         width: 100%;
         max-width: 800px;
         margin: 0 auto;
-        font-size: 16px;
+        font-size: 20px;
         line-height: 1.5;
     }
 
@@ -131,11 +131,11 @@
                 <div class="exam-section">單字測驗 (寫出中文所代表的意思) 每題 @Model.scoreTable.WordScore 分</div>
                 @for (int i = 0; i < words.Count; i++)
                 {
-                    <div >
+                    <div class="mt-2 mb-2">
                         <span class="question-number">@(i + 1).</span>
                         <span class="question-text">@words[i].Question</span>
                     </div>
-                    <div >
+                    <div class="mt-2 mb-2">
                         <input type="text" class="answer-line" name="answers[@i]" required />
                     </div>
                 }
@@ -146,11 +146,11 @@
                 <div class="exam-section">片語測驗 (寫出對應的問句或回答) 每題 @Model.scoreTable.PhraseScore 分</div>
                 @for (int i = 0; i < phrases.Count; i++)
                 {
-                    <div>
+                    <div class="mt-2 mb-2">
                         <span class="question-number">@(words.Count + i + 1).</span>
                         <span class="question-text">@phrases[i].Question</span>
                     </div>
-                    <div>
+                    <div class="mt-2 mb-2">
                         <input type="text" class="answer-line" name="answers[@(words.Count + i)]" required />
                     </div>
                 }
@@ -170,11 +170,11 @@
                 <div class="exam-section">單字測驗答案</div>
                 @for (int i = 0; i < words.Count; i++)
                 {
-                    <div>
+                    <div class="mt-2 mb-2">
                         <span class="question-number">@(i + 1).</span>
                         <span class="question-text">@words[i].Question</span>
                     </div>
-                    <div class="answer-line">
+                    <div class="answer-line mt-2 mb-2">
                         <span class="answer-text">@words[i].Answer</span>
                     </div>
                 }
@@ -185,11 +185,11 @@
                 <div class="exam-section">片語測驗答案</div>
                 @for (int i = 0; i < phrases.Count; i++)
                 {
-                    <div>
+                    <div class="mt-2 mb-2">
                         <span class="question-number">@(words.Count + i + 1).</span>
                         <span class="question-text">@phrases[i].Question</span>
                     </div>
-                    <div class="answer-line">
+                    <div class="answer-line mt-2 mb-2">
                         <span class="answer-text">@phrases[i].Answer</span>
                     </div>
                 }
