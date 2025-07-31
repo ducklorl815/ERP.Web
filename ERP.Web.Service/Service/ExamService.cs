@@ -567,6 +567,20 @@ namespace ERP.Web.Service.Service
             return result;
         }
 
+        public async Task<List<SelectListItem>> GetTestDateList(string kidID)
+        {
+            var testDateListTask = await _examRepo.GetTestDateList(kidID);
+
+            var TestDateList = testDateListTask
+            .Select(x => new SelectListItem
+            {
+                Text = x.Date.ToString("yyyy-MM-dd"),
+                Value = x.Date.ToString("yyyy-MM-dd")
+            }).ToList();
+            if (TestDateList != null)
+                return TestDateList;
+            return null;
+        }
     }
 
 }

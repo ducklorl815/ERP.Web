@@ -7,8 +7,8 @@ namespace ERP.Web.Controllers
     {
         public async Task<IActionResult> ReTest(ExamSearchListViewModel_param param)
         {
-            if (!Request.IsAjaxRequest())
-                param.CorrectType = "1";
+            //if (!Request.IsAjaxRequest())
+            //    param.CorrectType = "1";
             ExamSearchListViewModel_result result = await _examService.GetReTestAsync(param);
             if (Request.IsAjaxRequest())
                 return PartialView("_ReTest", result);
@@ -49,5 +49,12 @@ namespace ERP.Web.Controllers
             var result = await _examService.GenerateQuestions(level, KidID);
             return View("Test", result);
         }
+        [HttpPost]
+        public async Task<IActionResult> GetTestDates(string KidID)
+        {
+            var result = await _examService.GetTestDateList(KidID);
+            return Json(result);
+        }
+
     }
 }

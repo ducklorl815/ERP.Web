@@ -401,11 +401,12 @@ namespace ERP.Web.Models.Respository
             sqlparam.Add("KidMainID", KidID);
 
             var sql = @"
-                      SELECT DISTINCT CONVERT(date, TestDate)
+                      SELECT DISTINCT CONVERT(date, TestDate),TestDate
                       FROM KidsWorld.dbo.KidTestIndex
                       WHERE KidMainID = @KidMainID
                       AND Enabled = 1
                       AND Deleted = 0
+                      Order by TestDate desc
                         "
             ;
 
