@@ -50,8 +50,18 @@
     document.addEventListener('DOMContentLoaded', function () {
         document.body.addEventListener('change', function (event) {
             const el = event.target;
+
             if (el.matches && el.matches("input[type='checkbox'][name^='selectedQuestions']")) {
                 const wordID = el.value;
+
+                // 🔸 取得當前選擇的 KidID
+                const kidID = document.getElementById('KidID')?.value;
+                if (!kidID) {
+                    console.warn('尚未選擇 KidID，無法儲存 Cookie');
+                    return;
+                }
+
+                // 🔸 維護 selectedWordIDs 陣列（記得你要定義這個在外部）
                 if (el.checked) {
                     if (!selectedWordIDs.includes(wordID)) {
                         selectedWordIDs.push(wordID);
@@ -60,11 +70,15 @@
                     selectedWordIDs = selectedWordIDs.filter(id => id !== wordID);
                 }
 
-                document.cookie = "SelectedWordIDs=" + encodeURIComponent(selectedWordIDs) + "; path=/";
-                console.log("目前選取的 WordIDs:", selectedWordIDs);
+                // 🔸 存入以 KidID 為命名的 Cookie
+                const cookieName = `SelectedWordIDs_${kidID}`;
+                document.cookie = `${cookieName}=` + encodeURIComponent(JSON.stringify(selectedWordIDs)) + "; path=/";
+
+                console.log(`儲存 Cookie：${cookieName}，值為：`, selectedWordIDs);
             }
         });
     });
+
 
     $('#KidID').on('change', function () {
         var selectedKidId = $(this).val();
@@ -197,12 +211,24 @@
         }
     }
 
-
+    function getCookieValue(name) {
+        const match = document.cookie.split('; ').find(row => row.startsWith(name + '='));
+        if (!match) return null;
+        try {
+            return decodeURIComponent(match.split('=')[1]);
+        } catch {
+            return null;
+        }
+    }
 
     function openModal() {
         //$("input[name^='selectedQuestions']:checked").each(function () {
         //    selectedWordIDs.push($(this).val());
         //});
+        var KidID = $("#KidID").val();
+        var cookieName = `SelectedWordIDs_${KidID}`;
+        const selectedWordIDs = JSON.parse(getCookieValue(`${cookieName}`) || "[]");
+        console.log(selectedWordIDs)
         // 顯示已選擇的題目數量
         $("#selectedWordCountValue").text(selectedWordIDs.length);
         selectedWordIDs.forEach(function (id) {

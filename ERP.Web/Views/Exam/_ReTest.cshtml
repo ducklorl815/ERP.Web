@@ -38,3 +38,19 @@
 </table>
 
 <partial name="~/Views/Shared/_Page.cshtml" model="@Model.Pager" />
+
+<script>
+    if (typeof onPartialReTestLoaded === "function") {
+        onPartialReTestLoaded();
+    }
+
+    function onPartialReTestLoaded() {
+        // 遍歷所有 checkbox
+        document.querySelectorAll('input[type="checkbox"][name^="selectedQuestions["]').forEach(function (checkbox) {
+            const wordId = checkbox.value;
+            if (selectedWordIDs.includes(wordId)) {
+                checkbox.checked = true;
+            }
+        });
+    }
+</script>
