@@ -60,8 +60,37 @@ namespace ERP.Web.Service.Service
             result.ExamDataList = await _examRepo.GetReTestSearchListAsync(pager, ExamKeyword);
             var kidListTask = await _examRepo.GetKidListAsync();
             var testDateListTask = await _examRepo.GetTestDateList(param.KidID);
-            var classNameListTask = await _examRepo.GetExamListAsync();
+            var ExamList = await _examRepo.GetExamListAsync();
 
+            #region todo 製作排序
+            // Step 1: 動態取得主題群組（同樣邏輯）
+            var grouped = ExamList
+                .GroupBy(x =>
+                {
+                    var parts = x.ClassName.Split(' ');
+                    if (parts.Length >= 3 && (parts[^2] == "HW" || parts[^2] == "Sp"))
+                        return string.Join(" ", parts.Take(parts.Length - 1));
+                    else
+                        return x.ClassName.Split('_')[0];
+                })
+                .ToDictionary(
+                    g => g.Key,
+                    g => g.OrderByDescending(x => x.LessionSort).ToList()
+                );
+
+            // Step 2: 根據群組中最大 LessionSort 排序主題（最新優先）
+            var topicOrder = grouped
+                .OrderBy(g => g.Value.Max(x => x.ClassName.Contains("MentalMath")))
+                .Select(g => g.Key)
+                .ToList();
+
+            // Step 3: 展平
+            var sortedList = topicOrder
+                .Where(topic => grouped.ContainsKey(topic))
+                .SelectMany(topic => grouped[topic])
+                .ToList();
+            var classNameListTask = sortedList.Select(x => x.ClassName).ToList();
+            #endregion
             //await Task.WhenAll(kidListTask, testDateListTask, classNameListTask);
 
             result.KidList = kidListTask
@@ -225,10 +254,15 @@ namespace ERP.Web.Service.Service
                 .ToList();
 
             // 設定權重（依課程遠近分配）
-            var distribution = Enumerable.Range(0, groupedByClass.Count()).ToDictionary(i => i,
-                                i => (param.ClassNameList.Count() == 1 && i == 0) ? 1.0 : 1 / groupedByClass.Count());
+            var distribution = Enumerable.Range(0, groupedByClass.Count())
+                .ToDictionary(
+                    i => i,
+                    i => (param.ClassNameList.Count() == 1 && i == 0)
+                        ? 1.0                                  // 只有一個課程且是第一個 => 權重 1.0
+                        : 1.0 / groupedByClass.Count()         // 用 1.0 確保浮點數除法
+                );
 
-            int totalQuestions = param.ClassNameList.Count() == 1 ? groupedByClass[0].Count() : 30;
+            int totalQuestions = param.ClassNameList.Count() == 1 ? groupedByClass[0].Count() : param.TestNumber;
 
 
             // 先處理前三個課程（依據 distribution 權重）
@@ -401,9 +435,39 @@ namespace ERP.Web.Service.Service
             // 並行非同步請求
             var kidListTask = _examRepo.GetKidListAsync();
             var testDateListTask = _examRepo.GetTestDateList(param.KidID);
-            var classNameListTask = _examRepo.GetExamListAsync();
+            List<ExamListModel> ExamList = await _examRepo.GetExamListAsync();
 
-            await Task.WhenAll(kidListTask, testDateListTask, classNameListTask);
+            #region todo 製作排序
+            // Step 1: 動態取得主題群組（同樣邏輯）
+            var grouped = ExamList
+                .GroupBy(x =>
+                {
+                    var parts = x.ClassName.Split(' ');
+                    if (parts.Length >= 3 && (parts[^2] == "HW" || parts[^2] == "Sp"))
+                        return string.Join(" ", parts.Take(parts.Length - 1));
+                    else
+                        return x.ClassName.Split('_')[0];
+                })
+                .ToDictionary(
+                    g => g.Key,
+                    g => g.OrderByDescending(x => x.LessionSort).ToList()
+                );
+
+            // Step 2: 根據群組中最大 LessionSort 排序主題（最新優先）
+            var topicOrder = grouped
+                .OrderBy(g => g.Value.Max(x => x.ClassName.Contains("MentalMath")))
+                .Select(g => g.Key)
+                .ToList();
+
+            // Step 3: 展平
+            var sortedList = topicOrder
+                .Where(topic => grouped.ContainsKey(topic))
+                .SelectMany(topic => grouped[topic])
+                .ToList();
+            var classNameListTask = sortedList.Select(x => x.ClassName).ToList();
+            #endregion
+
+            await Task.WhenAll(kidListTask, testDateListTask);
 
             result.KidList = kidListTask.Result
                 .Select(x => new SelectListItem
@@ -419,7 +483,7 @@ namespace ERP.Web.Service.Service
                     Value = x.Date.ToString("yyyy-MM-dd")
                 }).ToList();
 
-            result.ClassNameList = classNameListTask.Result;
+            result.ClassNameList = classNameListTask;
         }
         public async Task<ExamDataViewModel_result> CalculateScore(List<Vocabulary> vocabularyList, ExamDataViewModel_result result)
         {

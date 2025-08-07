@@ -17,7 +17,13 @@
         public string TestType { get; set; }
 
     }
-
+    public class ExamListModel
+    {
+        public string ClassName { get; set; } // 課程標題
+        public int LessionSort { get; set; }
+        public string TestType { get; set; }
+        public DateTime CreateDate { get; set; }
+    }
     public class KidTestIndex
     {
         public string Class { get; set; }

@@ -178,10 +178,10 @@ namespace ERP.Web.Models.Respository
             }
         }
 
-        public async Task<List<string>> GetExamListAsync()
+        public async Task<List<ExamListModel>> GetExamListAsync()
         {
             var sql = @"
-                    SELECT ClassName
+                    SELECT ClassName,LessionSort,TestType,CreateDate
                       FROM KidsWorld.dbo.Lession
                       WHERE Enabled = 1
                       AND Deleted = 0
@@ -193,7 +193,7 @@ namespace ERP.Web.Models.Respository
 
             try
             {
-                var result = await conn.QueryAsync<string>(sql);
+                var result = await conn.QueryAsync<ExamListModel>(sql);
                 return result.ToList();
 
             }

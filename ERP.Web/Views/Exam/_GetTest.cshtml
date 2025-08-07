@@ -5,8 +5,8 @@
         <div class="row align-items-end gy-3 gx-4 col-12">
 
             <div class="col-2">
-                <label for="TestType" class="form-label">科目：</label>
-                <select id="TestType" name="TestType" class="form-select">
+                <label for="TestType" class="form-label col-5">科目：</label>
+                <select id="TestType" name="TestType" class="form-select col-6">
                     <option value="">請選擇</option>
                     @foreach (var testType in Model.TestTypeList)
                     {
@@ -15,9 +15,9 @@
                 </select>
             </div>
 
-            <div class="col-4">
-                <label for="Select2ClassNameList" class="form-label">選擇考卷：</label>
-                <select id="Select2ClassNameList" name="ClassNameList" class="form-select" multiple>
+            <div class="col-5">
+                <label for="Select2ClassNameList" class="form-label col-3">選擇考卷：</label>
+                <select id="Select2ClassNameList" name="ClassNameList" class="form-select col-8" multiple>
                     @if (Model.ClassNameList != null)
                         @foreach (var className in Model.ClassNameList)
                         {
@@ -26,7 +26,12 @@
                 </select>
             </div>
 
-            <div class="col-auto">
+            <div class="col-2 row align-items-center">
+                <label for="Number" class="me-2 mb-0">題數：</label>
+                <input id="Number" type="number" name="TestNumber" class="form-control" style="width:100px;" value="18" />
+            </div>
+
+            <div class="col-2">
                 <label for="KidID" class="form-label">選擇學生：</label>
                 <select id="KidID" name="KidID" class="form-select">
                     <option value="">請選擇</option>
@@ -40,7 +45,7 @@
                 </select>
             </div>
 
-            <div class="col-2">
+            <div class="col-1">
                 <button type="submit" class="btn btn-primary">送出</button>
             </div>
 

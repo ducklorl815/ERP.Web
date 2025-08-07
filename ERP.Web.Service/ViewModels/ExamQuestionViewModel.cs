@@ -20,7 +20,7 @@ namespace ERP.Web.Service.ViewModels
         public string WordID { get; set; }
         public bool Correct { get; set; }
         public bool Focus { get; set; }// 優先試題
-
+        public int TestNumber { get; set; }
         public string Question { get; set; }
         public string Answer { get; set; } // 正確答案
     }
