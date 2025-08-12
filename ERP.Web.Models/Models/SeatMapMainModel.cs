@@ -5,6 +5,7 @@
         public Guid ID { get; set; }
         public int Row { get; set; }
         public int Col { get; set; }
+        public string Sign { get; set; }
         public string Border { get; set; }
         public string BoxNumber { get; set; }
         public string Location { get; set; }

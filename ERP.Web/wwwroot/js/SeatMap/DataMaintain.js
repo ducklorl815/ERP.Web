@@ -4,6 +4,7 @@
 function ClickSeatSaveData(seat) {
     const status = seat.dataset.status;
     const rowcol = seat.dataset.rowcol.split('&');
+    const sign = seat.dataset.sign;
 
     var compName = $('#selectComp').val();
 
@@ -15,12 +16,12 @@ function ClickSeatSaveData(seat) {
     const row = parseInt(rowcol[0].split('_')[1]);
     const col = parseInt(rowcol[1].split('_')[1]);
 
-  
     const seatData = {
         border: border,
         status: status,
         row: row,
-        col: col
+        col: col,
+        sign: sign
     };
 
     const JosnString = JSON.stringify(seatData); 
@@ -54,30 +55,39 @@ function SeatClick() {
     });
 }
 
-
-//新增障礙物 switch
+// 拖移按鈕設定樣式
 new Vue({
-    el: "#IsStuff",
+    el: '#app',
     data: {
-        checked: false
+        IsStuff: false,
+        IsUsing: false,
+        IsRoad: false
     },
-
     watch: {
-        checked: function (val) {
-            console.log(val)
-            if (val == true) {
-                $('#IsStuff').attr('value', true);
-               
-            } else if (val == false) {
-                $('#IsStuff').prop('checked', false);
-                $('#IsStuff').attr('value', false);
+        IsStuff(val) {
+            if (val) {
+                this.IsUsing = false
+                this.IsRoad = false
+            }
+        },
+        IsUsing(val) {
+            if (val) {
+                this.IsStuff = false
+                this.IsRoad = false
+            }
+        },
+        IsRoad(val) {
+            if (val) {
+                this.IsStuff = false
+                this.IsUsing = false
             }
         }
     }
-});
+})
 
-// 點擊障礙物function
+// 點擊障礙物function //todo
 function handleStuffClick(seat) {
+ 
     // 移除原先的 class
     seat.className = 'seat'
 

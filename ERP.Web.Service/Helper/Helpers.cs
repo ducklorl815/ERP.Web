@@ -9,10 +9,10 @@
 
             while (number > 0)
             {
-                int remainder = (number - 1) % baseNumber;
+                int remainder = (number - 2) % baseNumber;
                 char letter = (char)('A' + remainder);
                 result = letter + result;
-                number = (number - 1) / baseNumber;
+                number = (number - 2) / baseNumber;
             }
 
             return result;

@@ -55,6 +55,7 @@ namespace ERP.Web.Models.Respository
                         ID
                         ,Row
                         ,Col
+                        ,Sign
                         ,Border
                         ,BoxNumber
                         ,Location
@@ -71,6 +72,7 @@ namespace ERP.Web.Models.Respository
                         NEWID()
                         ,@Row
                         ,@Col
+                        ,@Sign
                         ,@Border
                         ,''
                         ,''

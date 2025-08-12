@@ -4,8 +4,8 @@
 <link href="~/css/seatmap/public.css" rel="stylesheet" />
 <link href="~/css/vueslider.css" rel="stylesheet" />
 @{
-    var maxRow = 50; // 測試用最大行數
-    var maxCol = 50; // 測試用最大列數
+    var maxRow = 10; // 測試用最大行數
+    var maxCol = 10; // 測試用最大列數
     var staticSeatMap = new List<dynamic> {
         new { Row = 1, Col = 1, Colorcode = "#FFD700", Status = "using", BoxNumber = "台北", Location = "台北", TicketID = "T01A5AA00" ,Border ="TopBorder LeftBorder"},
         new { Row = 2, Col = 2, Colorcode = "#90EE90", Status = "using", BoxNumber = "台北", Location = "台北", TicketID = "T02B50A24",Border ="DownBorder LeftBorder"},
@@ -14,12 +14,30 @@
     var previousEmpNames = new Dictionary<string, int>();
 }
 
-<div class="row">
+<div id="app" class="row">
     <div class="w-8 d-flex" style="align-items: center;">
         <label class="col-sm-8 col-form-label font-weight-bold text-sm-right p-1">新增障礙物</label>
         <div id="Stuff" class="col-sm-4 app p-1">
             <label>
-                <input id="IsStuff" type="checkbox" v-model="checked" value="false" />
+                <input id="IsStuff" type="checkbox" v-model="IsStuff" value="false" />
+                <span class="slider"></span>
+            </label>
+        </div>
+    </div>
+    <div class="w-8 d-flex" style="align-items: center;">
+        <label class="col-sm-8 col-form-label font-weight-bold text-sm-right p-1">新增座位</label>
+        <div id="Stuff" class="col-sm-4 app p-1">
+            <label>
+                <input id="IsUsing" type="checkbox" v-model="IsUsing" value="false" />
+                <span class="slider"></span>
+            </label>
+        </div>
+    </div>
+    <div class="w-8 d-flex" style="align-items: center;">
+        <label class="col-sm-8 col-form-label font-weight-bold text-sm-right p-1">新增走道</label>
+        <div id="Stuff" class="col-sm-4 app p-1">
+            <label>
+                <input id="IsRoad" type="checkbox" v-model="IsRoad" value="false" />
                 <span class="slider"></span>
             </label>
         </div>
@@ -41,22 +59,22 @@
             {
                 var letterSequence = await Helpers.GetLetterSequence(i);
                 <div class="d-flex align-items-center justify-content-center">
-                    @*@if (i == 1)
+                    @if (i == 1)
                     {
                         @for (int j = 1; j <= maxCol; j++)
                         {
-                            <div class="solid" style="position: relative;right:-20px">
+                            <div class="solid" style="position: relative">
                                 <i class="fa-solid fa-sort-down fa-xl fa-unselected" data-status="unused" data-col="col_@(j)" style="position: absolute;visibility:hidden"></i>
                                 <span style="display: block;">@(j)</span>
                             </div>
                         }
-                    }*@
-                    @*else
-                    {*@
-                       @* <div class="solid">
+                    }
+                    else
+                    {
+                        <div class="solid">
                             <span>@letterSequence</span>
                             <i class="fa-solid fa-caret-right fa-xl fa-unselected" style="visibility:hidden" data-status="unused" data-row="row_@(i - 1)"></i>
-                        </div>*@
+                        </div>
 
                         @for (int j = 1; j <= maxCol; j++)
                         {
@@ -92,7 +110,11 @@
                                 }
                             </div>
                         }
-                    @*}*@
+                        <div class="solid">
+                            <span>@letterSequence</span>
+                            <i class="fa-solid fa-caret-right fa-xl fa-unselected" style="visibility:hidden" data-status="unused" data-row="row_@(i - 1)"></i>
+                        </div>
+                    }
                 </div>
             }
         </div>
