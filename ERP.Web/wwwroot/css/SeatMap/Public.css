@@ -29,16 +29,30 @@
 }
 
 /*座位圖各種樣式*/
-.using {
+.IsUsing {
     background-color: #bac8ce;
+    color:black !important;
 }
 
 .IsStuff {
     background-color: #e5e4dd;
     border: 1px solid rgba(0, 0, 0, 0.02);
     font-weight: 900;
-    color: black;
-    font-size: 16px;
+    color: black !important;
+    /*font-size: 16px;*/
+}
+
+.IsRoad {
+    background-color: black; /*#e7e7e7*/
+    border: 1px solid rgba(0, 0, 0, 0.02);
+    font-weight: 900;
+    color: #262626 !important;
+    /*font-size: 16px;*/
+    border: 1px solid #262626 !important;
+    border-top-left-radius: 0px !important;
+    border-top-right-radius: 0px !important;
+    border-bottom-left-radius: 0px !important;
+    border-bottom-right-radius: 0px !important;
 }
 
 .unused {
@@ -46,13 +60,7 @@
     border: 1px solid #f9f9f9;
 }
 
-.road {
-    background-color: #e7e7e7;
-    border: 1px solid rgba(0, 0, 0, 0.02);
-    font-weight: 900;
-    color: black;
-    font-size: 16px;
-}
+
 
 .personal {
     background-color: #efefef;

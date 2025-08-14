@@ -49,7 +49,13 @@ function SeatClick() {
         seat.addEventListener('click', event => {
             // 製作方塊 function
             if ($('#IsStuff').is(':checked')) {
-                handleStuffClick(seat);
+                handleStuffClick(seat,"IsStuff");
+            }
+            if ($('#IsUsing').is(':checked')) {
+                handleStuffClick(seat, "IsUsing");
+            }
+            if ($('#IsRoad').is(':checked')) {
+                handleStuffClick(seat, "IsRoad");
             }
         });
     });
@@ -86,18 +92,26 @@ new Vue({
 })
 
 // 點擊障礙物function //todo
-function handleStuffClick(seat) {
+function handleStuffClick(seat,type) {
  
     // 移除原先的 class
     seat.className = 'seat'
 
-    if (seat.dataset.status === 'IsStuff') {
-        seat.dataset.status = 'unused';
-        seat.classList.add('unused');
-        seat.innerHTML = '';
-    } else {
+    if (type === 'IsStuff') {
         seat.dataset.status = 'IsStuff';
         seat.classList.add('IsStuff');
+        //seat.innerHTML = '';
+    } 
+    if (type === 'IsRoad') {
+        seat.dataset.status = 'IsRoad';
+        seat.classList.add('IsRoad');
+        //seat.innerHTML = '';
     }
+    if (type === 'IsUsing') {
+        seat.dataset.status = 'IsUsing';
+        seat.classList.add('IsUsing');
+        //seat.innerHTML = '';
+    }
+    console.log(seat)
     ClickSeatSaveData(seat);
 }
