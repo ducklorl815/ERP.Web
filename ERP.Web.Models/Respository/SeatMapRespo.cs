@@ -96,6 +96,35 @@ namespace ERP.Web.Models.Respository
                 return false;
             }
         }
+
+        public async Task<List<SeatMapMainModel>> GetSeatMapList()
+        {
+            var sql = @"
+                        SELECT Row
+                              ,Col
+                              ,Sign
+                              ,Border
+                              ,BoxNumber
+                              ,Location
+                              ,Colorcode
+                              ,Status
+                              ,Etc
+                          FROM erp.dbo.SeatMap
+                          WHERE Enabled = 1 
+                          And Deleted = 0
+                        ";
+            using var conn = new SqlConnection(_dBList.erp);
+            try
+            {
+                var result = await conn.QueryAsync<SeatMapMainModel>(sql);
+                return result.ToList();
+            }
+            catch (Exception)
+            {
+                return null;
+            }
+        }
+
         public async Task<bool> GetUpdateSeatMap(SeatMapMainModel param)
         {
             var sqlparam = new DynamicParameters();

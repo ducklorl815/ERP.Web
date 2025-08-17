@@ -6,8 +6,8 @@ function loadSeatStatus() {
     seats.forEach(seat => {
         const status = seat.dataset.status;
         //方塊屬性
-        if (status === 'using') {
-            seat.classList.add('using');
+        if (status === 'IsUsing') {
+            seat.classList.add('IsUsing');
         }
         if (status === 'IsStuff') {
             seat.classList.add('IsStuff');
@@ -15,11 +15,8 @@ function loadSeatStatus() {
         if (status === 'unused') {
             seat.classList.add('unused');
         }
-        if (status === 'road') {
-            seat.classList.add('road');
-        }
-        if (status === 'personal') {
-            seat.classList.add('personal');
+        if (status === 'IsRoad') {
+            seat.classList.add('IsRoad');
         }
 
         const border = seat.dataset.border;

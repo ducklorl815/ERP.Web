@@ -1,5 +1,6 @@
 ﻿using ERP.Web.Models.Models;
 using ERP.Web.Models.Respository;
+using ERP.Web.Service.ViewModels;
 using Newtonsoft.Json;
 
 namespace ERP.Web.Service.Service
@@ -35,6 +36,14 @@ namespace ERP.Web.Service.Service
             SeatMapData.ID = ExistID;
             bool chkSuccess = ExistID == Guid.Empty ? await _seatMapRespo.GetInsertSeatMap(SeatMapData) : await _seatMapRespo.GetUpdateSeatMap(SeatMapData);
             return chkSuccess;
+        }
+
+        public async Task<SeatMapViewModel_result> GetSeatMapList()
+        {
+            var result = new SeatMapViewModel_result();
+
+            result.SeatMap = await _seatMapRespo.GetSeatMapList();
+            return result;
         }
     }
 }

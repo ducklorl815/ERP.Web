@@ -3,17 +3,42 @@
 
 <link href="~/css/seatmap/public.css" rel="stylesheet" />
 <link href="~/css/vueslider.css" rel="stylesheet" />
+<!-- Font Awesome 6 (Free) -->
+<link href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.5.2/css/all.min.css" rel="stylesheet">
 @{
-    var maxRow = 10; // 測試用最大行數
-    var maxCol = 10; // 測試用最大列數
-    var staticSeatMap = new List<dynamic> {
-        new { Row = 1, Col = 1, Colorcode = "#FFD700", Status = "using", BoxNumber = "台北", Location = "台北", TicketID = "T01A5AA00" ,Border ="TopBorder LeftBorder"},
-        new { Row = 2, Col = 2, Colorcode = "#90EE90", Status = "using", BoxNumber = "台北", Location = "台北", TicketID = "T02B50A24",Border ="DownBorder LeftBorder"},
-    };
+    var maxRow = 10;
+    var maxCol = 10;
+    if (Model.SeatMap.Count() > 0)
+    {
+        maxRow = Model.SeatMap.Max(x => int.Parse(x.Row.ToString()));
+        maxCol = Model.SeatMap.Max(x => int.Parse(x.Col.ToString()));
+        maxRow = (maxRow == null || maxRow < 10) ? 10 : maxRow;
+        maxCol = (maxCol == null || maxCol < 10) ? 10 : maxCol;
+    }
+
+    //var staticSeatMap = new List<dynamic> {
+    //    new { Row = 1, Col = 1, Colorcode = "#FFD700", Status = "using", BoxNumber = "台北", Location = "台北", TicketID = "T01A5AA00" ,Border ="TopBorder LeftBorder"},
+    //    new { Row = 2, Col = 2, Colorcode = "#90EE90", Status = "using", BoxNumber = "台北", Location = "台北", TicketID = "T02B50A24",Border ="DownBorder LeftBorder"},
+    //};
 
     var previousEmpNames = new Dictionary<string, int>();
 }
+<style>
+    .seat.IsUsing {
+        position: relative; /* 必須加，讓 ::after 定位 */
+    }
 
+        .seat.IsUsing::after {
+            content: "\f6c0"; /* FontAwesome 的 fa-chair */
+            font-family: "Font Awesome 6 Free";
+            font-weight: 900; /* solid 版本要加這個 */
+            position: absolute;
+            left: 4px; /* 靠右下角 */
+            top: 6px;
+            font-size: 12px; /* 椅子大小 */
+            color: #1e3050; /* 椅子顏色，可以依需要調整 */
+        }
+</style>
 <div id="app" class="row">
     <div class="w-8 d-flex" style="align-items: center;">
         <label class="col-sm-8 col-form-label font-weight-bold text-sm-right p-1">新增障礙物</label>
@@ -44,7 +69,7 @@
     </div>
 </div>
 <div class="ibox">
-    <div class="ibox-content">
+    <div class="ibox-content" style="background-color:black">
         <div class="row justify-content-start">
             <div class="d-flex align-items-center">
                 <div class="col-sm-6 px-0 py-1">
@@ -78,7 +103,7 @@
 
                         @for (int j = 1; j <= maxCol; j++)
                         {
-                            var item = staticSeatMap.FirstOrDefault(x => x.Row == i && x.Col == j);
+                            var item = Model.SeatMap.FirstOrDefault(x => x.Row == i && x.Col == j);
                             <div class="seat" style="background-color:@item?.Colorcode ;color:lightgrey"
                                  data-status="@item?.Status"
                                  data-Border="@item?.Border"
@@ -97,8 +122,25 @@
                                         }
                                         else
                                         {
-                                            <span class="TicketID" style="font-size:8px">@item.TicketID</span>
-                                            <span>@letterSequence@j</span>
+                                            if (item.Status == "IsUsing")
+                                            {
+
+                                                <span class="TicketID" style="position: absolute; bottom: 2px; left: 4px; font-size: 6px; font-weight: bold;">
+                                                    A2508170001
+                                                </span>
+
+
+                                                <span class="SeatSign" style="position: absolute; top: 4px; right: 4px; font-size: 12px;">
+                                                    @letterSequence@j
+                                                </span>
+                                            }
+                                            else
+                                            {
+
+                                                <span class="TicketID" style="font-size:8px">@item.TicketID</span>
+                                                <span>@letterSequence@j</span>
+                                            }
+
                                         }
                                     </div>
                                 }
@@ -123,3 +165,6 @@
 <script src="https://cdn.jsdelivr.net/npm/vue/dist/vue.js"></script>
 <script src="~/js/seatmap/public.js"></script>
 <script src="~/js/seatmap/datamaintain.js"></script>
+<script>
+
+</script>

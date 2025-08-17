@@ -1,4 +1,5 @@
 ﻿using ERP.Web.Service.Service;
+using ERP.Web.Service.ViewModels;
 using Microsoft.AspNetCore.Mvc;
 
 namespace ERP.Web.Controllers
@@ -15,7 +16,8 @@ namespace ERP.Web.Controllers
         }
         public async Task<IActionResult> Index()
         {
-            return View();
+            SeatMapViewModel_result result = await _seatMapService.GetSeatMapList();
+            return View(result);
         }
 
         public async Task<IActionResult> SaveSeatMap(string JosnString)
