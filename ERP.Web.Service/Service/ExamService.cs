@@ -103,8 +103,8 @@ namespace ERP.Web.Service.Service
             result.TestDateList = testDateListTask
                 .Select(x => new SelectListItem
                 {
-                    Text = x.Date.ToString("yyyy-MM-dd"),
-                    Value = x.Date.ToString("yyyy-MM-dd")
+                    Text = x.Item1.ToString("yyyy-MM-dd") + " : " + x.Item2,
+                    Value = x.Item1.ToString("yyyy-MM-dd")
                 }).ToList();
 
             result.ClassNameList = classNameListTask;
@@ -479,8 +479,8 @@ namespace ERP.Web.Service.Service
             result.TestDateList = testDateListTask.Result
                 .Select(x => new SelectListItem
                 {
-                    Text = x.Date.ToString("yyyy-MM-dd"),
-                    Value = x.Date.ToString("yyyy-MM-dd")
+                    Text = x.Item1.ToString("yyyy-MM-dd") + " : " + x.Item2,
+                    Value = x.Item1.ToString("yyyy-MM-dd")
                 }).ToList();
 
             result.ClassNameList = classNameListTask;
@@ -638,8 +638,8 @@ namespace ERP.Web.Service.Service
             var TestDateList = testDateListTask
             .Select(x => new SelectListItem
             {
-                Text = x.Date.ToString("yyyy-MM-dd"),
-                Value = x.Date.ToString("yyyy-MM-dd")
+                Text = x.Item1.ToString("yyyy-MM-dd") + " : " + x.Item2,
+                Value = x.Item1.ToString("yyyy-MM-dd")
             }).ToList();
             if (TestDateList != null)
                 return TestDateList;

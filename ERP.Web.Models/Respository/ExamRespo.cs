@@ -395,17 +395,18 @@ namespace ERP.Web.Models.Respository
 
         }
 
-        public async Task<List<DateTime>> GetTestDateList(string KidID)
+        public async Task<List<(DateTime, string)>> GetTestDateList(string KidID)
         {
             var sqlparam = new DynamicParameters();
             sqlparam.Add("KidMainID", KidID);
 
             var sql = @"
-                      SELECT DISTINCT CONVERT(date, TestDate),TestDate
-                      FROM KidsWorld.dbo.KidTestIndex
+                      SELECT DISTINCT CONVERT(date, TestDate) as TestDate,ls.ClassName
+                      FROM KidsWorld.dbo.KidTestIndex kti
+					  JOIN KidsWorld.dbo.Lession ls ON ls.ID = kti.LessionID 
                       WHERE KidMainID = @KidMainID
-                      AND Enabled = 1
-                      AND Deleted = 0
+                      AND kti.Enabled = 1
+                      AND kti.Deleted = 0
                       Order by TestDate desc
                         "
             ;
@@ -414,7 +415,7 @@ namespace ERP.Web.Models.Respository
 
             try
             {
-                var result = await conn.QueryAsync<DateTime>(sql, sqlparam);
+                var result = await conn.QueryAsync<(DateTime, string)>(sql, sqlparam);
                 return result.ToList();
 
             }
