@@ -6,30 +6,32 @@
 <table class="table table-bordered table-hover">
     <thead class="table-light">
         <tr class="text-center">
-            <th class="col-1">選擇</th>
+            <th class="col-auto">選擇</th>
+            <th class="col-auto">排序</th>
             <th class="col-2">課程</th>
-            <th class="col-4">問題</th>
-            <th class="col-4">答案</th>
-            <th class="col-1">答錯</th>
-            <th class="col-2">時間</th>
-            <th class="col-1"><button class="btn btn-primary btn-sm" onclick="openModal()">修正</button></th>
+            <th class="col-3">問題</th>
+            <th class="col-3">答案</th>
+            <th class="col-auto">答錯</th>
+            <th class="col-auto">時間</th>
+            <th class="col-auto"><button class="btn btn-primary btn-sm" onclick="openModal()">修正</button></th>
         </tr>
     </thead>
     <tbody>
         @foreach (var item in Model.ExamDataList)
         {
-            <tr class="text-center align-middle">
-                <td>
-                    <input type="checkbox" class="form-check-input checkbox-light" name="selectedQuestions[@item.WordID]" value="@item.WordID" />
+            <tr class="text-center align-middle" style="font-size:14px;vertical-align:middle !important">
+                <td style="text-align:center; vertical-align:middle;">
+                    <input type="checkbox" style="vertical-align:middle !important" class="form-check-input checkbox-light" name="selectedQuestions[@item.WordID]" value="@item.WordID" />
                 </td>
-                <td>@item.ClassName</td> 
-                <td><input type="text" class="form-control" value="@item.Question" /></td>
-                <td><input type="text" class="form-control" value="@item.Answer" /></td>
-                <td>
+                <td style="vertical-align:middle !important">@item.RowNum</td>
+                <td style="vertical-align:middle !important">@item.ClassName</td>
+                <td><input style="border:none" type="text" class="form-control" value="@item.Question" /></td>
+                <td><input style="border:none" type="text" class="form-control" value="@item.Answer" /></td>
+                <td style="text-align:center; vertical-align:middle;">
                     <input type="checkbox" class="form-check-input checkbox-light correct-checkbox" @(item.Correct == 1 ? "checked" : "") />
                 </td>
-                <td data-testdate="@item.TestDate">@item.TestDate.ToString("yyyy/MM/dd")</td>
-                <td>
+                <td style="text-align:center; vertical-align:middle;" data-testdate="@item.TestDate">@item.TestDate.ToString("yyyy/MM/dd")</td>
+                <td style="text-align:center; vertical-align:middle;">
                     <button class="btn btn-primary btn-sm" data-wordid="@item.WordID" onclick="CodeMainSave(this)">修正</button>
                 </td>
             </tr>

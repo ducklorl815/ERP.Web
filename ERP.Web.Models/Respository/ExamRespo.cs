@@ -329,15 +329,19 @@ namespace ERP.Web.Models.Respository
             var sqlparam = new DynamicParameters();
 
             var sql = $@"
-                    SELECT 
-	                       les.ClassName
-	                      ,les.TestType
-	                      ,w.ID as WordID
-	                      ,w.Question
-	                      ,w.Answer
-	                      ,km.Cname
-                          ,Correct
-	                      ,(CONVERT(DATE,kti.TestDate)) as TestDate
+                      SELECT 
+                            ROW_NUMBER() OVER(
+                            PARTITION BY CONVERT(DATE, kti.TestDate) 
+                            ORDER BY w.ID
+                            ) AS RowNum
+                            ,les.ClassName
+                            ,les.TestType
+                            ,w.ID as WordID
+                            ,w.Question
+                            ,w.Answer
+                            ,km.Cname
+                            ,Correct
+                            ,(CONVERT(DATE,kti.TestDate)) as TestDate
                       FROM KidsWorld.dbo.KidExamWordIndex wl
                       JOIN KidsWorld.dbo.Vocabulary w ON w.ID = wl.ExamID
 					  JOIN KidsWorld.dbo.Lession les ON les.ID = w.LessionID
@@ -373,7 +377,7 @@ namespace ERP.Web.Models.Respository
             }
             #endregion
 
-            sql += " ORDER BY (CONVERT(DATE,kti.TestDate)) desc ";
+            sql += " ORDER BY RowNum ";
 
             //分頁功能
             sqlparam.Add("Offset", pager.ItemStart - 1);

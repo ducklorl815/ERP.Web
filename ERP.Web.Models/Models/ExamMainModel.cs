@@ -38,6 +38,7 @@
     }
     public class ExamMainModel
     {
+        public int RowNum { get; set; }
         public Guid WordID { get; set; }
         public string ClassName { get; set; }
         /// <summary>考卷類別 ex:English,Math</summary>
