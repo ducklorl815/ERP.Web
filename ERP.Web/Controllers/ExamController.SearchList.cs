@@ -7,8 +7,6 @@ namespace ERP.Web.Controllers
     {
         public async Task<IActionResult> ReTest(ExamSearchListViewModel_param param)
         {
-            //if (!Request.IsAjaxRequest())
-            //    param.CorrectType = "1";
             ExamSearchListViewModel_result result = await _examService.GetReTestAsync(param);
             if (Request.IsAjaxRequest())
                 return PartialView("_ReTest", result);

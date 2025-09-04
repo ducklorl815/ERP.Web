@@ -52,6 +52,8 @@ namespace ERP.Web.Service.Service
             };
             if (param.TestDate != null)
                 ExamKeyword.TestDate = DateTime.Parse(param.TestDate);
+            else
+                ExamKeyword.CorrectType = "1";
 
             var datacount = await _examRepo.GetReTestCountAsync(ExamKeyword);
             var pager = new Paging(param.Page, param.PageSize, datacount);

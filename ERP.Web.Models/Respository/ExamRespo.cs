@@ -376,8 +376,7 @@ namespace ERP.Web.Models.Respository
                 sql += $" AND CONVERT(DATE, kti.TestDate) = @TestDate";
             }
             #endregion
-
-            sql += " ORDER BY RowNum ";
+            sql += " ORDER BY TestDate desc,RowNum ";
 
             //分頁功能
             sqlparam.Add("Offset", pager.ItemStart - 1);
