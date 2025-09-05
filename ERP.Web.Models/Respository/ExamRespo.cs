@@ -493,11 +493,15 @@ namespace ERP.Web.Models.Respository
             }
         }
 
-        public async Task<bool> InsertExamIndex(Guid ExamID, Guid KidTestIndexID)
+        public async Task<bool> InsertExamIndex(ExamRcdModel param)
         {
             var sqlparam = new DynamicParameters();
-            sqlparam.Add("ExamID", ExamID);
-            sqlparam.Add("KidTestIndexID", KidTestIndexID);
+            sqlparam.Add("ExamID", param.WordID);
+            sqlparam.Add("KidTestIndexID", param.NewKidTestID);
+            var Correct = param.Correct != null ? param.Correct : 0;
+            sqlparam.Add("Correct", Correct);
+            var ReTest = param.ReTest != null ? param.ReTest + 1 : 0;
+            sqlparam.Add("ReTest", ReTest);
 
             var sql = @"
                     INSERT INTO KidsWorld.dbo.KidExamWordIndex
@@ -505,6 +509,8 @@ namespace ERP.Web.Models.Respository
 		                       ID
                                ,ExamID
                                ,KidTestIndexID
+                               ,Correct
+                               ,ReTest
                                ,CreateDate
                                ,ModifyDate
                                ,Enabled
@@ -515,9 +521,11 @@ namespace ERP.Web.Models.Respository
 		                       NEWID()
                                ,@ExamID
                                ,@KidTestIndexID
+                               ,@Correct
+                               ,@ReTest
                                ,GETDATE()
                                ,GETDATE()
-                               ,15
+                               ,1
                                ,0
 		                       )
                         "
@@ -999,6 +1007,35 @@ namespace ERP.Web.Models.Respository
             catch
             {
                 return Guid.Empty;
+            }
+        }
+
+        public async Task<ExamRcdModel> GetExamRcd(Guid WordID)
+        {
+            var sqlparam = new DynamicParameters();
+            sqlparam.Add("ExamID", WordID);
+            var sql = @"
+                        SELECT
+	                           Correct
+                              ,ReTest
+                          FROM KidsWorld.dbo.KidExamWordIndex
+                          WHERE ExamID = @ExamID
+                          AND Enabled = 1
+                          AND Deleted = 0
+                        "
+            ;
+
+            using var conn = new SqlConnection(_dBList.erp);
+
+            try
+            {
+                var result = await conn.QueryFirstOrDefaultAsync<ExamRcdModel>(sql, sqlparam);
+                return result;
+
+            }
+            catch
+            {
+                return null;
             }
         }
     }

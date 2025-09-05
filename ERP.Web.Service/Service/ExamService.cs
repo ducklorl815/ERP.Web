@@ -163,7 +163,11 @@ namespace ERP.Web.Service.Service
 
             foreach (var word in result.VocabularyList)
             {
-                await _examRepo.InsertExamIndex(word.WordID, NewKidTestID);
+
+                ExamRcdModel ExamRcdData = await _examRepo.GetExamRcd(word.WordID);
+                ExamRcdData.WordID = word.WordID;
+                ExamRcdData.NewKidTestID = NewKidTestID;
+                await _examRepo.InsertExamIndex(ExamRcdData);
             }
 
             return result;
@@ -202,7 +206,10 @@ namespace ERP.Web.Service.Service
 
             foreach (var word in result.VocabularyList)
             {
-                await _examRepo.InsertExamIndex(word.WordID, NewKidTestID);
+                ExamRcdModel ExamRcdData = await _examRepo.GetExamRcd(word.WordID);
+                ExamRcdData.WordID = word.WordID;
+                ExamRcdData.NewKidTestID = NewKidTestID;
+                await _examRepo.InsertExamIndex(ExamRcdData);
             }
 
             return result;
@@ -627,7 +634,10 @@ namespace ERP.Web.Service.Service
 
             foreach (var word in result.VocabularyList)
             {
-                await _examRepo.InsertExamIndex(word.WordID, NewKidTestID);
+                ExamRcdModel ExamRcdData = await _examRepo.GetExamRcd(word.WordID);
+                ExamRcdData.WordID = word.WordID;
+                ExamRcdData.NewKidTestID = NewKidTestID;
+                await _examRepo.InsertExamIndex(ExamRcdData);
             }
             result.Title = ClassName;
             return result;

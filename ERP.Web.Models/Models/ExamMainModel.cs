@@ -54,7 +54,15 @@
         public int Focus { get; set; }
         public DateTime TestDate { get; set; }
     }
-
+    public class ExamRcdModel
+    {
+        public Guid WordID { get; set; }
+        public Guid NewKidTestID { get; set; }
+        /// <summary>考試 對錯</summary>
+        public int Correct { get; set; }
+        /// <summary>重考 次數</summary>
+        public int ReTest { get; set; }
+    }
     public class LessionModel
     {
         public string ClassName { get; set; }
