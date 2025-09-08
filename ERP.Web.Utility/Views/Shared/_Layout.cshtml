@@ -1,4 +1,8 @@
-﻿<!DOCTYPE html>
+﻿@{
+    var LeftSidebar = await Component.InvokeAsync("Navigation");
+    //var Breadcrumb = await Component.InvokeAsync("Breadcrumb");
+}
+<!DOCTYPE html>
 <html lang="zh-hant-TW">
 <head>
     <meta charset="utf-8" />
@@ -92,6 +96,7 @@
 <body>
     <div id="wrapper">
         <!-- Top Navbar -->
+        @LeftSidebar
         @Html.Partial("_LeftSidebar")
 
         <div id="page-wrapper" class="gray-bg dashbard-1">

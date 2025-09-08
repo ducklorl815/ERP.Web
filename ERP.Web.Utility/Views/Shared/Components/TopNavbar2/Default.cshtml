@@ -1,0 +1,64 @@
+﻿@model LifeTech.ERP.Utility.ViewModels.TopNavbar2ViewModel
+
+<div class="row navbar navbar-expand-md navbar-dark white-bg" role="navigation" style="padding:0;align-items:initial;">
+    <a class="navbar-brand" href="@(_sharedDomain.Value.ERP+"Account/Login")">LifeTour ERP</a>
+    <button style="color:white;" class="navbar-toggler" type="button" data-toggle="collapse" data-target="#navbarCollapse" aria-controls="navbarCollapse" aria-expanded="false" aria-label="Toggle navigation">
+        <i class="fa fa-reorder"></i>
+    </button>
+    <div class="collapse navbar-collapse" id="navbarCollapse">
+        <ul class="nav navbar-nav mr-auto">
+            @{
+                var index = 0;
+                if (Model.List != null)
+                    {
+                    @foreach (var item in Model.List.Where(w => w.LEVELNUM == "1"))
+                    {
+                        var hasSubItem = Model.List.Any(a => a.LEVELNUMBELONG == item.CODE);
+
+                        <li class="nav-item @(hasSubItem?"dropdown":string.Empty)">
+                            <a id="dropdown@(index)" class="nav-link @(hasSubItem?"dropdown-toggle":string.Empty)" @(!hasSubItem ? "target=" + (item.TARGET != null ? item.TARGET : "_self") + " href=" + item.LINK + "" : string.Empty) @(hasSubItem ? "data-toggle=dropdown aria-haspopup=true aria-expanded=false" : string.Empty)>@item.NAME</a>
+                            @if (hasSubItem)
+                            {
+                                <ul class="dropdown-menu" aria-labelledby="dropdown@(index)">
+                                    @{
+                                        var index2 = 0;
+                                    }
+                                    @foreach (var item2 in Model.List.Where(w => w.LEVELNUMBELONG == item.CODE))
+                                    {
+                                        var hasSubItem2 = Model.List.Any(a => a.LEVELNUMBELONG == item2.CODE);
+                                        <li class="dropdown-item @(hasSubItem2?"dropdown":string.Empty)">
+
+                                            <a id="dropdown@(index)-@(index2)" class="@(hasSubItem2?"dropdown-toggle":string.Empty)" @(!hasSubItem2 ? "target=" + (item2.TARGET != null ? item2.TARGET : "_self") + " href=" + item2.LINK + "" : string.Empty) @(hasSubItem2 ? "data-toggle=dropdown aria-haspopup=true aria-expanded=false" : string.Empty)>@item2.NAME</a>
+                                            @if (hasSubItem2)
+                                            {
+                                                <ul class="dropdown-menu" aria-labelledby="dropdown@(index)-@(index2)">
+                                                    @foreach (var item3 in Model.List.Where(w => w.LEVELNUMBELONG == item2.CODE))
+                                                    {
+                                                        <li class="dropdown-item">
+                                                            <a href="@item3.LINK" target="@(item3.TARGET!=null?item3.TARGET:"_self")">@item3.NAME</a>
+                                                        </li>
+                                                    }
+                                                </ul>
+                                            }
+                                        </li>
+                                        index2++;
+                                    }
+                                </ul>
+                            }
+                        </li>
+                        index++;
+                    }
+                }
+            }
+
+
+        </ul>
+        <ul class="nav navbar-top-links navbar-right">
+            <li>
+                <a target="_blank" href="https://www.lifetour.com.tw/">
+                    <i class="fa fa-plane"></i> LifeTour
+                </a>
+            </li>
+        </ul>
+    </div>
+</div>

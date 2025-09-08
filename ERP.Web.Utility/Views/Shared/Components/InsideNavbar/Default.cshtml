@@ -1,0 +1,88 @@
+﻿@model LifeTech.ERP.Utility.ViewModels.InsideNavbarViewModel
+
+<div class="collapse navbar-collapse navbar-dark" id="navbarCollapse">
+    <ul class="nav navbar-nav mr-auto rwdsize">
+        @{
+            var index = 0;
+        }
+        @foreach (var item in Model.List.Where(w => w.LEVELNUM == "1"))
+        {
+            var hasSubItem = Model.List.Any(a => a.LEVELNUMBELONG == item.CODE);
+
+            <li class="nav-item @(hasSubItem?"dropdown":string.Empty)">
+                <a id="dropdown@(index)" class="nav-link @(hasSubItem?"dropdown-toggle":string.Empty)" @(!hasSubItem ? "target=" + (item.TARGET != null ? item.TARGET : "_self") + " href=" + item.LINK + "" : string.Empty) @(hasSubItem ? "data-toggle=dropdown aria-haspopup=true aria-expanded=false" : string.Empty)>@item.NAME</a>
+                @if (hasSubItem)
+                {
+                    <ul class="dropdown-menu" aria-labelledby="dropdown@(index)">
+                        @{
+                            var index2 = 0;
+                        }
+                        @foreach (var item2 in Model.List.Where(w => w.LEVELNUMBELONG == item.CODE))
+                        {
+                            var hasSubItem2 = Model.List.Any(a => a.LEVELNUMBELONG == item2.CODE);
+                            <li class="dropdown-item @(hasSubItem2?"dropdown":string.Empty)">
+
+                                <a id="dropdown@(index)-@(index2)" class="@(hasSubItem2?"dropdown-toggle":string.Empty)" @(!hasSubItem2 ? "target=" + (item2.TARGET != null ? item2.TARGET : "_self") + " href=" + item2.LINK + "" : string.Empty) @(hasSubItem2 ? "data-toggle=dropdown aria-haspopup=true aria-expanded=false" : string.Empty)>@item2.NAME</a>
+                                @if (hasSubItem2)
+                                {
+                                    <ul class="dropdown-menu" aria-labelledby="dropdown@(index)-@(index2)">
+                                        @foreach (var item3 in Model.List.Where(w => w.LEVELNUMBELONG == item2.CODE))
+                                        {
+                                            <li class="dropdown-item">
+                                                <a href="@item3.LINK" target="@(item3.TARGET!=null?item3.TARGET:"_self")">@item3.NAME</a>
+                                            </li>
+                                        }
+                                    </ul>
+                                }
+                            </li>
+                            index2++;
+                        }
+                    </ul>
+                }
+            </li>
+            index++;
+        }
+        @{
+            string ContextKiwiCode = Context.Items["KiwiCode"] as string;
+            @if (!string.IsNullOrEmpty(ContextKiwiCode))
+            {
+                string intraneturl = "https://intranet.lifetour.com.tw/ERPtoGO.aspx?cid=" + ContextKiwiCode;
+                <li class="nav-item">
+                    <a class="nav-link" href="@intraneturl" target="_blank">
+                       舊五福後台
+                    </a>
+                </li>
+            }
+        }
+    </ul>
+
+    <ul class="nav navbar-top-links navbar-right">
+        @{
+            var isPersistent = Context.Items["IsPersistent"] as string;
+            if (isPersistent == "True")
+            {
+                <li>
+                    <a>
+                        <i id="autoLoginCheckbox" class="fa fa-check-square-o"> 自動登入</i>
+                    </a>
+
+                </li>
+            }
+        }
+        <li>
+            <a href="@(_sharedDomain.Value.ERP+"Attendance/PunchIn")">
+                <i class="fa fa fa-clock-o"></i>打卡
+            </a>
+        </li>
+        <li>
+            <a href="@(_sharedDomain.Value.ERP+"Account/PersonalInfo")">
+                <i class="fa fa-info-circle"></i>個人資訊
+            </a>
+        </li>
+        <li>
+            <a href="@(_sharedDomain.Value.ERP+"Account/"+(User.Identity.IsAuthenticated?"Logout":"Login"))">
+                <i class="fa fa-sign-out"></i> @(User.Identity.IsAuthenticated ? "登出" : "登入")
+            </a>
+        </li>
+    </ul>
+</div>
