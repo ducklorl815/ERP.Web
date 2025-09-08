@@ -117,6 +117,7 @@ namespace ERP.Web.Service.Service
         public async Task<ExamDataViewModel_result> GetReExamDataAsync(ReExamSearchListViewModel_param param)
         {
 
+            param.selectedWordIDs = param.selectedWordIDs.Distinct().ToList();
             var result = new ExamDataViewModel_result
             {
                 scoreTable = new ScoreTable(),
