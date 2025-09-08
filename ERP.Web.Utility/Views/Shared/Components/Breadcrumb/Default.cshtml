@@ -1,0 +1,39 @@
+﻿@model LifeTech.ERP.Utility.ViewModels.BreadcrumbViewComponentViewModel
+<div class="ibox-content">
+    <div class="col-lg-10">
+        <h2>@Model.Title</h2>
+        @if (Model.List.Count > 1)
+        {
+            <ol class="breadcrumb">
+                @foreach (var item in Model.List)
+                {
+                    <li class="breadcrumb-item @(item.IsCurrent?"active":"")">
+
+                        @if (item.IsCurrent)
+                        {
+                            <strong>@item.Name</strong>
+                        }
+                        else
+                        {
+                            if (string.IsNullOrEmpty(item.ControllerName) || string.IsNullOrEmpty(item.ActName))
+                            {
+                                <a>@item.Name</a>
+                            }
+                            else
+                            {
+                                if (item.BreadcrumbType == "2")
+                                {
+                                    <a onclick="window.history.back();">@item.Name</a>
+                                }
+                                else
+                                {
+                                    <a target="@(item.BreadcrumbType== "1"?"_self":"_blank")" asp-controller="@item.ControllerName" asp-action="@item.ActName">@item.Name</a>
+                                }
+                            }
+                        }
+                    </li>
+                }
+            </ol>
+        }
+    </div>
+</div>

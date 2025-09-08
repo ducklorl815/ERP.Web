@@ -1,0 +1,16 @@
+﻿@model LifeTech.ERP.Utility.ViewModels.HelpViewModel
+<div class="d-flex help-components-wrapper">
+    <input id="@(Model.InputName)Code" name="@(Model.InputName)Code" data-inputname="@Model.InputName" data-action="@Model.Name" type="text" class="form-control form-control-sm help-components-input" value="@Model.Code" style="width:@(Model.Width)px;" @(Model.Disabled ? "disabled" : "")
+           @(Model.SelectModeHelp == LifeTech.ERP.Utility.Enums.SelectModeEnum.checkbox ? "readonly":"") data-selectMode="@Model.SelectModeName" />
+    @*<input id="Help@(Model.Name)Code" name="Help@(Model.Name)Code" data-action="@Model.Name" type="text" class="form-control form-control-sm help-components-input" value="@Model.Code" style="width:@(Model.Width)px;" />*@
+    <a id="HelpIconButton" class="@(Model.Disabled ? "" : "help-components-link")"  data-inputname="@Model.InputName" data-action="@Model.Name" data-modaltitle="選擇@(Model.CName)" data-hidesearch="@Model.HideSerach" data-querystring="@Model.QueryString" data-selectMode="@Model.SelectModeName" href="javascript:void(0)">
+        <i class="fa fa-question @(Model.Disabled ? "icon-disable" : "")"></i>
+    </a>
+    <input id="@Model.InputName" name="@Model.InputName" value="@Model.ID" type="hidden" />
+    @*<input id="Help@(Model.Name)Val" name="Help@(Model.Name)Val" value="@Model.ID" type="hidden" />*@
+    &nbsp;
+    <span id="@(Model.InputName)Text" class="help-components-text col-form-label">@Model.Text</span>
+    @*<span id="Help@(Model.Name)Text" class="help-components-text col-form-label">@Model.Text</span>*@
+</div>
+
+

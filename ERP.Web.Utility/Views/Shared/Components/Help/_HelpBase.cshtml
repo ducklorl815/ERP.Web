@@ -1,0 +1,97 @@
+﻿<div class="modal inmodal fade" id="HelpModal1" tabindex="-1" role="dialog" aria-hidden="true">
+    <div class="modal-dialog" style="max-width: 80%;height:94%;">
+        <div class="modal-content" style="height: 100%;">
+            <div class="modal-header" style="padding:6px;text-align:left;">
+                <button type="button" class="close" data-dismiss="modal"><span aria-hidden="true">×</span><span class="sr-only">Close</span></button>
+                <h6 style="display:none;" class="modal-title"></h6>
+            </div>
+            <div class="modal-body" style="padding:0px;">
+                <iframe id="HelpIframe" src="" frameborder="0" style="position:relative;top:0px;left:0px;bottom:0px;right:0px;width:100%;height: 100%;padding:0px 1px 0px 1px;">
+                </iframe>
+            </div>
+            <div class="modal-footer" style="padding:6px;">
+                <button type="button" class="btn btn-white" data-dismiss="modal"><i style="width:12px;" class="fa fa-times"></i> 取消</button>
+            </div>
+        </div>
+    </div>
+</div>
+<script>
+    window.onmessage = function (e) {
+        var payload = JSON.parse(e.data);
+        switch (payload.Method) {
+            //選擇項目後設定值至元素
+            case "Set":
+
+                if (payload.SelectMode == "checkbox") {
+
+                    const val = payload.Data.map((item) => item.Val).join(",");
+                    const code = payload.Data.map((item) => item.Code).join(",");
+                    const text = payload.Data.map((item) => item.Text).join(",");
+
+                    $("input[name=" + payload.HelpInputName + "Code]").val(code);
+                    $("input[name=" + payload.HelpInputName + "]").val(val);
+                    $("#" + payload.HelpInputName + "Text").text(text);
+
+                }
+                else {
+                    $("input[name=" + payload.HelpInputName + "Code]").val(payload.Code);
+                    $("input[name=" + payload.HelpInputName + "]").val(payload.Val);
+                    $("#" + payload.HelpInputName + "Text").text(payload.Text);
+                }
+
+
+                $("#HelpModal1").modal("hide");
+                break;
+            //根據內容動態調整高度
+            //case "IframeResize":
+            //    $("#HelpModal1 .modal-body").css("height", payload.Val);
+            //    break;
+        }
+    };
+    window.onload = function () {
+        $(".help-components-link").click(function () {
+            var domain = "@_sharedDomain.Value.ERP";
+            var controller = "Help";
+            var action = $(this).data("action");
+            var title = $(this).data("modaltitle");
+            var inputName = $(this).data("inputname");
+            var hideSearch = $(this).data("hidesearch").toLowerCase();
+            var selectMode = $(this).data("selectmode").toLowerCase();
+            var queryString = $(this).data("querystring");
+            queryString = queryString ? "&" + queryString : "";
+            var url = domain + controller + "/" + action + `?mode=modal&inputName=${inputName}&hideSearch=${hideSearch}&selectMode=${selectMode}${queryString}`;
+            $("#HelpModal1 .modal-title").text(title);
+            $("#HelpModal1 .modal-body iframe").attr("src", url);
+            $("#HelpModal1").modal("show");
+        });
+
+        $(".help-components-input").focusout(function () {
+
+            if ($(this).data("selectmode") == "checkbox")
+                return;
+
+            var action = $(this).data("action");
+            var inputName = $(this).data("inputname");
+            var code = $("input[name=" + inputName + "Code]").val();
+            var $closest = $(this).closest(".help-components-wrapper");
+            $.ajax({
+                url: "@_sharedDomain.Value.ERP" + "help/" + action + "valid",
+                method: "post",
+                xhrFields: { withCredentials: true },
+                data: { code: code }
+            }).done(function (data) {
+                if (!data.isExist) {
+                    $closest.find("input").val("");
+                    $closest.find(".help-components-text").text("");
+                } else {
+                    $closest.find("input[name=" + inputName + "Code]").val(data.code);
+                    $closest.find("input[name=" + inputName + "]").val(data.id);
+                    $closest.find("#" + inputName + "Text").text(data.text);
+                }
+            }).fail(function () {
+                $closest.find("input").val("");
+                $closest.find(".help-components-text").text("");
+            });
+        });
+    };
+</script>
