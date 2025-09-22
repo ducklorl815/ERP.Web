@@ -1,0 +1,61 @@
+﻿@model ERP.Web.Service.ViewModels.ControllerSetting.ControllerSettingActionListViewModel_result
+@if (Model.ActionList != null && Model.ActionList.Any())
+{
+    <table class="footable table table-stripped toggle-arrow-tiny">
+        <thead>
+            <tr>
+                <th data-sort-ignore="true">序號</th>
+                <th data-sort-ignore="true">控制器</th>
+                <th data-sort-ignore="true">活動</th>
+                <th data-sort-ignore="true">使用</th>
+                <th data-hide="phone,tablet" data-sort-ignore="true">功能說明</th>
+                <th data-sort-ignore="true">事件名稱</th>
+                <th data-hide="phone,tablet" data-sort-ignore="true">事件記錄</th>
+                <th data-hide="phone,tablet" data-sort-ignore="true">備註</th>
+                <th data-hide="phone,tablet" data-sort-ignore="true">作廢</th>
+                <th data-sort-ignore="true" class="text-center" style="width:50px;">功能</th>
+            </tr>
+        </thead>
+        <tbody>
+            @foreach (var item in Model.ActionList)
+            {
+                <tr>
+                    <td>
+                        @item.Controller
+                    </td>
+                    <td>
+                        <a target="_blank" asp-action="ActDetail" asp-route-id="@item.ID">@item.ActionName</a>
+                        
+                    </td>
+                    <td>
+                        @item.HttpMethod
+                    </td>
+                    <td>
+                        @item.ActionDesc
+                    </td>
+                    <td>
+                        @item.
+                    </td>
+@*                     <td>
+                        @item.WorkingRemarks
+                    </td>
+                    <td>
+                        @item.Note
+                    </td>
+                    <td>
+                        @item.Abandon
+                    </td> *@
+                    <td class="text-center">
+                        <i data-id="@item.ID" class="fa fa-trash-o delBtn" title="刪除" style="cursor:pointer;"></i>
+                    </td>
+                </tr>
+            }
+        </tbody>
+    </table>
+}
+else
+{
+    <div class="text-center">
+        <h3>查無資料</h3>
+    </div>
+}

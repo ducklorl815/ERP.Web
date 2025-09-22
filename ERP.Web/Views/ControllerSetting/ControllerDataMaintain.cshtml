@@ -1,0 +1,129 @@
+﻿@model ERP.Web.Service.ViewModels.ControllerSetting.ControllerSettingDataMaintainViewModel_result
+
+<div class="wrapper wrapper-content animated fadeIn">
+    <div class="row">
+        <div class="col-lg-12">
+            <div class="ibox">
+                <div class="ibox-content">
+                    <form id="ControllerDataMaintainForm" method="post" onkeydown="return event.keyCode != 13;" action="/ControllerSetting/ControllerDataMaintain" novalidate="novalidate">
+                        <div class="row">
+                            <div class="col-sm-12 col-form-label font-weight-bold text-right">
+                                維護人日：
+                                <span>廖家毅 資訊部-系統開發課</span>
+                            </div>
+                        </div>
+                        <div class="row">
+                            <label for="StationMainID" class="col-sm-2 col-form-label font-weight-bold text-sm-right">站台<span class="text-danger">*</span></label>
+                            <div class="col-sm-10">
+                                <select class="form-control form-control-sm select2-hidden-accessible" style="width:100%" id="StationMainID" name="StationMainID" tabindex="-1" aria-hidden="true">
+                                    <option value=""></option>
+                                    <option value="14efb7e1-b978-4c68-9b17-72acddc26fed">ERP 企業資源規劃系統 ufashwolf.lifetour.dev</option>
+
+                                </select><span class="select2 select2-container select2-container--default" dir="ltr" style="width: 100%;"><span class="selection"><span class="select2-selection select2-selection--single" role="combobox" aria-haspopup="true" aria-expanded="false" tabindex="0" aria-labelledby="select2-StationMainID-container"><span class="select2-selection__rendered" id="select2-StationMainID-container"><span class="select2-selection__placeholder"></span></span><span class="select2-selection__arrow" role="presentation"><b role="presentation"></b></span></span></span><span class="dropdown-wrapper" aria-hidden="true"></span></span>
+                            </div>
+                        </div>
+                        <div class="row">
+                            <label for="Name" class="col-sm-2 col-form-label font-weight-bold text-sm-right">顯示名稱<span class="text-danger">*</span></label>
+                            <div class="col-sm-10">
+                                <input class="form-control form-control-sm" type="text" id="DisplayName" name="DisplayName" value="">
+                            </div>
+                        </div>
+                        <div class="row">
+                            <label for="ControllerName" class="col-sm-2 col-form-label font-weight-bold text-sm-right">控制器名稱</label>
+                            <div class="col-sm-10">
+                                <input class="form-control form-control-sm" type="text" id="Controller" name="Controller" value="">
+                            </div>
+                        </div>
+                        <div class="row">
+                            <label for="ActName" class="col-sm-2 col-form-label font-weight-bold text-sm-right">活動名稱</label>
+                            <div class="col-sm-10">
+                                <input class="form-control form-control-sm" type="text" id="ActionName" name="ActionName" value="">
+                            </div>
+                        </div>
+                        <div class="row">
+                            <label for="HttpMethod" class="col-sm-2 col-form-label font-weight-bold text-sm-right">使用方法</label>
+                            <div class="col-sm-10">
+                                <select class="form-control form-control-sm select2-hidden-accessible" style="width:100%" id="HttpMethod" name="HttpMethod" tabindex="-1" aria-hidden="true">
+                                    <option value=""></option>
+                                    <option value="Get">Get</option>
+                                    <option value="Post">Post</option>
+                                </select><span class="select2 select2-container select2-container--default" dir="ltr" style="width: 100%;"><span class="selection"><span class="select2-selection select2-selection--single" role="combobox" aria-haspopup="true" aria-expanded="false" tabindex="0" aria-labelledby="select2-HttpMethod-container"><span class="select2-selection__rendered" id="select2-HttpMethod-container"><span class="select2-selection__placeholder"></span></span><span class="select2-selection__arrow" role="presentation"><b role="presentation"></b></span></span></span><span class="dropdown-wrapper" aria-hidden="true"></span></span>
+                            </div>
+                        </div>
+                        <div class="row">
+                            <label for="ControllerMainID" class="col-sm-2 col-form-label font-weight-bold text-sm-right">父層級<span class="text-danger">*</span></label>
+                            <div class="col-sm-10">
+                                <select class="form-control form-control-sm select2-hidden-accessible" style="width:100%" id="ParentControllerMainID" name="ParentControllerMainID" tabindex="-1" aria-hidden="true">
+                                    <option value=""></option>
+                                    <option value="00000000-0000-0000-0000-000000000000">第一層(Level1)</option>
+                                    <option value="99606743-e11f-4017-a931-bd63391f8172">Discount SearchList Get 折價券資料</option>
+                                </select><span class="select2 select2-container select2-container--default" dir="ltr" style="width: 100%;"><span class="selection"><span class="select2-selection select2-selection--single" role="combobox" aria-haspopup="true" aria-expanded="false" tabindex="0" aria-labelledby="select2-ControllerMainID-container"><span class="select2-selection__rendered" id="select2-ControllerMainID-container"><span class="select2-selection__placeholder"></span></span><span class="select2-selection__arrow" role="presentation"><b role="presentation"></b></span></span></span><span class="dropdown-wrapper" aria-hidden="true"></span></span>
+                            </div>
+                        </div>
+                        <div class="row">
+                            <label for="PageNumber" class="col-sm-2 col-form-label font-weight-bold text-sm-right">選單頁<span class="text-danger">*</span></label>
+                            <div class="col-sm-10">
+                                <select class="form-control form-control-sm select2-hidden-accessible" style="width:100%" id="PageNumber" name="PageNumber" tabindex="-1" aria-hidden="true">
+                                    <option value=""></option>
+                                    <option value="1">1</option>
+                                    <option value="2">2</option>
+                                    <option value="3">3</option>
+                                </select><span class="select2 select2-container select2-container--default" dir="ltr" style="width: 100%;"><span class="selection"><span class="select2-selection select2-selection--single" role="combobox" aria-haspopup="true" aria-expanded="false" tabindex="0" aria-labelledby="select2-PageNumber-container"><span class="select2-selection__rendered" id="select2-PageNumber-container"><span class="select2-selection__placeholder"></span></span><span class="select2-selection__arrow" role="presentation"><b role="presentation"></b></span></span></span><span class="dropdown-wrapper" aria-hidden="true"></span></span>
+                            </div>
+                        </div>
+                        <div class="row">
+                            <label for="IconClass" class="col-sm-2 col-form-label font-weight-bold text-sm-right">文字前面的Icon Class</label>
+                            <div class="col-sm-10">
+                                <input class="form-control form-control-sm" type="text" id="IconClass" name="IconClass" value="">
+                            </div>
+                        </div>
+                        <div class="row">
+                            <label for="FrontNumber" class="col-sm-2 col-form-label font-weight-bold text-sm-right">文字前面的編碼</label>
+                            <div class="col-sm-10">
+                                <input class="form-control form-control-sm"  type="text" id="FrontNumber" name="FrontNumber" value="">
+                            </div>
+                        </div>
+                        <div class="row">
+                            <label for="Sort" class="col-sm-2 col-form-label font-weight-bold text-sm-right">排序<span class="text-danger">*</span></label>
+                            <div class="col-sm-10">
+                                <input type="number" min="0" class="form-control form-control-sm"  id="Sort" name="Sort" value="">
+                            </div>
+                        </div>
+                        <div class="row">
+                            <label for="IsMenu" class="col-sm-2 col-form-label font-weight-bold text-sm-right">是否顯示在Menu<span class="text-danger">*</span></label>
+                            <div class="col-sm-10">
+                                <select class="form-control form-control-sm select2-hidden-accessible" style="width:100%" id="IsMenu" name="IsMenu" tabindex="-1" aria-hidden="true">
+                                    <option value=""></option>
+                                    <option value="true">是</option>
+                                    <option value="false">否</option>
+                                </select><span class="select2 select2-container select2-container--default" dir="ltr" style="width: 100%;"><span class="selection"><span class="select2-selection select2-selection--single" role="combobox" aria-haspopup="true" aria-expanded="false" tabindex="0" aria-labelledby="select2-IsMenu-container"><span class="select2-selection__rendered" id="select2-IsMenu-container"><span class="select2-selection__placeholder"></span></span><span class="select2-selection__arrow" role="presentation"><b role="presentation"></b></span></span></span><span class="dropdown-wrapper" aria-hidden="true"></span></span>
+                            </div>
+                        </div>
+                        <div class="row">
+                            <label for="BreadcrumbType" class="col-sm-2 col-form-label font-weight-bold text-sm-right">麵包屑功能方式Menu<span class="text-danger">*</span></label>
+                            <div class="col-sm-10">
+                                <select class="form-control form-control-sm select2-hidden-accessible" style="width:100%" id="isBlank" name="isBlank" tabindex="-1" aria-hidden="true">
+                                    <option value="1" selected="">導頁</option>
+                                    <option value="2">另開</option>
+                                </select><span class="select2 select2-container select2-container--default" dir="ltr" style="width: 100%;"><span class="selection"><span class="select2-selection select2-selection--single" role="combobox" aria-haspopup="true" aria-expanded="false" tabindex="0" aria-labelledby="select2-BreadcrumbType-container"><span class="select2-selection__rendered" id="select2-BreadcrumbType-container" title="導頁(def)"><span class="select2-selection__arrow" role="presentation"><b role="presentation"></b></span></span></span><span class="dropdown-wrapper" aria-hidden="true"></span></span>
+                            </div>
+                        </div>
+                        <div class="row">
+                            <label for="ControllerDesc" class="col-sm-2 col-form-label font-weight-bold text-sm-right">敘述<span class="text-danger">*</span></label>
+                            <div class="col-sm-10">
+                                <input type="text" class="form-control form-control-sm" id="ControllerDesc" name="ControllerDesc" value="">
+                            </div>
+                        </div>
+                        <div class=" row text-right" style="margin-top:10px;">
+                            <div class="col">
+                                <button id="SaveBtn" class="btn btn-success btn-sm" type="submit"><i style="width:12px;" class="fa fa-save"></i> 存檔</button>
+                                <button class="btn btn-default btn-sm" type="button" onclick="window.location.href='/Setting/ControllerSearchList'"><i style="width:12px;" class="fa fa-times"></i> 取消</button>
+                            </div>
+                        </div>
+                        <input name="__RequestVerificationToken" type="hidden" value="CfDJ8KbCLg-6rz1LhJI1shfTDfr-M9qePVVkvKY5kbYscTrcI3frpGv_Aqw9zf54PrUzv_TTQ96R95TNYTbqPYieI7_xvJdN1ZHgiefMWhDsN56WeuGm6J8SfskkA22Uq6R1zeX3lF3qakoAUDNSaW5ASH0bdyAwDgw604EuN9lF-XMfENqnBtlOO3cEha09P_0POg">
+                    </form>
+                </div>
+            </div>
+        </div>
+    </div>
+</div>

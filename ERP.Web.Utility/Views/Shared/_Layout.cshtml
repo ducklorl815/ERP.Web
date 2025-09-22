@@ -1,4 +1,9 @@
-﻿<!DOCTYPE html>
+﻿@{
+    var LeftSidebar = await Component.InvokeAsync("LeftSidebar");
+
+}
+
+<!DOCTYPE html>
 <html lang="zh-hant-TW">
 <head>
     <meta charset="utf-8" />
@@ -92,7 +97,8 @@
 <body>
     <div id="wrapper">
         <!-- Top Navbar -->
-        @Html.Partial("_LeftSidebar")
+        @LeftSidebar
+        @*@Html.Partial("_LeftSidebar")*@
 
         <div id="page-wrapper" class="gray-bg dashbard-1">
 

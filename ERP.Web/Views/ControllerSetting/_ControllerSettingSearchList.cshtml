@@ -1,0 +1,71 @@
+﻿@model ERP.Web.Service.ViewModels.ControllerSetting.ControllerSettingSearchListViewModel_result
+@if (Model.ControllerList != null && Model.ControllerList.Any())
+{
+    <table class="footable table table-stripped toggle-arrow-tiny">
+        <thead>
+            <tr>
+                <th data-sort-ignore="true">序號</th>
+                <th data-sort-ignore="true">StationName</th>
+                <th data-sort-ignore="true">StationCode</th>
+                <th data-sort-ignore="true">Controller</th>
+                <th data-sort-ignore="true">Action</th>
+                <th data-sort-ignore="true">Get/Post</th>
+                <th data-sort-ignore="true">Action敘述</th>
+                <th data-sort-ignore="true">層數</th>
+                <th data-sort-ignore="true">排序</th>
+                <th data-sort-ignore="true">父序號</th>
+                <th data-sort-ignore="true">顯示</th>
+                <th data-sort-ignore="true" class="text-center" style="width:50px;">功能</th>
+            </tr>
+        </thead>
+        <tbody>
+            @foreach (var item in Model.ControllerList)
+            {
+                <tr>
+                    <td>
+                        <a target="_blank" asp-action="ActDetail" asp-route-id="@item.ID">@item.Seq</a>
+                    </td>
+                    <td>
+                        @item.StationName
+                    </td>
+                    <td>
+                        @item.StationCode
+                    </td>
+                    <td>
+                        @item.Controller
+                    </td>
+                    <td>
+                        @item.ActionName
+                    </td>
+                    <td>
+                        @item.HttpMethod
+                    </td>
+                    <td>
+                        @item.ActionDesc
+                    </td>
+                    <td>
+                        @item.Level
+                    </td>
+                    <td>
+                        @item.Sort
+                    </td>
+                    <td>
+                        <a target="_blank" asp-action="ActDetail" asp-route-id="@item.ParentControllerMainID">@item.ParentSeq</a>
+                    </td>
+                    <td>
+                        @item.IsMenu
+                    </td>
+                    <td class="text-center">
+                        <i data-id="@item.ID" class="fa fa-trash-o delBtn" title="刪除" style="cursor:pointer;"></i>
+                    </td>
+                </tr>
+            }
+        </tbody>
+    </table>
+}
+else
+{
+    <div class="text-center">
+        <h3>查無資料</h3>
+    </div>
+}
