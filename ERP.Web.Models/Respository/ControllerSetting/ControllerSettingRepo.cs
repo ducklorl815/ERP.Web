@@ -4,7 +4,7 @@ using ERP.Web.Utility.Models;
 using Microsoft.Extensions.Options;
 using System.Data.SqlClient;
 
-namespace LifeTech.FlashWolf.ERP.Web.Models.Repo.ControllerSetting
+namespace ERP.Web.Models.Respository.ControllerSetting
 {
     public class ControllerSettingRepo
     {

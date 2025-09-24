@@ -3,10 +3,10 @@ using System.Data.SqlClient;
 
 namespace ERP.Web.Utility.Respository
 {
-    public class ControllerSettingRepo
+    public class ControllerUtilityRepo
     {
         private readonly string _connStr;
-        public ControllerSettingRepo(string connStr)
+        public ControllerUtilityRepo(string connStr)
         {
             _connStr = "Data Source=DB-ERP;Initial Catalog=erp;User ID=ducklorl815;Password=201985;Integrated Security=false;Pooling=TRUE;Application Name=ERP.Web";
         }

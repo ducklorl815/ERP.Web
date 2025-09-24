@@ -1,4 +1,4 @@
-﻿using LifeTech.FlashWolf.ERP.Web.Models.Repo.ControllerSetting;
+﻿using ERP.Web.Models.Respository.ControllerSetting;
 
 namespace ERP.Web.Service.Service.ControllerSetting
 {

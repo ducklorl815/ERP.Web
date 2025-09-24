@@ -14,7 +14,7 @@ namespace ERP.Web.Utility.ViewComponents
     {
         private readonly IConfiguration _configuration;
         private ILogger _logger;
-        private readonly ControllerSettingRepo _controllerSettingRepo;
+        private readonly ControllerUtilityRepo _controllerUtilityRepo;
         private readonly string _connStr;
 
         public LeftSidebarViewComponent(
@@ -23,7 +23,7 @@ namespace ERP.Web.Utility.ViewComponents
             , IOptions<DBList> options
             )
         {
-            _controllerSettingRepo = new ControllerSettingRepo(configuration.GetConnectionString("UtilityERP"));
+            _controllerUtilityRepo = new ControllerUtilityRepo(configuration.GetConnectionString("UtilityERP"));
             _configuration = configuration;
             _logger = logger;
             _connStr = options.Value.erp;
@@ -41,7 +41,7 @@ namespace ERP.Web.Utility.ViewComponents
 
             IEnumerable<dynamic> menuData = null;
 
-            menuData = await _controllerSettingRepo.GetMenuDataAsync(HttpContext.User.Identity.Name);
+            menuData = await _controllerUtilityRepo.GetMenuDataAsync(HttpContext.User.Identity.Name);
 
             //HttpContext.Session.SetString(userMenuKey, JsonConvert.SerializeObject(menuData));
 

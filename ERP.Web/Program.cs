@@ -1,5 +1,7 @@
 using ERP.Web.Models.Respository;
+using ERP.Web.Models.Respository.ControllerSetting;
 using ERP.Web.Service.Service;
+using ERP.Web.Service.Service.ControllerSetting;
 using ERP.Web.Utility.Models;
 using Microsoft.Extensions.FileProviders;
 
@@ -11,11 +13,14 @@ builder.Services.AddControllersWithViews().AddRazorRuntimeCompilation();
 // Add services to the container.
 builder.Services.AddControllersWithViews();
 
+builder.Services.AddSingleton<ControllerSettingService>();
 builder.Services.AddSingleton<HomeService>();
 builder.Services.AddSingleton<ChartsService>();
 builder.Services.AddSingleton<SeatMapService>();
 builder.Services.AddSingleton<ExamService>();
 
+
+builder.Services.AddSingleton<ControllerSettingRepo>();
 builder.Services.AddSingleton<ChartsRespo>();
 builder.Services.AddSingleton<SeatMapRespo>();
 builder.Services.AddSingleton<ExamRespo>();
