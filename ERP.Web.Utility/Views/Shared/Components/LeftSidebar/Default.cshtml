@@ -1,9 +1,10 @@
 ﻿@model ERP.Web.Utility.ViewModel.LeftSidebarViewModel
 @inject Microsoft.Extensions.Options.IOptions<Dictionary<string, string>> _sharedDomain
 
-   @if(Model.List != null){
-       
-   }
+@if (Model.List != null)
+{
+
+}
 
 <nav class="navbar-default navbar-static-side" role="navigation">
     <div class="sidebar-collapse">
@@ -41,7 +42,6 @@
                         <a href="@Url.Action("Index", "SeatMap")">座位圖</a>
                     </li>
                     <li>
-
                         <a href="#">考券</a>
                         <ul class="nav nav-third-level collapse">
                             <li>
@@ -55,25 +55,17 @@
                     <li>
                         <a href="@Url.Action("Index", "AddtoCart")">加入購物車</a>
                     </li>
-                    <li>
-                        <a href="@Url.Action("ControllerDataMaintain", "ControllerSetting")">新增功能</a>
-                    </li>
                 </ul>
             </li>
             <li>
-                <a href="layouts.html"><i class="fa fa-diamond"></i> <span class="nav-label">Layouts</span></a>
-            </li>
-            <li>
-                <a href="#"><i class="fa fa-bar-chart-o"></i> <span class="nav-label">图表</span><span class="fa arrow"></span></a>
+                <a href="#"><i class="fa fa-bar-chart-o"></i> <span class="nav-label">系統功能</span><span class="fa arrow"></span></a>
                 <ul class="nav nav-second-level collapse">
-                    <li><a href="graph_flot.html">Flot Charts</a></li>
-                    <li><a href="graph_morris.html">Morris.js Charts</a></li>
-                    <li><a href="graph_rickshaw.html">Rickshaw Charts</a></li>
-                    <li><a href="graph_chartjs.html">Chart.js</a></li>
-                    <li><a href="graph_chartist.html">Chartist</a></li>
-                    <li><a href="c3.html">c3 charts</a></li>
-                    <li><a href="graph_peity.html">Peity Charts</a></li>
-                    <li><a href="graph_sparkline.html">Sparkline Charts</a></li>
+                    <li>
+                        <a href="@Url.Action("StationDataMaintain", "ControllerSetting")">新增站台</a>
+                    </li>
+                    <li>
+                        <a href="@Url.Action("ControllerDataMaintain", "ControllerSetting")">新增功能</a>
+                    </li>
                 </ul>
             </li>
             <li>

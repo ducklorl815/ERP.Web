@@ -1,6 +1,5 @@
 ﻿using ERP.Web.Models.Models.ControllerSetting;
 using ERP.Web.Service.ViewModels.ControllerSetting;
-using Newtonsoft.Json;
 
 namespace ERP.Web.Service.Service.ControllerSetting
 {
@@ -48,9 +47,16 @@ namespace ERP.Web.Service.Service.ControllerSetting
 
         }
 
-        public async Task<string?> StationDataMaintain(StationDataMaintainViewModel_param param)
+        public async Task<ControllerSettingSearchListViewModel_result> ControllerSettingSearchList(ControllerSettingSearchListViewModel_param param)
         {
-            throw new NotImplementedException();
+            var result = new ControllerSettingSearchListViewModel_result()
+            {
+                ControllerList = new List<ControllerListMainModel>()
+            };
+
+            result.ControllerList = await _controllerSettingRepo.ControllerSettingSearchList();
+
+            return result;
         }
     }
 }

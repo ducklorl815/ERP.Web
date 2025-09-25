@@ -21,7 +21,11 @@ namespace ERP.Web.Models.Respository.ControllerSetting
             CreateUser = "C2C93ACC-74AF-4CD6-8D73-70FE1E981041";
             CreateDept = "35FE68C1-9F3F-458D-A832-D53A4B96C6EE";
         }
-
+        /// <summary>
+        /// 新增Action
+        /// </summary>
+        /// <param name="ActionName"></param>
+        /// <returns></returns>
         public async Task<Guid> ControllerActionDataMaintain(string ActionName)
         {
             var sqlparam = new DynamicParameters();
@@ -71,7 +75,11 @@ namespace ERP.Web.Models.Respository.ControllerSetting
                 return Guid.Empty;
             }
         }
-
+        /// <summary>
+        /// 新增Controller
+        /// </summary>
+        /// <param name="param"></param>
+        /// <returns></returns>
         public async Task<bool> ControllerDataMaintain(ControllerMainModel param)
         {
             var sqlparam = new DynamicParameters();
@@ -160,7 +168,10 @@ namespace ERP.Web.Models.Respository.ControllerSetting
                 return false;
             }
         }
-
+        /// <summary>
+        /// 撈取Controller,Action關聯
+        /// </summary>
+        /// <returns></returns>
         public async Task<List<ControllerListMainModel>> ControllerSettingSearchList()
         {
             var sql = $@"
@@ -193,6 +204,69 @@ namespace ERP.Web.Models.Respository.ControllerSetting
             catch (Exception)
             {
                 return null;
+            }
+        }
+        /// <summary>
+        /// 新增站台
+        /// </summary>
+        /// <param name="param"></param>
+        /// <returns></returns>
+        public async Task<bool> StationDataMaintain(StationMainModel param)
+        {
+            var sqlparam = new DynamicParameters();
+            sqlparam.Add("StationName", param.StationName);
+            sqlparam.Add("Domain", param.Domain);
+            sqlparam.Add("StationCode", param.StationCode);
+
+            sqlparam.Add("CreateUser", CreateUser);
+            sqlparam.Add("CreateDept", CreateDept);
+            sqlparam.Add("ModifyUser", CreateUser);
+            sqlparam.Add("ModifyDept", CreateDept);
+
+            var sql = $@"
+                        INSERT INTO Controller.dbo.ControllerStationMain
+                                   (
+		                           ID
+                                   ,StationCode
+                                   ,StationName
+                                   ,Domain
+                                   ,AbandonReason
+                                   ,CreateDate
+                                   ,CreateUser
+                                   ,CreateDept
+                                   ,ModifyDate
+                                   ,ModifyUser
+                                   ,ModifyDept
+                                   ,Enabled
+                                   ,Deleted
+		                           )
+                             VALUES
+                                   (
+		                           NEWID()
+                                   ,@StationCode
+                                   ,@StationName
+                                   ,@Domain
+                                   ,''
+                                   ,GETDATE()
+                                   ,@CreateUser
+                                   ,@CreateDept
+                                   ,GETDATE()
+                                   ,@ModifyUser
+                                   ,@ModifyDept
+                                   ,1
+                                   ,0
+		                           )
+                        ";
+
+            using var conn = new SqlConnection(_dBList.erp);
+            try
+            {
+                var result = await conn.ExecuteAsync(sql, sqlparam);
+                return result > 0;
+            }
+            catch (Exception)
+            {
+                return false;
             }
         }
     }
