@@ -40,8 +40,14 @@ namespace ERP.Web.Utility.ViewComponents
             var userMenuKey = _configuration.GetSection("RedisSessionKey:UserMenu").Value;
 
             IEnumerable<dynamic> menuData = null;
+            try
+            {
+                menuData = await _controllerUtilityRepo.GetMenuDataAsync(HttpContext.User.Identity.Name);
+            }
+            catch (Exception)
+            {
 
-            menuData = await _controllerUtilityRepo.GetMenuDataAsync(HttpContext.User.Identity.Name);
+            }
 
             //HttpContext.Session.SetString(userMenuKey, JsonConvert.SerializeObject(menuData));
 
@@ -126,8 +132,8 @@ namespace ERP.Web.Utility.ViewComponents
                 SetIsShow(root);
 
             // 6️ 回傳樹狀 Menu
-
-            return View(rootMenuList);
+            result.List = rootMenuList;
+            return View(result);
         }
 
 

@@ -34,8 +34,6 @@ namespace ERP.Web.Models.Respository
                     AND kti.KidMainID = @KidMainID
             ";
 
-
-
             using var conn = new SqlConnection(_dBList.erp);
 
             try

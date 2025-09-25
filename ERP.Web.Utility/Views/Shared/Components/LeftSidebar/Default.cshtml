@@ -1,4 +1,10 @@
-﻿
+﻿@model ERP.Web.Utility.ViewModel.LeftSidebarViewModel
+@inject Microsoft.Extensions.Options.IOptions<Dictionary<string, string>> _sharedDomain
+
+   @if(Model.List != null){
+       
+   }
+
 <nav class="navbar-default navbar-static-side" role="navigation">
     <div class="sidebar-collapse">
         <ul class="nav metismenu" id="side-menu">
@@ -50,7 +56,7 @@
                         <a href="@Url.Action("Index", "AddtoCart")">加入購物車</a>
                     </li>
                     <li>
-                        <a href="dashboard_5.html">主页示例 v.5 </a>
+                        <a href="@Url.Action("ControllerDataMaintain", "ControllerSetting")">新增功能</a>
                     </li>
                 </ul>
             </li>

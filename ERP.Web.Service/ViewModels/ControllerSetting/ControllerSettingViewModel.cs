@@ -67,5 +67,7 @@ namespace ERP.Web.Service.ViewModels.ControllerSetting
         public bool IsBlank { get; set; }
         public string ControllerDesc { get; set; }
         public int Level { get; set; }
+        public int PageNumber { get; set; }
+        
     }
 }

@@ -11,7 +11,7 @@
         public Guid ParentControllerMainID { get; set; }
         public Guid ControllerActionID { get; set; }
         public Guid StationMainID { get; set; }
-
+        public int PageNumber { get; set; }
         public int Level { get; set; }
         public int Sort { get; set; }
 

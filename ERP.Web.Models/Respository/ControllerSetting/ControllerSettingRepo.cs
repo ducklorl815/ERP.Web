@@ -75,10 +75,25 @@ namespace ERP.Web.Models.Respository.ControllerSetting
         public async Task<bool> ControllerDataMaintain(ControllerMainModel param)
         {
             var sqlparam = new DynamicParameters();
-            foreach (var property in param.GetType().GetProperties())
-            {
-                sqlparam.Add(property.Name, property.GetValue(param));
-            }
+            //foreach (var property in param.GetType().GetProperties())
+            //{
+            //    sqlparam.Add(property.Name, property.GetValue(param));
+            //}
+            sqlparam.Add("StationMainID", param.StationMainID);
+            sqlparam.Add("DisplayName", param.DisplayName);
+            sqlparam.Add("Controller", param.Controller);
+            sqlparam.Add("ControllerActionID", param.ControllerActionID);
+            sqlparam.Add("HttpMethod", param.HttpMethod);
+            sqlparam.Add("ParentControllerMainID", param.ParentControllerMainID);
+            sqlparam.Add("PageNumber", param.PageNumber);
+            sqlparam.Add("IconClass", param.IconClass);
+            sqlparam.Add("FrontNumber", param.FrontNumber);
+            sqlparam.Add("Sort", param.Sort);
+            sqlparam.Add("IsMenu", param.IsMenu);
+            sqlparam.Add("IsBlank", param.IsBlank);
+            sqlparam.Add("Level", param.Level);
+            sqlparam.Add("ControllerDesc", param.ControllerDesc);
+
             sqlparam.Add("CreateUser", CreateUser);
             sqlparam.Add("CreateDept", CreateDept);
             sqlparam.Add("ModifyUser", CreateUser);

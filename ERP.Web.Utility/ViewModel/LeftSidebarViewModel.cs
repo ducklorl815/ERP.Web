@@ -2,7 +2,7 @@
 {
     public class LeftSidebarViewModel
     {
-        public IEnumerable<MenuData> List { get; set; }
+        public List<MenuData> List { get; set; }
     }
 
     public class MenuData
