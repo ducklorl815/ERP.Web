@@ -1,0 +1,100 @@
+﻿@model ERP.Web.Service.ViewModels.ControllerSetting.ControllerSettingActionListViewModel_result
+
+
+<div class="wrapper wrapper-content animated fadeIn">
+    <div class="row">
+        ﻿<div class="panel-heading">
+            <h5 class="panel-title">
+                <a data-toggle="collapse" aria-expanded="false" data-parent="#accordion" href="#collapseThree" class="collapsed">搜尋條件 <i class="fa fa-hand-o-left"></i></a>
+                <a href="/ControllerSetting/ControllerDataMaintain"><span class="float-right" style="cursor:pointer;"><i class="fa fa-plus"></i>新增選單</span></a>
+            </h5>
+        </div>
+        @*<div class="col-lg-12">
+            <div class="ibox ">
+                <div class="ibox-content" style="padding:0px;">
+                    <div class="panel-body">
+                        <div class="panel-group" id="accordion">
+                            <div class="panel panel-default">
+                                <div class="panel-heading">
+                                    <h5 class="panel-title">
+                                        <a data-toggle="collapse" data-parent="#accordion" href="#collapseThree" class="collapsed">搜尋條件 <i class="fa fa-hand-o-left"></i></a>
+                                        <a asp-action="Create" asp-controller="EmailGroup"><span class="float-right" style="cursor:pointer;"><i class="fa fa-plus"></i> 新增信件群組</span></a>
+                                    </h5>
+                                </div>
+                                <div id="collapseThree" class="panel-collapse collapse in (@Model.EmailGroupList !=null && @Model.EmailGroupList.Any()?" ":" show")">
+                                    <div class="panel-body">
+                                        <form method="get">
+                                            <div class="row">
+                                                <div class="col-xl-4 col-lg-6 row">
+                                                    <label for="Number" class="col-sm-4 col-form-label font-weight-bold text-sm-right">信件群組名稱</label>
+                                                    <div class="col-sm-8 input-group">
+                                                        <input asp-for="Keyword.GroupName" type="text" class="form-control form-control-sm Search" placeholder="信件群組名稱">
+                                                        <span class="input-group-append" style="height:31px;">
+                                                            <button type="submit" class="btn-sm btn-success">
+                                                                <i class="fa fa-search"></i>
+                                                            </button>
+                                                        </span>
+                                                    </div>
+                                                </div>
+                                                <div class="col-xl-4 col-lg-6 row">
+                                                    <label for="Number" class="col-sm-4 col-form-label font-weight-bold text-sm-right">信件群組備註</label>
+                                                    <div class="col-sm-8 input-group">
+                                                        <input asp-for="Keyword.GroupEtc" type="text" class="form-control form-control-sm Search" placeholder="信件群組備註">
+                                                        <span class="input-group-append" style="height:31px;">
+                                                            <button type="submit" class="btn-sm btn-success">
+                                                                <i class="fa fa-search"></i>
+                                                            </button>
+                                                        </span>
+                                                    </div>
+                                                </div>
+                                                <div class="col-xl-4 col-lg-6 row">
+                                                    <label for="Number" class="col-sm-4 col-form-label font-weight-bold text-sm-right">收件人</label>
+                                                    <div class="col-sm-8 input-group">
+                                                        <input asp-for="Keyword.EmpName" type="text" class="form-control form-control-sm Search" placeholder="收件人">
+                                                        <span class="input-group-append" style="height:31px;">
+                                                            <button type="submit" class="btn-sm btn-success">
+                                                                <i class="fa fa-search"></i>
+                                                            </button>
+                                                        </span>
+                                                    </div>
+                                                </div>
+                                                <div class="col-xl-4 col-lg-6 row">
+                                                    <label for="Number" class="col-sm-4 col-form-label font-weight-bold text-sm-right">類型</label>
+                                                    <div class="col-sm-8 input-group">
+                                                        <input asp-for="Keyword.Type" type="text" class="form-control form-control-sm Search" placeholder="類型">
+                                                        <span class="input-group-append" style="height:31px;">
+                                                            <button type="submit" class="btn-sm btn-success">
+                                                                <i class="fa fa-search"></i>
+                                                            </button>
+                                                        </span>
+                                                    </div>
+                                                </div>
+                                            </div>
+
+                                            <div class="row text-right" style="margin-top:10px;">
+                                                <div class="col">
+                                                    <button class="btn btn-success btn-sm" type="submit"><i style="width:12px;" class="fa fa-search"></i> 搜尋</button>
+                                                    <button class="btn btn-default btn-sm SearchClearBtn" type="button"><i style="width:12px;" class="fa fa-times"></i> 清除</button>
+                                                    <button class="btn btn-default btn-sm SearchShrinkBtn" type="button"><i style="width:12px;" class="fa fa-angle-double-up"></i> 縮合</button>
+                                                </div>
+                                            </div>
+                                        </form>
+                                    </div>
+                                </div>
+                            </div>
+                        </div>
+                    </div>
+                </div>
+            </div>
+        </div>*@
+    </div>
+    <div class="row">
+        <div class="col-lg-12">
+            <div class="ibox">
+                <div id="partial" class="ibox-content ibox-list-content">
+                    @await Html.PartialAsync("_ControllerSettingActionSearchList", Model)
+                </div>
+            </div>
+        </div>
+    </div>
+</div>

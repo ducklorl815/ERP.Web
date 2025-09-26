@@ -20,8 +20,9 @@ namespace ERP.Web.Service.ViewModels.ControllerSetting
 
     public class ActionViewModel
     {
-        public Guid ID { get; set; }
+        public Guid ActionID { get; set; }
         public string Controller { get; set; }
+        public Guid ControllerID { get; set; }
         public string ActionName { get; set; }
         public string HttpMethod { get; set; }
         public string ActionDesc { get; set; }
@@ -72,6 +73,6 @@ namespace ERP.Web.Service.ViewModels.ControllerSetting
         public string ControllerDesc { get; set; }
         public int Level { get; set; }
         public int PageNumber { get; set; }
-        
+
     }
 }

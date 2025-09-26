@@ -168,6 +168,35 @@ namespace ERP.Web.Models.Respository.ControllerSetting
                 return false;
             }
         }
+
+        public async Task<List<ControllerSettingActionMainModel>> ControllerSettingActionList(ControllerSettingActionMainModel_param actionParam)
+        {
+            var sql = $@"
+                        SELECT 
+                            ca.ID as ActionID
+		                    ,cm.Controller
+		                    ,cm.ID as ControllerID
+		                    ,cm.HttpMethod
+		                    ,ActionName
+		                    ,ActionDesc
+		                    ,ca.Enabled
+		                    ,ca.Deleted
+                        FROM Controller.dbo.ControllerAction ca
+                        JOIN  Controller.dbo.ControllerMain cm ON cm.ControllerActionID = ca.ID
+                        ";
+
+            using var conn = new SqlConnection(_dBList.erp);
+            try
+            {
+                var result = await conn.QueryAsync<ControllerSettingActionMainModel>(sql);
+                return result.ToList();
+            }
+            catch (Exception)
+            {
+                return null;
+            }
+        }
+
         /// <summary>
         /// 撈取Controller,Action關聯
         /// </summary>
@@ -221,7 +250,7 @@ namespace ERP.Web.Models.Respository.ControllerSetting
                 var result = await conn.QueryAsync<StationMainModel>(sqlQuery);
                 return result.ToList();
             }
-     
+
         }
 
         /// <summary>

@@ -6,21 +6,18 @@ namespace ERP.Web.Controllers.ControllerSetting
 {
     public partial class ControllerSettingController : Controller
     {
-        public async Task<IActionResult> ControllerSettingActionList(ControllerSettingSearchListViewModel_param param)
+        public async Task<IActionResult> ControllerSettingActionSearchList(ControllerSettingActionListViewModel_param param)
         {
             var result = await _controllerSettingService.ControllerSettingActionList(param);
 
             if (Request.IsAjaxRequest())
             {
-                return PartialView("_ControllerSettingActionList", result);
+                return PartialView("_ControllerSettingActionSearchList", result);
             }
             else
             {
-                return View();
+                return View(result);
             }
-
         }
-
-
     }
 }
