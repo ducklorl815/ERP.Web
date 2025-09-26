@@ -1,4 +1,5 @@
 ﻿using ERP.Web.Models.Models.ControllerSetting;
+using Microsoft.AspNetCore.Mvc.Rendering;
 
 namespace ERP.Web.Service.ViewModels.ControllerSetting
 {
@@ -48,6 +49,9 @@ namespace ERP.Web.Service.ViewModels.ControllerSetting
     }
     public class ControllerSettingDataMaintainViewModel_result : ControllerSettingDataMaintainViewModel_param
     {
+        public List<SelectListItem> StationListItem { get; set; }
+
+        public List<SelectListItem> ControllerListItem { get; set; }
         public bool IsSuccess { get; set; }
         public string Msg { get; set; }
     }

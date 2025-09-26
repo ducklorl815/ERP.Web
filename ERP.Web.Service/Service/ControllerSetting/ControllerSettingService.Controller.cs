@@ -1,10 +1,31 @@
 ﻿using ERP.Web.Models.Models.ControllerSetting;
 using ERP.Web.Service.ViewModels.ControllerSetting;
+using ERP.Web.Utility.Models;
+using Microsoft.AspNetCore.Mvc.Rendering;
+
+
 
 namespace ERP.Web.Service.Service.ControllerSetting
 {
     public partial class ControllerSettingService
     {
+        public async Task<ControllerSettingDataMaintainViewModel_result> GetControllerDataMaintain()
+        {
+
+            var result = new ControllerSettingDataMaintainViewModel_result();
+
+            List<StationMainModel> stationDataTask = await _controllerSettingRepo.GetStationMainDataAsync();
+
+            result.StationListItem =  stationDataTask.Select(s => new SelectListItem
+            {
+                Text = $"{s.StationCode} {s.StationName} {s.Domain}",
+                Value = s.ID.ToString()
+            }).ToList();
+
+
+            return result;
+
+        }
         public async Task<ControllerSettingDataMaintainViewModel_result> ControllerDataMaintain(ControllerSettingDataMaintainViewModel_param param)
         {
 

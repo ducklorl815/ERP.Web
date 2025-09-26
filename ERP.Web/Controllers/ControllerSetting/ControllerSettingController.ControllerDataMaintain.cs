@@ -8,7 +8,8 @@ namespace ERP.Web.Controllers.ControllerSetting
         [HttpGet]
         public async Task<IActionResult> ControllerDataMaintain()
         {
-            return View();
+            var result = await _controllerSettingService.GetControllerDataMaintain();
+            return View(result);
         }
         [HttpPost]
         public async Task<IActionResult> ControllerDataMaintain(ControllerSettingDataMaintainViewModel_param param)

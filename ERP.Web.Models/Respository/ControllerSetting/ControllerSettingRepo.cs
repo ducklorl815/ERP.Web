@@ -206,6 +206,24 @@ namespace ERP.Web.Models.Respository.ControllerSetting
                 return null;
             }
         }
+
+        public async Task<List<StationMainModel>> GetStationMainDataAsync()
+        {
+            var sqlQuery = @"select ID 
+                                   ,StationCode
+                                   ,StationName
+                                   ,Domain
+                             from Controller.dbo.ControllerStationMain
+                             where Deleted = 0";
+
+            using (var conn = new SqlConnection(_dBList.erp))
+            {
+                var result = await conn.QueryAsync<StationMainModel>(sqlQuery);
+                return result.ToList();
+            }
+     
+        }
+
         /// <summary>
         /// 新增站台
         /// </summary>

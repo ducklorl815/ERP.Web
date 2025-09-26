@@ -2,6 +2,9 @@
 {
     public class StationMainModel
     {
+        /// <summary>站台ID</summary>
+        public Guid ID { get; set; }
+
         /// <summary>站台代碼</summary>
         public string StationCode { get; set; }
 

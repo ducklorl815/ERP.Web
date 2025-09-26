@@ -18,9 +18,8 @@
                         <div class="row">
                             <label for="StationMainID" class="col-sm-2 col-form-label font-weight-bold text-sm-right">站台<span class="text-danger">*</span></label>
                             <div class="col-sm-10">
-                                <select class="form-control form-control-sm" id="StationMainID" name="StationMainID">
-                                    <option value=""></option>
-                                    <option value="14efb7e1-b978-4c68-9b17-72acddc26fed">ERP 資源規劃整合系統 erp.mda.systems</option>
+                                <select asp-for="@Model.StationMainID" asp-items="@Model.StationListItem" class="form-control form-control-sm" style="width:100%">
+                                    <option value="">請選擇</option>
                                 </select>
                             </div>
                         </div>
