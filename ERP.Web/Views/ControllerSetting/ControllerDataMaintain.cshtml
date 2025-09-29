@@ -54,10 +54,7 @@
                         <div class="row">
                             <label for="ParentControllerMainID" class="col-sm-2 col-form-label font-weight-bold text-sm-right">父層級<span class="text-danger">*</span></label>
                             <div class="col-sm-10">
-                                <select class="form-control form-control-sm" id="ParentControllerMainID" name="ParentControllerMainID">
-                                    <option value=""></option>
-                                    <option value="00000000-0000-0000-0000-000000000000">第一層(Level1)</option>
-                                    <option value="99606743-e11f-4017-a931-bd63391f8172">Discount SearchList Get 折價券資料</option>
+                                <select asp-for="@Model.ParentControllerMainID" asp-items="@Model.ControllerListItem" class="form-control form-control-sm" style="width:100%">
                                 </select>
                             </div>
                         </div>
@@ -119,7 +116,7 @@
                         <div class="row text-right" style="margin-top:10px;">
                             <div class="col">
                                 <button id="SaveBtn" class="btn btn-success btn-sm" type="submit"><i style="width:12px;" class="fa fa-save"></i> 存檔</button>
-                                <button class="btn btn-default btn-sm" type="button" onclick="window.location.href='/Setting/ControllerSearchList'"><i style="width:12px;" class="fa fa-times"></i> 取消</button>
+                                <button class="btn btn-default btn-sm" type="button" onclick="window.location.href='/ControllerSetting/ControllerSearchList'"><i style="width:12px;" class="fa fa-times"></i> 取消</button>
                             </div>
                         </div>
                         <input name="__RequestVerificationToken" type="hidden" value="CfDJ8...">
@@ -140,6 +137,27 @@
             placeholder: "請選擇",
             allowClear: true,
             width: '100%'
+        });
+    });
+
+
+    $("#SaveBtn").click(function (e) {
+        e.preventDefault();
+
+        $.ajax({
+            url: '/ControllerSetting/Save',
+            type: 'POST',
+            data: $("#YourFormID").serialize(),
+            success: function (res) {
+                if (res.success) {
+                    alert("新增成功！");
+                    setTimeout(function () {
+                        window.location.href = '/ControllerSetting/ControllerSettingSearchList';
+                    }, 500);
+                } else {
+                    alert("新增失敗！");
+                }
+            }
         });
     });
 </script>

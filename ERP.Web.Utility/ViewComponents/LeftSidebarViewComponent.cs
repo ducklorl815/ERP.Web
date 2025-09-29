@@ -76,9 +76,9 @@ namespace ERP.Web.Utility.ViewComponents
                 .Select(s => new MenuData
                 {
                     ID = s.ID?.ToString() ?? Guid.NewGuid().ToString(),
-                    ParentControllerMainID = s.ControllerMainID?.ToString() ?? "00000000-0000-0000-0000-000000000000",
+                    ParentControllerMainID = s.ParentControllerMainID?.ToString() ?? "00000000-0000-0000-0000-000000000000",
                     Level = s.Level,
-                    Controller = s.ControllerName ?? string.Empty,
+                    Controller = s.Controller ?? string.Empty,
                     ActionName = s.ActName ?? s.ActionName ?? string.Empty,
                     DisplayName = $"{s.FrontNumber ?? string.Empty}.{s.Name ?? s.DisplayName ?? string.Empty}",
                     IconClass = s.IconClass ?? string.Empty,
@@ -86,7 +86,7 @@ namespace ERP.Web.Utility.ViewComponents
                     IsMenu = s.IsMenu,
                     Children = new List<MenuData>(),
                     IsActive = false,
-                    Domain = "",
+                    Domain = "https://localhost:44372/",
                     IsBlank = s.IsBlank,
                     Enabled = s.Enabled,
                     Deleted = s.Deleted

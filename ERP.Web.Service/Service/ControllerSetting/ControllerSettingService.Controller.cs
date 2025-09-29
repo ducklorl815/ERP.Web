@@ -11,20 +11,67 @@ namespace ERP.Web.Service.Service.ControllerSetting
     {
         public async Task<ControllerSettingDataMaintainViewModel_result> GetControllerDataMaintain()
         {
-
             var result = new ControllerSettingDataMaintainViewModel_result();
 
             List<StationMainModel> stationDataTask = await _controllerSettingRepo.GetStationMainDataAsync();
 
-            result.StationListItem =  stationDataTask.Select(s => new SelectListItem
+            result.ControllerListItem = await GetControllerListItemAsync("");
+
+            result.StationListItem = stationDataTask.Select(s => new SelectListItem
             {
                 Text = $"{s.StationCode} {s.StationName} {s.Domain}",
                 Value = s.ID.ToString()
             }).ToList();
 
-
             return result;
 
+        }
+        /// <summary>
+        /// 取得控制器資訊
+        /// </summary>
+        /// <param name="Domain"></param>
+        /// <returns></returns>
+        public async Task<List<SelectListItem>> GetControllerListItemAsync(string Domain)
+        {
+            var result = new List<SelectListItem>();
+            result.Add(new SelectListItem
+            {
+                Text = "新增第一層標籤",
+                Value = "00000000-0000-0000-0000-000000000000"
+            });
+            List<StationMainModel> controllerDataTask = await _controllerSettingRepo.GetControllerDataAsync(Domain);
+            result.AddRange(controllerDataTask.Select(x => new SelectListItem
+            {
+                Text = BuildText(x),
+                Value = x.ID.ToString()
+            }));
+
+            return result;
+        }
+        /// <summary>
+        /// 建置控制器文字工具
+        /// </summary>
+        /// <param name="x"></param>
+        /// <returns></returns>
+        private string BuildText(StationMainModel x)
+        {
+            var parts = new List<string>();
+
+            // Controller/ActionName
+            if (!string.IsNullOrEmpty(x.ActionName))
+                parts.Add($"{x.Controller}/{x.ActionName}");
+            else
+                parts.Add("第一層標籤: ");
+
+            // HttpMethod
+            if (!string.IsNullOrEmpty(x.HttpMethod))
+                parts.Add(x.HttpMethod);
+
+            // DisplayName
+            if (!string.IsNullOrEmpty(x.DisplayName))
+                parts.Add(x.DisplayName);
+
+            return string.Join(" ", parts);
         }
         public async Task<ControllerSettingDataMaintainViewModel_result> ControllerDataMaintain(ControllerSettingDataMaintainViewModel_param param)
         {

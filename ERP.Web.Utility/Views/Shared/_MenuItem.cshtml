@@ -1,0 +1,25 @@
+﻿@model ERP.Web.Utility.ViewModel.MenuData
+
+
+<li>
+    @if (Model.Children != null && Model.Children.Any())
+    {
+        <a href="#">
+            <i class="@Model.IconClass"></i>
+            <span class="nav-label">@Model.DisplayName</span>
+            <span class="fa arrow"></span>
+        </a>
+        <ul class="nav nav-second-level collapse">
+            @foreach (var child in Model.Children.OrderBy(c => c.Sort))
+            {
+                @Html.Partial("_MenuItem", child)
+            }
+        </ul>
+    }
+    else
+    {
+        <a href="@Model.Domain@Model.Controller/@Model.ActionName">
+            @Model.DisplayName
+        </a>
+    }
+</li>

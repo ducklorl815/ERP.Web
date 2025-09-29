@@ -16,8 +16,7 @@ namespace ERP.Web.Controllers.ControllerSetting
         {
 
             var result = await _controllerSettingService.ControllerDataMaintain(param);
-
-            return View(result);
+            return Json(new { success = false });
         }
     }
 }

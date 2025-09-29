@@ -235,6 +235,51 @@ namespace ERP.Web.Models.Respository.ControllerSetting
                 return null;
             }
         }
+        /// <summary>
+        /// 取得控制器資訊
+        /// </summary>
+        /// <param name="Domain"></param>
+        /// <returns></returns>
+        public async Task<List<StationMainModel>> GetControllerDataAsync(string Domain)
+        {
+            var sqlparam = new DynamicParameters();
+
+            var sql = @"
+                        SELECT cm.ID
+                              ,cm.Controller
+	                          ,case when ca.ActionName is NULL then '' else  ca.ActionName end as ActionName
+                              ,DisplayName
+                              ,HttpMethod
+                              ,cs.Domain
+                          FROM Controller.dbo.ControllerMain cm
+                          LEFT JOIN Controller.dbo.ControllerAction ca ON ca.ID = cm.ControllerActionID AND ca.Enabled = 1 AND ca.Deleted = 0
+                          JOIN Controller.dbo.ControllerStationMain cs ON cs.ID = cm.StationMainID AND cs.Enabled = 1 AND cs.Deleted = 0
+                          WHERE cm.Enabled = 1
+                          AND cm.Deleted = 0
+                            ";
+
+            if (!string.IsNullOrEmpty(Domain))
+            {
+                sqlparam.Add("Domain", Domain);
+                sql += " AND cs.Domain = @Domain";
+            }
+            sql += " ORDER BY CASE WHEN cm.Controller = '' THEN 0 ELSE 1 END, cm.CreateDate DESC";
+
+            try
+            {
+                using (var conn = new SqlConnection(_dBList.erp))
+                {
+                    var result = await conn.QueryAsync<StationMainModel>(sql, sqlparam);
+                    return result.ToList();
+                }
+            }
+            catch (Exception)
+            {
+
+                throw;
+            }
+
+        }
 
         public async Task<List<StationMainModel>> GetStationMainDataAsync()
         {
