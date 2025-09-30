@@ -31,7 +31,7 @@ namespace ERP.Web.Service.Service.ControllerSetting
         /// </summary>
         /// <param name="Domain"></param>
         /// <returns></returns>
-        public async Task<List<SelectListItem>> GetControllerListItemAsync(string Domain)
+        public async Task<List<SelectListItem>> GetControllerListItemAsync(string StationMainID)
         {
             var result = new List<SelectListItem>();
             result.Add(new SelectListItem
@@ -39,7 +39,7 @@ namespace ERP.Web.Service.Service.ControllerSetting
                 Text = "新增第一層標籤",
                 Value = "00000000-0000-0000-0000-000000000000"
             });
-            List<StationMainModel> controllerDataTask = await _controllerSettingRepo.GetControllerDataAsync(Domain);
+            List<StationMainModel> controllerDataTask = await _controllerSettingRepo.GetControllerDataAsync(StationMainID);
             result.AddRange(controllerDataTask.Select(x => new SelectListItem
             {
                 Text = BuildText(x),

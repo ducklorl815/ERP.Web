@@ -139,7 +139,7 @@
             width: '100%'
         });
     });
-
+    
 
     $("#SaveBtn").click(function (e) {
         e.preventDefault();
@@ -147,7 +147,7 @@
         $.ajax({
             url: '/ControllerSetting/Save',
             type: 'POST',
-            data: $("#YourFormID").serialize(),
+            data: $("#ControllerDataMaintainForm").serialize(),
             success: function (res) {
                 if (res.success) {
                     alert("新增成功！");
@@ -157,6 +157,39 @@
                 } else {
                     alert("新增失敗！");
                 }
+            }
+        });
+    });
+
+
+
+
+    $("#StationMainID").change(function () {
+        var stationMainID = $(this).val();
+
+        $.ajax({
+            url: '/ControllerSetting/GetControllerListItem?StationMainID=' + stationMainID,
+            type: 'GET',
+            success: function (res) {
+                if (res && res.length > 0) {
+                    var $parentSelect = $("#ParentControllerMainID");
+                    $parentSelect.empty(); // 先清空
+                    $parentSelect.append($('<option>', { value: '', text: '請選擇' }));
+
+                    // 動態加入選項
+                    $.each(res, function (i, item) {
+                        $parentSelect.append($('<option>', {
+                            value: item.value,
+                            text: item.text
+                        }));
+                    });
+                } else {
+                    alert("查無資料！");
+                }
+            },
+            error: function (xhr) {
+                console.error("錯誤:", xhr.responseText);
+                alert("發生錯誤，請稍後再試！");
             }
         });
     });

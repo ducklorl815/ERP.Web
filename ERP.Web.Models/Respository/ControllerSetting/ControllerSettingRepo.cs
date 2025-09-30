@@ -240,7 +240,7 @@ namespace ERP.Web.Models.Respository.ControllerSetting
         /// </summary>
         /// <param name="Domain"></param>
         /// <returns></returns>
-        public async Task<List<StationMainModel>> GetControllerDataAsync(string Domain)
+        public async Task<List<StationMainModel>> GetControllerDataAsync(string StationMainID)
         {
             var sqlparam = new DynamicParameters();
 
@@ -251,6 +251,7 @@ namespace ERP.Web.Models.Respository.ControllerSetting
                               ,DisplayName
                               ,HttpMethod
                               ,cs.Domain
+							  ,cm.StationMainID
                           FROM Controller.dbo.ControllerMain cm
                           LEFT JOIN Controller.dbo.ControllerAction ca ON ca.ID = cm.ControllerActionID AND ca.Enabled = 1 AND ca.Deleted = 0
                           JOIN Controller.dbo.ControllerStationMain cs ON cs.ID = cm.StationMainID AND cs.Enabled = 1 AND cs.Deleted = 0
@@ -258,10 +259,10 @@ namespace ERP.Web.Models.Respository.ControllerSetting
                           AND cm.Deleted = 0
                             ";
 
-            if (!string.IsNullOrEmpty(Domain))
+            if (!string.IsNullOrEmpty(StationMainID))
             {
-                sqlparam.Add("Domain", Domain);
-                sql += " AND cs.Domain = @Domain";
+                sqlparam.Add("StationMainID", StationMainID.ToUpper());
+                sql += " AND cm.StationMainID = @StationMainID";
             }
             sql += " ORDER BY CASE WHEN cm.Controller = '' THEN 0 ELSE 1 END, cm.CreateDate DESC";
 
