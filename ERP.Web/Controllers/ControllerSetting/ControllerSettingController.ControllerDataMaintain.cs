@@ -16,7 +16,7 @@ namespace ERP.Web.Controllers.ControllerSetting
         {
 
             var result = await _controllerSettingService.ControllerDataMaintain(param);
-            return Json(new { success = false });
+            return Json(result);
         }
         [HttpGet]
         public async Task<IActionResult> GetControllerListItem(string StationMainID)

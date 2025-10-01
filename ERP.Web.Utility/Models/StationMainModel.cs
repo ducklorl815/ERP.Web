@@ -14,7 +14,6 @@
         /// <summary>域名</summary>
         public string Domain { get; set; }
 
-
         /// <summary>控制器名稱</summary>
         public string Controller { get; set; }
         /// <summary>動作名稱</summary>

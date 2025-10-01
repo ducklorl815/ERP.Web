@@ -5,7 +5,7 @@
     @if (Model.Children != null && Model.Children.Any())
     {
         <a href="#">
-            <i class="@Model.IconClass"></i>
+            <i class="fa-solid fa-house"></i>
             <span class="nav-label">@Model.DisplayName</span>
             <span class="fa arrow"></span>
         </a>
@@ -19,7 +19,8 @@
     else
     {
         <a href="@Model.Domain@Model.Controller/@Model.ActionName">
-            @Model.DisplayName
+            <i class="fa-solid fa-house"></i>
+            <span class="nav-label">@Model.DisplayName</span>
         </a>
     }
 </li>

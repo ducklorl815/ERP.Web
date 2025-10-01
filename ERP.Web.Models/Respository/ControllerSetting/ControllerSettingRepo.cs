@@ -247,6 +247,7 @@ namespace ERP.Web.Models.Respository.ControllerSetting
             var sql = @"
                         SELECT cm.ID
                               ,cm.Controller
+							  ,cs.StationCode
 	                          ,case when ca.ActionName is NULL then '' else  ca.ActionName end as ActionName
                               ,DisplayName
                               ,HttpMethod

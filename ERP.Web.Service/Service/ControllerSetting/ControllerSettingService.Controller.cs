@@ -36,7 +36,7 @@ namespace ERP.Web.Service.Service.ControllerSetting
             var result = new List<SelectListItem>();
             result.Add(new SelectListItem
             {
-                Text = "新增第一層標籤",
+                Text = "新增最外層標籤",
                 Value = "00000000-0000-0000-0000-000000000000"
             });
             List<StationMainModel> controllerDataTask = await _controllerSettingRepo.GetControllerDataAsync(StationMainID);
@@ -59,9 +59,9 @@ namespace ERP.Web.Service.Service.ControllerSetting
 
             // Controller/ActionName
             if (!string.IsNullOrEmpty(x.ActionName))
-                parts.Add($"{x.Controller}/{x.ActionName}");
+                parts.Add($"{x.StationCode} {x.Controller}/{x.ActionName}");
             else
-                parts.Add("第一層標籤: ");
+                parts.Add(x.StationCode + " 最外層標籤 : ");
 
             // HttpMethod
             if (!string.IsNullOrEmpty(x.HttpMethod))
