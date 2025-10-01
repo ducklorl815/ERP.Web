@@ -1,6 +1,7 @@
 ﻿using Dapper;
 using ERP.Web.Models.Models.ControllerSetting;
 using ERP.Web.Utility.Models;
+using ERP.Web.Utility.Paging;
 using Microsoft.Extensions.Options;
 using System.Data.SqlClient;
 
@@ -281,6 +282,53 @@ namespace ERP.Web.Models.Respository.ControllerSetting
                 throw;
             }
 
+        }
+        public async Task<int> GetIconCountAsync()
+        {
+            var sql = @"
+                        SELECT COUNT(*)
+                        FROM Controller.dbo.FontAwesomeMain
+                        WHERE Deleted = 0 AND Enabled = 1
+                        ";
+
+            using (var conn = new SqlConnection(_dBList.erp))
+            {
+                var result = await conn.QueryFirstOrDefaultAsync<int>(sql);
+                return result;
+            }
+        }
+        /// <summary>
+        /// 取得IconClass清單
+        /// </summary>
+        /// <param name="page"></param>
+        /// <param name="pageSize"></param>
+        /// <returns></returns>
+        public async Task<List<IconModel>> GetIconList(Paging pager)
+        {
+            var sqlparam = new DynamicParameters();
+            var sql = @"
+                        SELECT ID,
+                               seq,
+                               IconClass,
+                               IconName,
+                               version,
+                               Enabled,
+                               Deleted
+                        FROM Controller.dbo.FontAwesomeMain
+                        WHERE Deleted = 0 AND Enabled = 1
+                        ORDER BY seq ASC
+                        ";
+            //分頁功能
+            sqlparam.Add("Offset", pager.ItemStart - 1);
+            sqlparam.Add("Fetch", pager.PageSize);
+
+            sql += "offset @Offset Rows ";
+            sql += "fetch next @Fetch Rows Only ";
+            using (var conn = new SqlConnection(_dBList.erp))
+            {
+                var result = await conn.QueryAsync<IconModel>(sql, sqlparam);
+                return result.ToList();
+            }
         }
 
         public async Task<List<StationMainModel>> GetStationMainDataAsync()

@@ -123,7 +123,10 @@
                         <input name="__RequestVerificationToken" type="hidden" value="CfDJ8...">
 
                         @* 樣式光箱 *@
-                        @await Html.PartialAsync("ControllerSetting/_IconClassPreview")
+                        <div class="modal-body" id="icon-list-container">
+                            @* 一開始先載入第一頁 *@
+                            @await Html.PartialAsync("_IconListPartial", Model)
+                        </div>
                     </form>
                 </div>
             </div>

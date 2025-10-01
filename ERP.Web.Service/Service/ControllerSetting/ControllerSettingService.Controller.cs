@@ -1,6 +1,7 @@
 ﻿using ERP.Web.Models.Models.ControllerSetting;
 using ERP.Web.Service.ViewModels.ControllerSetting;
 using ERP.Web.Utility.Models;
+using ERP.Web.Utility.Paging;
 using Microsoft.AspNetCore.Mvc.Rendering;
 
 
@@ -16,6 +17,9 @@ namespace ERP.Web.Service.Service.ControllerSetting
             List<StationMainModel> stationDataTask = await _controllerSettingRepo.GetStationMainDataAsync();
 
             result.ControllerListItem = await GetControllerListItemAsync("");
+            var IconList = await GetIconList();
+            result.IconList = IconList.IconList;
+            result.Pager = IconList.Pager;
 
             result.StationListItem = stationDataTask.Select(s => new SelectListItem
             {
@@ -108,11 +112,25 @@ namespace ERP.Web.Service.Service.ControllerSetting
                 Sort = param?.Sort ?? 0,
                 AbandonReason = string.Empty
             };
-
+            var IconList = await GetIconList();
+            result.IconList = IconList.IconList;
 
             result.IsSuccess = await _controllerSettingRepo.ControllerDataMaintain(MainData);
             return result;
 
+        }
+        public async Task<ControllerSettingDataMaintainViewModel_result> GetIconList(int page = 1, int pageSize = 48)
+        {
+            var result = new ControllerSettingDataMaintainViewModel_result();
+
+            var datacount = await _controllerSettingRepo.GetIconCountAsync();
+
+            var pager = new Paging(page, pageSize, datacount);
+
+            var icons = await _controllerSettingRepo.GetIconList(pager);
+            result.IconList = icons;
+            result.Pager = pager;
+            return result;
         }
 
         public async Task<ControllerSettingSearchListViewModel_result> ControllerSettingSearchList(ControllerSettingSearchListViewModel_param param)
@@ -126,5 +144,6 @@ namespace ERP.Web.Service.Service.ControllerSetting
 
             return result;
         }
+
     }
 }

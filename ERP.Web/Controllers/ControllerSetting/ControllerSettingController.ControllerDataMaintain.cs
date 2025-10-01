@@ -25,5 +25,13 @@ namespace ERP.Web.Controllers.ControllerSetting
             var result = await _controllerSettingService.GetControllerListItemAsync(StationMainID);
             return Json(result);
         }
+
+        public async Task<IActionResult> IconList(int page = 1, int pageSize = 48)
+        {
+
+            var result = await _controllerSettingService.GetIconList(page, pageSize);
+
+            return PartialView("ControllerSetting/_IconListPartial", result);
+        }
     }
 }

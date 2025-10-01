@@ -1,4 +1,6 @@
 ﻿using ERP.Web.Models.Models.ControllerSetting;
+using ERP.Web.Utility.Models;
+using ERP.Web.Utility.Paging;
 using Microsoft.AspNetCore.Mvc.Rendering;
 
 namespace ERP.Web.Service.ViewModels.ControllerSetting
@@ -53,10 +55,11 @@ namespace ERP.Web.Service.ViewModels.ControllerSetting
         public List<SelectListItem> StationListItem { get; set; }
 
         public List<SelectListItem> ControllerListItem { get; set; }
+        public List<IconModel> IconList { get; set; }
         public bool IsSuccess { get; set; }
         public string Msg { get; set; }
     }
-    public class ControllerSettingDataMaintainViewModel_param
+    public class ControllerSettingDataMaintainViewModel_param : PageViewModel
     {
         public Guid StationMainID { get; set; }
         public string DisplayName { get; set; }
