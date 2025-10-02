@@ -21,7 +21,10 @@ function ListDataAjax(page, callback) {
         data: data,
         method: obj.method
     }).done(function (data) {
+        console.log(data)
+        console.log(obj)
         $(obj.wrapperContent).html(data);
+
         if (obj.footable) {
             $('.footable').footable({ paginate: false });
         }

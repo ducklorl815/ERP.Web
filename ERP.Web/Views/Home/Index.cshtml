@@ -1,8 +1,39 @@
 ﻿@{
     ViewData["Title"] = "Home Page";
 }
-
+<form id="ImportFontJson" enctype="multipart/form-data">
+    <input type="file" name="jsonFile" accept=".json" />
+    <button type="submit" class="btn btn-primary">上傳並匯入</button>
+</form>
 <div class="text-center">
     <h1 class="display-4">Welcome</h1>
     <p>Learn about <a href="https://docs.microsoft.com/aspnet/core">building Web apps with ASP.NET Core</a>.</p>
 </div>
+
+
+
+
+
+<script>
+    $("#ImportFontJson").submit(function (e) {
+        e.preventDefault();
+
+        var formData = new FormData(this);
+
+        $.ajax({
+            url: '@Url.Action("ImportFontJson", "Tools")',
+            type: 'POST',
+            data: formData,
+            processData: false,
+            contentType: false,
+            success: function (res) {
+                if (res.isSuccess) {
+                    alert("成功匯入");
+                } else {
+                    alert("失敗: " + res.Msg);
+                }
+            }
+        });
+    });
+
+</script>

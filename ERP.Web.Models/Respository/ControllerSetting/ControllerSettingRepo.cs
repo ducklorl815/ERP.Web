@@ -303,18 +303,18 @@ namespace ERP.Web.Models.Respository.ControllerSetting
         /// <param name="page"></param>
         /// <param name="pageSize"></param>
         /// <returns></returns>
-        public async Task<List<IconModel>> GetIconList(Paging pager)
+        public async Task<List<IconUtilityModel>> GetIconList(Paging pager)
         {
             var sqlparam = new DynamicParameters();
             var sql = @"
-                        SELECT ID,
-                               seq,
-                               IconClass,
-                               IconName,
-                               version,
-                               Enabled,
-                               Deleted
-                        FROM Controller.dbo.FontAwesomeMain
+                        SELECT ID
+                              ,seq
+                              ,IconClass
+                              ,IconStyle
+                              ,version
+                              ,Enabled
+                              ,Deleted
+                          FROM Controller.dbo.FontAwesomeMain
                         WHERE Deleted = 0 AND Enabled = 1
                         ORDER BY seq ASC
                         ";
@@ -326,7 +326,7 @@ namespace ERP.Web.Models.Respository.ControllerSetting
             sql += "fetch next @Fetch Rows Only ";
             using (var conn = new SqlConnection(_dBList.erp))
             {
-                var result = await conn.QueryAsync<IconModel>(sql, sqlparam);
+                var result = await conn.QueryAsync<IconUtilityModel>(sql, sqlparam);
                 return result.ToList();
             }
         }

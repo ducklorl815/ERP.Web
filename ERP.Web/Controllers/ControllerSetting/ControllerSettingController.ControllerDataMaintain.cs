@@ -31,7 +31,7 @@ namespace ERP.Web.Controllers.ControllerSetting
 
             var result = await _controllerSettingService.GetIconList(page, pageSize);
 
-            return PartialView("ControllerSetting/_IconListPartial", result);
+            return PartialView("_IconListPartial", result);
         }
     }
 }

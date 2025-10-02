@@ -1,48 +1,39 @@
 ﻿@model ERP.Web.Service.ViewModels.ControllerSetting.ControllerSettingDataMaintainViewModel_result
 
 
+<partial name="~/Views/Shared/_Page.cshtml" model="@Model.Pager" />
 
-
-﻿<div class="modal fade" id="IconClassPreview" tabindex="-1" role="dialog">
-    <div class="modal-dialog modal-xxl" role="document">
-        <div class="modal-content container-lg couponForm">
-            <div class="modal-header" style="border: 0;">
-            </div>
-            <div class="modal-body">
-                <partial name="~/Views/Shared/_Page.cshtml" model="@Model.Pager" />
-                <div class="row">
-                    @if (Model.IconList != null)
-                        @foreach (var icon in Model.IconList)
-                        {
-                            <div class="col-2 text-center mb-4">
-                                <div class="border rounded p-3 icon-item" data-icon="@icon.IconClass" style="cursor:pointer;">
-                                    <i class="@icon.IconClass fa-2x"></i>
-                                    <div class="mt-2 small">@icon.IconName</div>
-                                </div>
-                            </div>
-                        }
+<div class="row footable">
+    @if (Model.IconList != null)
+    {
+        foreach (var icon in Model.IconList)
+        {
+            <div class="col-2 text-center mb-4">
+                <div class="border rounded p-3 icon-item" data-icon="@icon.IconClass" style="cursor:pointer;">
+                    <i class="fa @icon.IconClass fa-2x"></i>
+                    <div class="mt-2 small">@icon.IconClass</div>
                 </div>
-                <partial name="~/Views/Shared/_Page.cshtml" model="@Model.Pager" />
             </div>
-        </div>
-    </div>
+        }
+    }
 </div>
+
+<partial name="~/Views/Shared/_Page.cshtml" model="@Model.Pager" />
 
 
 <script>
-    $(function () {
+        $(function () {
+        // 開啟 Modal
+        $("#OpenIconModal").on("click", function (e) {
+            e.preventDefault();
+            $("#IconClassPreview").modal("show");
+        });
+
         // 選取 Icon
         $("#IconClassPreview").on("click", ".icon-item", function () {
             var selectedIcon = $(this).data("icon");
-            $("#SelectedIconInput").val(selectedIcon);
+            $("#IconClass").val(selectedIcon);
             $("#IconClassPreview").modal("hide");
-        });
-
-        // 分頁 Ajax，只更新 modal body
-        $("#IconClassPreview").on("click", ".pagination a", function (e) {
-            e.preventDefault();
-            var url = $(this).attr("href");
-            $("#icon-list-container").load(url);
         });
     });
 </script>

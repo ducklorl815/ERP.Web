@@ -55,7 +55,7 @@ namespace ERP.Web.Service.ViewModels.ControllerSetting
         public List<SelectListItem> StationListItem { get; set; }
 
         public List<SelectListItem> ControllerListItem { get; set; }
-        public List<IconModel> IconList { get; set; }
+        public List<IconUtilityModel> IconList { get; set; }
         public bool IsSuccess { get; set; }
         public string Msg { get; set; }
     }
