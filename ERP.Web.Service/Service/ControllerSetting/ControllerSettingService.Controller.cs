@@ -1,7 +1,6 @@
 ﻿using ERP.Web.Models.Models.ControllerSetting;
 using ERP.Web.Service.ViewModels.ControllerSetting;
 using ERP.Web.Utility.Models;
-using ERP.Web.Utility.Paging;
 using Microsoft.AspNetCore.Mvc.Rendering;
 
 
@@ -10,7 +9,7 @@ namespace ERP.Web.Service.Service.ControllerSetting
 {
     public partial class ControllerSettingService
     {
-        public async Task<ControllerSettingDataMaintainViewModel_result> GetControllerDataMaintain()
+        public async Task<ControllerSettingDataMaintainViewModel_result> ControllerCreate()
         {
             var result = new ControllerSettingDataMaintainViewModel_result();
 
@@ -27,6 +26,49 @@ namespace ERP.Web.Service.Service.ControllerSetting
                 Value = s.ID.ToString()
             }).ToList();
 
+            return result;
+
+        }
+
+        public async Task<ControllerSettingDataMaintainViewModel_result> ControllerCreate(ControllerSettingDataMaintainViewModel_param param)
+        {
+
+            var result = new ControllerSettingDataMaintainViewModel_result()
+            {
+                IsSuccess = false
+            };
+
+
+            var MainData = new ControllerMainModel
+            {
+                Controller = param?.Controller ?? string.Empty,
+                ParentControllerMainID = param?.ParentControllerMainID != Guid.Empty
+                                ? param.ParentControllerMainID
+                                : Guid.Empty,
+                IconClass = param?.IconClass ?? string.Empty,
+                ControllerDesc = string.IsNullOrEmpty(param?.ControllerDesc)
+                                ? string.Empty
+                                : param.ControllerDesc,
+                Action = param?.Action ?? string.Empty,
+                DisplayName = param?.DisplayName ?? string.Empty,
+                FrontNumber = string.IsNullOrEmpty(param?.FrontNumber)
+                                ? string.Empty
+                                : param.FrontNumber,
+                HttpMethod = param?.HttpMethod ?? string.Empty,
+                IsBlank = param?.IsBlank ?? false,
+                IsMenu = param?.IsMenu ?? false,
+                Level = param?.Level ?? 0,
+                StationMainID = param?.StationMainID != Guid.Empty
+                                ? param.StationMainID
+                                : Guid.Empty,
+                PageNumber = param?.PageNumber ?? 0,
+                Sort = param?.Sort ?? 0,
+                AbandonReason = string.Empty
+            };
+            var IconList = await GetIconList();
+            result.IconList = IconList.IconList;
+
+            result.IsSuccess = await _controllerSettingRepo.ControllerCreate(MainData);
             return result;
 
         }
@@ -52,86 +94,6 @@ namespace ERP.Web.Service.Service.ControllerSetting
 
             return result;
         }
-        /// <summary>
-        /// 建置控制器文字工具
-        /// </summary>
-        /// <param name="x"></param>
-        /// <returns></returns>
-        private string BuildText(StationMainModel x)
-        {
-            var parts = new List<string>();
-
-            // Controller/ActionName
-            if (!string.IsNullOrEmpty(x.ActionName))
-                parts.Add($"{x.StationCode} {x.Controller}/{x.ActionName}");
-            else
-                parts.Add(x.StationCode + " 最外層標籤 : ");
-
-            // HttpMethod
-            if (!string.IsNullOrEmpty(x.HttpMethod))
-                parts.Add(x.HttpMethod);
-
-            // DisplayName
-            if (!string.IsNullOrEmpty(x.DisplayName))
-                parts.Add(x.DisplayName);
-
-            return string.Join(" ", parts);
-        }
-        public async Task<ControllerSettingDataMaintainViewModel_result> ControllerDataMaintain(ControllerSettingDataMaintainViewModel_param param)
-        {
-
-            var result = new ControllerSettingDataMaintainViewModel_result()
-            {
-                IsSuccess = false
-            };
-
-
-            var MainData = new ControllerMainModel
-            {
-                Controller = param?.Controller ?? string.Empty,
-                ParentControllerMainID = param?.ParentControllerMainID != Guid.Empty
-                                ? param.ParentControllerMainID
-                                : Guid.Empty,
-                IconClass = param?.IconClass ?? string.Empty,
-                ControllerDesc = string.IsNullOrEmpty(param?.ControllerDesc)
-                                ? string.Empty
-                                : param.ControllerDesc,
-                ControllerActionID = await _controllerSettingRepo.ControllerActionDataMaintain(param.ActionName),
-                DisplayName = param?.DisplayName ?? string.Empty,
-                FrontNumber = string.IsNullOrEmpty(param?.FrontNumber)
-                                ? string.Empty
-                                : param.FrontNumber,
-                HttpMethod = param?.HttpMethod ?? string.Empty,
-                IsBlank = param?.IsBlank ?? false,
-                IsMenu = param?.IsMenu ?? false,
-                Level = param?.Level ?? 0,
-                StationMainID = param?.StationMainID != Guid.Empty
-                                ? param.StationMainID
-                                : Guid.Empty,
-                PageNumber = param?.PageNumber ?? 0,
-                Sort = param?.Sort ?? 0,
-                AbandonReason = string.Empty
-            };
-            var IconList = await GetIconList();
-            result.IconList = IconList.IconList;
-
-            result.IsSuccess = await _controllerSettingRepo.ControllerDataMaintain(MainData);
-            return result;
-
-        }
-        public async Task<ControllerSettingDataMaintainViewModel_result> GetIconList(int page = 1, int pageSize = 48)
-        {
-            var result = new ControllerSettingDataMaintainViewModel_result();
-
-            var datacount = await _controllerSettingRepo.GetIconCountAsync();
-
-            var pager = new Paging(page, pageSize, datacount);
-
-            var icons = await _controllerSettingRepo.GetIconList(pager);
-            result.IconList = icons;
-            result.Pager = pager;
-            return result;
-        }
 
         public async Task<ControllerSettingSearchListViewModel_result> ControllerSettingSearchList(ControllerSettingSearchListViewModel_param param)
         {
@@ -145,5 +107,16 @@ namespace ERP.Web.Service.Service.ControllerSetting
             return result;
         }
 
+        public async Task<ControllerSettingDataMaintainViewModel_result> GetActDataMaintain(string ID)
+        {
+            var result = new ControllerSettingDataMaintainViewModel_result();
+            ControllerMainModel ActData = await _controllerSettingRepo.GetActDataMaintain(ID);
+
+            result = await GetControllerSettingResultAsync(ActData);
+
+            result.ControllerMain = ActData;
+
+            return result;  
+        }
     }
 }

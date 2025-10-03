@@ -9,7 +9,7 @@
             ? _sharedDomain.Value[item.StationMainID]
             : "";
 
-        var mainHref = string.IsNullOrEmpty(item.Controller) ? "#" : $"{domain}{item.Controller}/{item.ActionName}";
+        var mainHref = string.IsNullOrEmpty(item.Controller) ? "#" : $"{domain}{item.Controller}/{item.Action}";
 
         var hasChildren = item.Children != null && item.Children.Any();
 

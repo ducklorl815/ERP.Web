@@ -1,17 +1,27 @@
 ﻿@model ERP.Web.Service.ViewModels.ControllerSetting.ControllerSettingDataMaintainViewModel_result
 
+<style>
+
+    /* 滑鼠移到整個框時，整個 div 背景變黃色 */
+    .icon-item:hover {
+        background-color: gold;
+        border-color: gold; /* 邊框也跟著變色（可選） */
+        color: #000; /* 讓文字保持黑色，避免黃底黃字 */
+    }
+
+</style>
 
 <partial name="~/Views/Shared/_Page.cshtml" model="@Model.Pager" />
 
-<div class="row footable">
+<div class="row footable mb-3 mt-3">
     @if (Model.IconList != null)
     {
         foreach (var icon in Model.IconList)
         {
-            <div class="col-2 text-center mb-4">
-                <div class="border rounded p-3 icon-item" data-icon="@icon.IconClass" style="cursor:pointer;">
-                    <i class="fa @icon.IconClass fa-2x"></i>
-                    <div class="mt-2 small">@icon.IconClass</div>
+            <div class="col-2 p-1">
+                <div class="border rounded p-3 icon-item d-flex align-items-center" data-icon="@icon.IconStyle @icon.IconClass" style="cursor:pointer; gap:10px;">
+                    <i class="@icon.IconStyle @icon.IconClass fa-1x"></i>
+                    <span class="small" style="font-size:14px">@icon.IconName</span>
                 </div>
             </div>
         }

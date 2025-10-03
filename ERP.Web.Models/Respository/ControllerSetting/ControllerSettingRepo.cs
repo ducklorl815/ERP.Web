@@ -22,66 +22,13 @@ namespace ERP.Web.Models.Respository.ControllerSetting
             CreateUser = "C2C93ACC-74AF-4CD6-8D73-70FE1E981041";
             CreateDept = "35FE68C1-9F3F-458D-A832-D53A4B96C6EE";
         }
-        /// <summary>
-        /// 新增Action
-        /// </summary>
-        /// <param name="ActionName"></param>
-        /// <returns></returns>
-        public async Task<Guid> ControllerActionDataMaintain(string ActionName)
-        {
-            var sqlparam = new DynamicParameters();
-            sqlparam.Add("ActionName", ActionName);
-            sqlparam.Add("CreateUser", CreateUser);
-            sqlparam.Add("CreateDept", CreateDept);
-            sqlparam.Add("ModifyUser", CreateUser);
-            sqlparam.Add("ModifyDept", CreateDept);
-            var sql = $@"
-                    INSERT INTO Controller.dbo.ControllerAction
-                               (ID
-                               ,ActionName
-                               ,ActionDesc
-                               ,AbandonReason
-                               ,CreateDate
-                               ,CreateUser
-                               ,CreateDept
-                               ,ModifyDate
-                               ,ModifyUser
-                               ,ModifyDept
-                               ,Enabled
-                               ,Deleted)
-                         OUTPUT inserted.ID 
-                         VALUES
-                               (NEWID()
-                               ,@ActionName
-                               ,''
-                               ,''
-                               ,GETDATE()
-                               ,@CreateUser
-                               ,@CreateDept
-                               ,GETDATE()
-                               ,@ModifyUser
-                               ,@ModifyDept
-                               ,1
-                               ,0)
-                        ";
 
-            using var conn = new SqlConnection(_dBList.erp);
-            try
-            {
-                var result = await conn.QueryFirstOrDefaultAsync<Guid>(sql, sqlparam);
-                return result;
-            }
-            catch (Exception)
-            {
-                return Guid.Empty;
-            }
-        }
         /// <summary>
         /// 新增Controller
         /// </summary>
         /// <param name="param"></param>
         /// <returns></returns>
-        public async Task<bool> ControllerDataMaintain(ControllerMainModel param)
+        public async Task<bool> ControllerCreate(ControllerMainModel param)
         {
             var sqlparam = new DynamicParameters();
             //foreach (var property in param.GetType().GetProperties())
@@ -91,7 +38,7 @@ namespace ERP.Web.Models.Respository.ControllerSetting
             sqlparam.Add("StationMainID", param.StationMainID);
             sqlparam.Add("DisplayName", param.DisplayName);
             sqlparam.Add("Controller", param.Controller);
-            sqlparam.Add("ControllerActionID", param.ControllerActionID);
+            sqlparam.Add("Action", param.Action);
             sqlparam.Add("HttpMethod", param.HttpMethod);
             sqlparam.Add("ParentControllerMainID", param.ParentControllerMainID);
             sqlparam.Add("PageNumber", param.PageNumber);
@@ -115,7 +62,7 @@ namespace ERP.Web.Models.Respository.ControllerSetting
                                    ,ControllerDesc
                                    ,HttpMethod
                                    ,ParentControllerMainID
-                                   ,ControllerActionID
+                                   ,Action
                                    ,StationMainID
                                    ,Level
                                    ,Sort
@@ -139,7 +86,7 @@ namespace ERP.Web.Models.Respository.ControllerSetting
                                    ,@ControllerDesc
                                    ,@HttpMethod
                                    ,@ParentControllerMainID
-                                   ,@ControllerActionID
+                                   ,@Action
                                    ,@StationMainID
                                    ,@Level
                                    ,@Sort
@@ -170,33 +117,6 @@ namespace ERP.Web.Models.Respository.ControllerSetting
             }
         }
 
-        public async Task<List<ControllerSettingActionMainModel>> ControllerSettingActionList(ControllerSettingActionMainModel_param actionParam)
-        {
-            var sql = $@"
-                        SELECT 
-                            ca.ID as ActionID
-		                    ,cm.Controller
-		                    ,cm.ID as ControllerID
-		                    ,cm.HttpMethod
-		                    ,ActionName
-		                    ,ActionDesc
-		                    ,ca.Enabled
-		                    ,ca.Deleted
-                        FROM Controller.dbo.ControllerAction ca
-                        JOIN  Controller.dbo.ControllerMain cm ON cm.ControllerActionID = ca.ID
-                        ";
-
-            using var conn = new SqlConnection(_dBList.erp);
-            try
-            {
-                var result = await conn.QueryAsync<ControllerSettingActionMainModel>(sql);
-                return result.ToList();
-            }
-            catch (Exception)
-            {
-                return null;
-            }
-        }
 
         /// <summary>
         /// 撈取Controller,Action關聯
@@ -208,9 +128,11 @@ namespace ERP.Web.Models.Respository.ControllerSetting
                     SELECT cm.ID
                           ,cm.Seq
 	                      ,stat.StationName
+	                      ,stat.Domain
 	                      ,stat.StationCode
                           ,cm.Controller
-	                      ,ca.ActionName
+	                      ,cm.Action
+						  ,cm.DisplayName
                           ,cm.HttpMethod
                           ,cm.Level
                           ,cm.Sort
@@ -218,11 +140,10 @@ namespace ERP.Web.Models.Respository.ControllerSetting
                           ,cm.ParentControllerMainID
                           ,cm.StationMainID
                           ,cm.IsMenu
-	                      ,ca.ActionDesc
                       FROM Controller.dbo.ControllerMain cm
                       LEFT JOIN Controller.dbo.ControllerStationMain stat ON stat.ID = cm.StationMainID
-                      LEFT JOIN Controller.dbo.ControllerAction ca ON ca.ID = cm.ControllerActionID
                       LEFT JOIN Controller.dbo.ControllerMain cm2 ON cm2.ID = cm.ParentControllerMainID
+					  ORDER BY StationMainID, ParentSeq 
                         ";
 
             using var conn = new SqlConnection(_dBList.erp);
@@ -236,6 +157,44 @@ namespace ERP.Web.Models.Respository.ControllerSetting
                 return null;
             }
         }
+
+        public async Task<ControllerMainModel> GetActDataMaintain(string ID)
+        {
+            var sqlparam = new DynamicParameters();
+            sqlparam.Add("ID", ID);
+            var sql = @"
+                        SELECT ID
+                              ,Controller
+                              ,Action
+                              ,DisplayName
+                              ,ControllerDesc
+                              ,HttpMethod
+                              ,ParentControllerMainID
+                              ,ControllerActionID
+                              ,StationMainID
+                              ,PageNumber
+                              ,Level
+                              ,Sort
+                              ,IsMenu
+                              ,FrontNumber
+                              ,IconClass
+                              ,IsBlank
+                              ,ModifyDate
+                              ,ModifyUser
+                              ,ModifyDept
+                          FROM Controller.dbo.ControllerMain
+                          WHERE ID = @ID
+                          AND Enabled = 1
+                          AND Deleted = 0
+                        ";
+
+            using (var conn = new SqlConnection(_dBList.erp))
+            {
+                var result = await conn.QueryFirstOrDefaultAsync<ControllerMainModel>(sql, sqlparam);
+                return result;
+            }
+        }
+
         /// <summary>
         /// 取得控制器資訊
         /// </summary>
@@ -249,13 +208,12 @@ namespace ERP.Web.Models.Respository.ControllerSetting
                         SELECT cm.ID
                               ,cm.Controller
 							  ,cs.StationCode
-	                          ,case when ca.ActionName is NULL then '' else  ca.ActionName end as ActionName
+	                          ,cm.Action
                               ,DisplayName
                               ,HttpMethod
                               ,cs.Domain
 							  ,cm.StationMainID
                           FROM Controller.dbo.ControllerMain cm
-                          LEFT JOIN Controller.dbo.ControllerAction ca ON ca.ID = cm.ControllerActionID AND ca.Enabled = 1 AND ca.Deleted = 0
                           JOIN Controller.dbo.ControllerStationMain cs ON cs.ID = cm.StationMainID AND cs.Enabled = 1 AND cs.Deleted = 0
                           WHERE cm.Enabled = 1
                           AND cm.Deleted = 0
@@ -310,11 +268,12 @@ namespace ERP.Web.Models.Respository.ControllerSetting
                         SELECT ID
                               ,seq
                               ,IconClass
+                              ,REPLACE(IconClass, 'fa-', '') AS IconName
                               ,IconStyle
                               ,version
                               ,Enabled
                               ,Deleted
-                          FROM Controller.dbo.FontAwesomeMain
+                        FROM Controller.dbo.FontAwesomeMain
                         WHERE Deleted = 0 AND Enabled = 1
                         ORDER BY seq ASC
                         ";

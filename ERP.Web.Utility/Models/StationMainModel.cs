@@ -17,7 +17,7 @@
         /// <summary>控制器名稱</summary>
         public string Controller { get; set; }
         /// <summary>動作名稱</summary>
-        public string ActionName { get; set; }
+        public string Action { get; set; }
 
         /// <summary>顯示名稱</summary>
         public string DisplayName { get; set; }

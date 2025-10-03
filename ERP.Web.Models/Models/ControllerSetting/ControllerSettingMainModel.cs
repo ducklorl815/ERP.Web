@@ -9,7 +9,7 @@
         public string HttpMethod { get; set; }
 
         public Guid ParentControllerMainID { get; set; }
-        public Guid ControllerActionID { get; set; }
+        public string Action { get; set; }
         public Guid StationMainID { get; set; }
         public int PageNumber { get; set; }
         public int Level { get; set; }
@@ -28,7 +28,8 @@
         public string StationName { get; set; }
         public string StationCode { get; set; }
         public string Controller { get; set; }
-        public string ActionName { get; set; }
+        public string Action { get; set; }
+        public string DisplayName { get; set; }
         public string HttpMethod { get; set; }
         public int Level { get; set; }
         public int Sort { get; set; }
@@ -36,6 +37,7 @@
         public Guid ParentControllerMainID { get; set; }
         public int IsMenu { get; set; }
         public string ActionDesc { get; set; }
+        public string Domain { get; set; }
 
     }
 }

@@ -25,7 +25,7 @@ namespace ERP.Web.Utility.Respository
                                         c.ID,
                                         c.Controller,
                                         c.DisplayName,
-                                        c.ControllerActionID,
+                                        c.Action,
                                         c.ControllerDesc,
                                         c.HttpMethod,
                                         c.StationMainID,
@@ -49,7 +49,7 @@ namespace ERP.Web.Utility.Respository
                                         c.ID,
                                         c.Controller,
                                         c.DisplayName,
-                                        c.ControllerActionID,
+                                        c.Action,
                                         c.ControllerDesc,
                                         c.HttpMethod,
                                         c.StationMainID,
@@ -67,11 +67,8 @@ namespace ERP.Web.Utility.Respository
                                     INNER JOIN ControllerTree ct ON c.ParentControllerMainID = ct.ID
                                 )
                                 SELECT 
-                                    ct.*,
-                                    ca.ActionName
+                                    ct.*
                                 FROM ControllerTree ct
-                                LEFT JOIN Controller.dbo.ControllerAction ca 
-                                    ON ca.ID = ct.ControllerActionID
                                 ORDER BY ct.Level, ct.Sort
 
                             ";

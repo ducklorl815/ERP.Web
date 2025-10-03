@@ -10,5 +10,7 @@ namespace ERP.Web.Utility.Models
         /// FontAwesome 的 class，例如 "fa-solid fa-house"
         /// </summary>
         public string IconClass { get; set; }
+
+        public string IconName { get; set; }
     }
 }

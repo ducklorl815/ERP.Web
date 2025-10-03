@@ -10,7 +10,7 @@
         public string ID { get; set; }
         public string ParentControllerMainID { get; set; }
         public string Controller { get; set; }
-        public string ActionName { get; set; }       // 來自 ControllerAction
+        public string Action { get; set; }       // 來自 ControllerAction
         public string ControllerActionID { get; set; }
         public string DisplayName { get; set; }
         public string ControllerDesc { get; set; }

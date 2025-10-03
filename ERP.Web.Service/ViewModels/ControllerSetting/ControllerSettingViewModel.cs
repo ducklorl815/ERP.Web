@@ -25,7 +25,7 @@ namespace ERP.Web.Service.ViewModels.ControllerSetting
         public Guid ActionID { get; set; }
         public string Controller { get; set; }
         public Guid ControllerID { get; set; }
-        public string ActionName { get; set; }
+        public string Action { get; set; }
         public string HttpMethod { get; set; }
         public string ActionDesc { get; set; }
         public string Enabled { get; set; }
@@ -53,9 +53,9 @@ namespace ERP.Web.Service.ViewModels.ControllerSetting
     public class ControllerSettingDataMaintainViewModel_result : ControllerSettingDataMaintainViewModel_param
     {
         public List<SelectListItem> StationListItem { get; set; }
-
         public List<SelectListItem> ControllerListItem { get; set; }
         public List<IconUtilityModel> IconList { get; set; }
+        public ControllerMainModel ControllerMain { get; set; }
         public bool IsSuccess { get; set; }
         public string Msg { get; set; }
     }
@@ -64,7 +64,7 @@ namespace ERP.Web.Service.ViewModels.ControllerSetting
         public Guid StationMainID { get; set; }
         public string DisplayName { get; set; }
         public string Controller { get; set; }
-        public string ActionName { get; set; }
+        public string Action { get; set; }
         public string HttpMethod { get; set; }
         public Guid ParentControllerMainID { get; set; }
         //public int PageNumber { get; set; }

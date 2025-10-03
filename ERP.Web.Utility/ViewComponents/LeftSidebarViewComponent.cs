@@ -79,7 +79,7 @@ namespace ERP.Web.Utility.ViewComponents
                     ParentControllerMainID = s.ParentControllerMainID?.ToString() ?? "00000000-0000-0000-0000-000000000000",
                     Level = s.Level,
                     Controller = s.Controller ?? string.Empty,
-                    ActionName = s.ActName ?? s.ActionName ?? string.Empty,
+                    Action = s.ActName ?? s.Action ?? string.Empty,
                     DisplayName = $"{s.FrontNumber ?? string.Empty}.{s.Name ?? s.DisplayName ?? string.Empty}",
                     IconClass = s.IconClass ?? string.Empty,
                     Sort = s.Sort,
@@ -143,7 +143,7 @@ namespace ERP.Web.Utility.ViewComponents
         {
             // 如果是末端節點且有 Controller 和 Action，則為有效選單Menu
             if (string.IsNullOrEmpty(menu.Controller) == false &&
-                string.IsNullOrEmpty(menu.ActionName) == false)
+                string.IsNullOrEmpty(menu.Action) == false)
             {
                 return true;
             }

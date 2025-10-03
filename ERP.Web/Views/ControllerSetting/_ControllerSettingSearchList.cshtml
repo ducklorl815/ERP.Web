@@ -5,17 +5,16 @@
         <thead>
             <tr>
                 <th data-sort-ignore="true">序號</th>
-                <th data-sort-ignore="true">StationName</th>
-                <th data-sort-ignore="true">StationCode</th>
-                <th data-sort-ignore="true">Controller</th>
-                <th data-sort-ignore="true">Action</th>
-                <th data-sort-ignore="true">Get/Post</th>
-                <th data-sort-ignore="true">Action敘述</th>
-                <th data-sort-ignore="true">層數</th>
+                <th data-sort-ignore="true">站台碼</th>
+                <th data-sort-ignore="true">控制器</th>
+                <th data-sort-ignore="true">活動名稱</th>
+                <th data-sort-ignore="true">使用方法</th>
+                <th data-sort-ignore="true">顯示名稱</th>
                 <th data-sort-ignore="true">排序</th>
                 <th data-sort-ignore="true">父序號</th>
-                <th data-sort-ignore="true">顯示</th>
-                <th data-sort-ignore="true" class="text-center" style="width:50px;">功能</th>
+                <th data-sort-ignore="true">站台</th>
+                <th data-sort-ignore="true">是否顯示</th>
+                <th data-sort-ignore="true" class="text-center" style="width:50px;">刪除</th>
             </tr>
         </thead>
         <tbody>
@@ -23,11 +22,9 @@
             {
                 <tr>
                     <td>
-                        <a target="_blank" asp-action="ActDetail" asp-route-id="@item.ID">@item.Seq</a>
+                        <a asp-action="ActDataMaintain" asp-route-id="@item.ID">@item.Seq</a>
                     </td>
-                    <td>
-                        @item.StationName
-                    </td>
+
                     <td>
                         @item.StationCode
                     </td>
@@ -35,28 +32,38 @@
                         @item.Controller
                     </td>
                     <td>
-                        @item.ActionName
+                        @item.Action
                     </td>
                     <td>
                         @item.HttpMethod
                     </td>
                     <td>
-                        @item.ActionDesc
-                    </td>
-                    <td>
-                        @item.Level
+                        @item.DisplayName
                     </td>
                     <td>
                         @item.Sort
                     </td>
                     <td>
-                        <a target="_blank" asp-action="ActDetail" asp-route-id="@item.ParentControllerMainID">@item.ParentSeq</a>
+                        @if (@item.ParentSeq != 0)
+                        {
+                            <a asp-action="ActDataMaintain" asp-route-id="@item.ParentControllerMainID">@item.ParentSeq</a>
+                        }
                     </td>
                     <td>
-                        @item.IsMenu
+                        @item.Domain
+                    </td>
+                    <td>
+                        @if (@item.IsMenu == 1)
+                        {
+                            @:顯示
+                        }
+                        else
+                        {
+                            @:隱藏
+                        }
                     </td>
                     <td class="text-center">
-                        <i data-id="@item.ID" class="fa fa-trash-o delBtn" title="刪除" style="cursor:pointer;"></i>
+                        <i data-id="@item.ID" class="fa-solid fa-xmark delBtn" onclick="DeleteController(@item.ID)" title="刪除" style="cursor:pointer;"></i>
                     </td>
                 </tr>
             }

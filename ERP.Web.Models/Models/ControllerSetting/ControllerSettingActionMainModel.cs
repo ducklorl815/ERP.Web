@@ -24,7 +24,7 @@
         public Guid ActionID { get; set; }
         public string Controller { get; set; }
         public Guid ControllerID { get; set; }
-        public string ActionName { get; set; }
+        public string Action { get; set; }
         public string HttpMethod { get; set; }
         public string ActionDesc { get; set; }
         public string Enabled { get; set; }

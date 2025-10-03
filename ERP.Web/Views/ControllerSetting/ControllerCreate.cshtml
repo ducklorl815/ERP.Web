@@ -21,7 +21,7 @@
         <div class="col-lg-12">
             <div class="ibox">
                 <div class="ibox-content">
-                    <form id="ControllerDataMaintainForm" method="post" onkeydown="return event.keyCode != 13;" action="/ControllerSetting/ControllerDataMaintain" novalidate="novalidate">
+                    <form id="ControllerCreateForm" method="post" onkeydown="return event.keyCode != 13;" action="/ControllerSetting/ControllerCreate" novalidate="novalidate">
                         <div class="row">
                             <div class="col-sm-12 col-form-label font-weight-bold text-right">
                                 維護人日：
@@ -31,7 +31,7 @@
                         <div class="row">
                             <label for="StationMainID" class="col-sm-2 col-form-label font-weight-bold text-sm-right">站台<span class="text-danger">*</span></label>
                             <div class="col-sm-10">
-                                <select asp-for="@Model.ControllerMain.StationMainID" asp-items="@Model.StationListItem" class="form-control form-control-sm" style="width:100%">
+                                <select asp-for="@Model.StationMainID" asp-items="@Model.StationListItem" class="form-control form-control-sm" style="width:100%">
                                     <option value="">請選擇</option>
                                 </select>
                             </div>
@@ -39,25 +39,25 @@
                         <div class="row">
                             <label for="DisplayName" class="col-sm-2 col-form-label font-weight-bold text-sm-right">顯示名稱<span class="text-danger">*</span></label>
                             <div class="col-sm-10">
-                                <input class="form-control form-control-sm" type="text" asp-for="@Model.ControllerMain.DisplayName" value="@Model.ControllerMain.DisplayName">
+                                <input class="form-control form-control-sm" type="text" id="DisplayName" name="DisplayName" value="">
                             </div>
                         </div>
                         <div class="row">
                             <label for="Controller" class="col-sm-2 col-form-label font-weight-bold text-sm-right">控制器名稱</label>
                             <div class="col-sm-10">
-                                <input class="form-control form-control-sm" type="text" asp-for="@Model.ControllerMain.Controller" value="@Model.ControllerMain.Controller">
+                                <input class="form-control form-control-sm" type="text" id="Controller" name="Controller" value="">
                             </div>
                         </div>
                         <div class="row">
                             <label for="Action" class="col-sm-2 col-form-label font-weight-bold text-sm-right">活動名稱</label>
                             <div class="col-sm-10">
-                                <input class="form-control form-control-sm" type="text" asp-for="@Model.ControllerMain.Action" value="@Model.ControllerMain.Action">
+                                <input class="form-control form-control-sm" type="text" id="Action" name="Action" value="">
                             </div>
                         </div>
                         <div class="row">
                             <label for="HttpMethod" class="col-sm-2 col-form-label font-weight-bold text-sm-right">使用方法</label>
                             <div class="col-sm-10">
-                                <select class="form-control form-control-sm" asp-for="@Model.ControllerMain.HttpMethod">
+                                <select class="form-control form-control-sm" id="HttpMethod" name="HttpMethod">
                                     <option value=""></option>
                                     <option value="Get">Get</option>
                                     <option value="Post">Post</option>
@@ -67,14 +67,14 @@
                         <div class="row">
                             <label for="ParentControllerMainID" class="col-sm-2 col-form-label font-weight-bold text-sm-right">父層級<span class="text-danger">*</span></label>
                             <div class="col-sm-10">
-                                <select asp-for="@Model.ControllerMain.ParentControllerMainID" asp-items="@Model.ControllerListItem" class="form-control form-control-sm" style="width:100%">
+                                <select asp-for="@Model.ParentControllerMainID" asp-items="@Model.ControllerListItem" class="form-control form-control-sm" style="width:100%">
                                 </select>
                             </div>
                         </div>
                         <div class="row">
                             <label for="PageNumber" class="col-sm-2 col-form-label font-weight-bold text-sm-right">選單頁<span class="text-danger">*</span></label>
                             <div class="col-sm-10">
-                                <select class="form-control form-control-sm" asp-for="@Model.ControllerMain.PageNumber">
+                                <select class="form-control form-control-sm" id="PageNumber" name="PageNumber">
                                     <option value=""></option>
                                     <option value="0">0</option>
                                     <option value="1">1</option>
@@ -86,26 +86,26 @@
                         <div class="row">
                             <label for="IconClass" class="col-sm-2 col-form-label font-weight-bold text-sm-right">文字前面的Icon Class</label>
                             <div class="col-sm-10">
-                                <input class="form-control form-control-sm" type="text" asp-for="@Model.ControllerMain.IconClass" value="@Model.ControllerMain.IconClass">
+                                <input class="form-control form-control-sm" type="text" id="IconClass" name="IconClass" value="">
                                 <span class="form-text m-b-none"><a id="OpenIconModal" href="#" class="btn btn-link"><i class="fa fa-link"></i> 參考連結</a></span>
                             </div>
                         </div>
                         <div class="row">
                             <label for="FrontNumber" class="col-sm-2 col-form-label font-weight-bold text-sm-right">文字前面的編碼</label>
                             <div class="col-sm-10">
-                                <input class="form-control form-control-sm" type="text" asp-for="@Model.ControllerMain.FrontNumber" value="@Model.ControllerMain.FrontNumber">
+                                <input class="form-control form-control-sm" type="text" id="FrontNumber" name="FrontNumber" value="">
                             </div>
                         </div>
                         <div class="row">
                             <label for="Sort" class="col-sm-2 col-form-label font-weight-bold text-sm-right">排序<span class="text-danger">*</span></label>
                             <div class="col-sm-10">
-                                <input type="number" min="0" class="form-control form-control-sm" asp-for="@Model.ControllerMain.Sort" value="@Model.ControllerMain.Sort">
+                                <input type="number" min="0" class="form-control form-control-sm" id="Sort" name="Sort" value="">
                             </div>
                         </div>
                         <div class="row">
                             <label for="IsMenu" class="col-sm-2 col-form-label font-weight-bold text-sm-right">是否顯示在Menu<span class="text-danger">*</span></label>
                             <div class="col-sm-10">
-                                <select class="form-control form-control-sm" asp-for="@Model.ControllerMain.IsMenu">
+                                <select class="form-control form-control-sm" id="IsMenu" name="IsMenu">
                                     <option value=""></option>
                                     <option value="true">是</option>
                                     <option value="false">否</option>
@@ -115,7 +115,7 @@
                         <div class="row">
                             <label for="isBlank" class="col-sm-2 col-form-label font-weight-bold text-sm-right">麵包屑功能方式Menu<span class="text-danger">*</span></label>
                             <div class="col-sm-10">
-                                <select class="form-control form-control-sm" asp-for="@Model.ControllerMain.IsBlank">
+                                <select class="form-control form-control-sm" id="isBlank" name="isBlank">
                                     <option value="1" selected="">導頁</option>
                                     <option value="2">另開</option>
                                 </select>
@@ -124,7 +124,7 @@
                         <div class="row">
                             <label for="ControllerDesc" class="col-sm-2 col-form-label font-weight-bold text-sm-right">敘述<span class="text-danger">*</span></label>
                             <div class="col-sm-10">
-                                <input type="text" class="form-control form-control-sm" asp-for="@Model.ControllerMain.ControllerDesc" value="@Model.ControllerMain.ControllerDesc">
+                                <input type="text" class="form-control form-control-sm" id="ControllerDesc" name="ControllerDesc" value="">
                             </div>
                         </div>
                         <div class="row text-right" style="margin-top:10px;">
@@ -133,6 +133,7 @@
                                 <button class="btn btn-default btn-sm" type="button" onclick="window.location.href='/ControllerSetting/ControllerSettingSearchList'"><i style="width:12px;" class="fa fa-times"></i> 取消</button>
                             </div>
                         </div>
+                        <input name="__RequestVerificationToken" type="hidden" value="CfDJ8...">
 
                         @* 樣式光箱 *@
                         <!-- Modal -->
@@ -176,7 +177,7 @@
         
         e.preventDefault();
         $.ajax({
-            url: '/ControllerSetting/ControllerDataMaintain',
+            url: '/ControllerSetting/ControllerCreate',
             type: 'POST',
             data: $("#ControllerDataMaintainForm").serialize(),
             success: function (res) {

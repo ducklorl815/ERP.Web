@@ -6,7 +6,6 @@ namespace ERP.Web.Service.Service.ControllerSetting
 {
     public partial class ControllerSettingService
     {
-
         public async Task<StationDataMaintainViewModel_result> StationDataMaintain(StationDataMaintainViewModel_param param)
         {
             var result = new StationDataMaintainViewModel_result();

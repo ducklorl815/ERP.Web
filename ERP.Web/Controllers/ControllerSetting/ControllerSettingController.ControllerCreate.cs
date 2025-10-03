@@ -6,16 +6,16 @@ namespace ERP.Web.Controllers.ControllerSetting
     public partial class ControllerSettingController : Controller
     {
         [HttpGet]
-        public async Task<IActionResult> ControllerDataMaintain()
+        public async Task<IActionResult> ControllerCreate()
         {
-            var result = await _controllerSettingService.GetControllerDataMaintain();
+            var result = await _controllerSettingService.ControllerCreate();
             return View(result);
         }
         [HttpPost]
-        public async Task<IActionResult> ControllerDataMaintain(ControllerSettingDataMaintainViewModel_param param)
+        public async Task<IActionResult> ControllerCreate(ControllerSettingDataMaintainViewModel_param param)
         {
 
-            var result = await _controllerSettingService.ControllerDataMaintain(param);
+            var result = await _controllerSettingService.ControllerCreate(param);
             return Json(result);
         }
         [HttpGet]
@@ -26,7 +26,7 @@ namespace ERP.Web.Controllers.ControllerSetting
             return Json(result);
         }
 
-        public async Task<IActionResult> IconList(int page = 1, int pageSize = 48)
+        public async Task<IActionResult> IconList(int page = 1, int pageSize = 100)
         {
 
             var result = await _controllerSettingService.GetIconList(page, pageSize);
