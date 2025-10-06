@@ -145,7 +145,7 @@
                                     </div>
                                     <div class="modal-body" id="icon-list-container">
                                         @* 一開始先載入第一頁 *@
-                                        @await Html.PartialAsync("_IconListPartial", Model)
+                                        @await Html.PartialAsync("_IconListPartial", Model.IconGroup)
                                     </div>
                                 </div>
                             </div>
@@ -176,7 +176,7 @@
         
         e.preventDefault();
         $.ajax({
-            url: '/ControllerSetting/ControllerDataMaintain',
+            url: '/ControllerSetting/EditActDataMaintain',
             type: 'POST',
             data: $("#ControllerDataMaintainForm").serialize(),
             success: function (res) {

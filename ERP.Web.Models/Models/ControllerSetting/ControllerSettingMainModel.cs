@@ -7,18 +7,16 @@
         public string DisplayName { get; set; }
         public string ControllerDesc { get; set; }
         public string HttpMethod { get; set; }
-
         public Guid ParentControllerMainID { get; set; }
         public string Action { get; set; }
         public Guid StationMainID { get; set; }
         public int PageNumber { get; set; }
         public int Level { get; set; }
         public int Sort { get; set; }
-
         public bool IsMenu { get; set; }
         public string FrontNumber { get; set; }
         public string IconClass { get; set; }
-        public bool IsBlank { get; set; }
+        public bool IsBlank { get; set; } = true;
         public string AbandonReason { get; set; }
     }
     public class ControllerListMainModel

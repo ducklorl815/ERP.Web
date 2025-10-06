@@ -23,22 +23,16 @@ namespace ERP.Web.Service.Service.ControllerSetting
 
             // 控制器清單
             result.ControllerListItem = await GetControllerListItemAsync(param.StationMainID.ToString());
-
             // Icon 清單 & 分頁
-            var iconListResult = await GetIconList();
-            result.IconList = iconListResult.IconList;
-            result.Pager = iconListResult.Pager;
-
+            result.IconGroup = await GetIconGroup();
             return result;
         }
-        public async Task<ControllerSettingDataMaintainViewModel_result> GetIconList(int page = 1, int pageSize = 100)
+
+        public async Task<IconGroup> GetIconGroup(int page = 1, int pageSize = 100)
         {
-            var result = new ControllerSettingDataMaintainViewModel_result();
-
+            var result = new IconGroup();
             var datacount = await _controllerSettingRepo.GetIconCountAsync();
-
             var pager = new Paging(page, pageSize, datacount);
-
             var icons = await _controllerSettingRepo.GetIconList(pager);
             result.IconList = icons;
             result.Pager = pager;

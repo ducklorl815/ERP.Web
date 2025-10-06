@@ -1,4 +1,4 @@
-﻿@model ERP.Web.Service.ViewModels.ControllerSetting.ControllerSettingDataMaintainViewModel_result
+﻿@model ERP.Web.Service.ViewModels.ControllerSetting.IconGroup
 
 <style>
 
@@ -42,7 +42,7 @@
         // 選取 Icon
         $("#IconClassPreview").on("click", ".icon-item", function () {
             var selectedIcon = $(this).data("icon");
-            $("#IconClass").val(selectedIcon);
+            $("#ControllerMain_IconClass").val(selectedIcon);
             $("#IconClassPreview").modal("hide");
         });
     });

@@ -2,24 +2,23 @@
 using ERP.Web.Service.ViewModels.ControllerSetting;
 using ERP.Web.Utility.Models;
 using Microsoft.AspNetCore.Mvc.Rendering;
-
-
+using Newtonsoft.Json;
 
 namespace ERP.Web.Service.Service.ControllerSetting
 {
     public partial class ControllerSettingService
     {
-        public async Task<ControllerSettingDataMaintainViewModel_result> ControllerCreate()
+        public async Task<ControllerSettingCreateViewModel_result> ControllerCreate()
         {
-            var result = new ControllerSettingDataMaintainViewModel_result();
+            var result = new ControllerSettingCreateViewModel_result()
+            {
+                ControllerMain = new ControllerMainModel()
+            };
 
             List<StationMainModel> stationDataTask = await _controllerSettingRepo.GetStationMainDataAsync();
 
             result.ControllerListItem = await GetControllerListItemAsync("");
-            var IconList = await GetIconList();
-            result.IconList = IconList.IconList;
-            result.Pager = IconList.Pager;
-
+            result.IconGroup = await GetIconGroup();
             result.StationListItem = stationDataTask.Select(s => new SelectListItem
             {
                 Text = $"{s.StationCode} {s.StationName} {s.Domain}",
@@ -27,48 +26,23 @@ namespace ERP.Web.Service.Service.ControllerSetting
             }).ToList();
 
             return result;
-
         }
 
-        public async Task<ControllerSettingDataMaintainViewModel_result> ControllerCreate(ControllerSettingDataMaintainViewModel_param param)
+        public async Task<ControllerSettingCreateViewModel_result> ControllerCreate(ControllerSettingCreateViewModel_param param)
         {
-
-            var result = new ControllerSettingDataMaintainViewModel_result()
+            var result = new ControllerSettingCreateViewModel_result()
             {
                 IsSuccess = false
             };
 
+            var MainData = JsonConvert.DeserializeObject<ControllerMainModel>(JsonConvert.SerializeObject(param.ControllerMain));
 
-            var MainData = new ControllerMainModel
+            Guid InsertID = await _controllerSettingRepo.ControllerCreate(MainData);
+            if (InsertID != Guid.Empty)
             {
-                Controller = param?.Controller ?? string.Empty,
-                ParentControllerMainID = param?.ParentControllerMainID != Guid.Empty
-                                ? param.ParentControllerMainID
-                                : Guid.Empty,
-                IconClass = param?.IconClass ?? string.Empty,
-                ControllerDesc = string.IsNullOrEmpty(param?.ControllerDesc)
-                                ? string.Empty
-                                : param.ControllerDesc,
-                Action = param?.Action ?? string.Empty,
-                DisplayName = param?.DisplayName ?? string.Empty,
-                FrontNumber = string.IsNullOrEmpty(param?.FrontNumber)
-                                ? string.Empty
-                                : param.FrontNumber,
-                HttpMethod = param?.HttpMethod ?? string.Empty,
-                IsBlank = param?.IsBlank ?? false,
-                IsMenu = param?.IsMenu ?? false,
-                Level = param?.Level ?? 0,
-                StationMainID = param?.StationMainID != Guid.Empty
-                                ? param.StationMainID
-                                : Guid.Empty,
-                PageNumber = param?.PageNumber ?? 0,
-                Sort = param?.Sort ?? 0,
-                AbandonReason = string.Empty
-            };
-            var IconList = await GetIconList();
-            result.IconList = IconList.IconList;
-
-            result.IsSuccess = await _controllerSettingRepo.ControllerCreate(MainData);
+                result.IsSuccess = true;
+                result.ID = InsertID.ToString();
+            }
             return result;
 
         }
@@ -109,14 +83,24 @@ namespace ERP.Web.Service.Service.ControllerSetting
 
         public async Task<ControllerSettingDataMaintainViewModel_result> GetActDataMaintain(string ID)
         {
-            var result = new ControllerSettingDataMaintainViewModel_result();
+
             ControllerMainModel ActData = await _controllerSettingRepo.GetActDataMaintain(ID);
 
-            result = await GetControllerSettingResultAsync(ActData);
+            var result = await GetControllerSettingResultAsync(ActData);
 
             result.ControllerMain = ActData;
 
-            return result;  
+            return result;
+        }
+        public async Task<ControllerSettingDataMaintainViewModel_result> UpdateActDataMaintain(ControllerSettingDataMaintainViewModel_param param)
+        {
+            var result = new ControllerSettingDataMaintainViewModel_result();
+            var ControllerData = JsonConvert.DeserializeObject<ControllerMainModel>(JsonConvert.SerializeObject(param.ControllerMain));
+            var chkUpdate = await _controllerSettingRepo.UpdateActDataMaintain(ControllerData);
+            result.IsSuccess = chkUpdate;
+            result.ID = param.ControllerMain.ID.ToString();
+
+            return result;
         }
     }
 }

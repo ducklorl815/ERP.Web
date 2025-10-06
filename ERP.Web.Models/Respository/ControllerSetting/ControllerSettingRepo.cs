@@ -28,13 +28,9 @@ namespace ERP.Web.Models.Respository.ControllerSetting
         /// </summary>
         /// <param name="param"></param>
         /// <returns></returns>
-        public async Task<bool> ControllerCreate(ControllerMainModel param)
+        public async Task<Guid> ControllerCreate(ControllerMainModel param)
         {
             var sqlparam = new DynamicParameters();
-            //foreach (var property in param.GetType().GetProperties())
-            //{
-            //    sqlparam.Add(property.Name, property.GetValue(param));
-            //}
             sqlparam.Add("StationMainID", param.StationMainID);
             sqlparam.Add("DisplayName", param.DisplayName);
             sqlparam.Add("Controller", param.Controller);
@@ -79,6 +75,7 @@ namespace ERP.Web.Models.Respository.ControllerSetting
                                    ,ModifyDept
                                    ,Enabled
                                    ,Deleted)
+                                   OUTPUT INSERTED.ID
                              VALUES
                                    (NEWID()
                                    ,@Controller
@@ -108,12 +105,12 @@ namespace ERP.Web.Models.Respository.ControllerSetting
             using var conn = new SqlConnection(_dBList.erp);
             try
             {
-                var result = await conn.ExecuteAsync(sql, sqlparam);
-                return result > 0;
+                var result = await conn.ExecuteScalarAsync<Guid>(sql, sqlparam);
+                return result;
             }
             catch (Exception)
             {
-                return false;
+                return Guid.Empty;
             }
         }
 
@@ -194,7 +191,52 @@ namespace ERP.Web.Models.Respository.ControllerSetting
                 return result;
             }
         }
+        /// <summary>
+        /// 更新ActDataMaintain
+        /// </summary>
+        /// <param name="param"></param>
+        /// <returns></returns>
+        public async Task<bool> UpdateActDataMaintain(ControllerMainModel param)
+        {
+            var sqlparam = new DynamicParameters();
+            sqlparam.Add("ID", param.ID);
+            var sql = @"
+                        UPDATE Controller.dbo.ControllerMain
+                           SET 
+	                           Controller = @Controller
+                              ,Action = @Action
+                              ,DisplayName = @DisplayName
+                              ,ControllerDesc = @ControllerDesc
+                              ,HttpMethod = @HttpMethod
+                              ,ParentControllerMainID = @ParentControllerMainID
+                              ,StationMainID = @StationMainID
+                              ,Level = @Level
+                              ,PageNumber = @PageNumber
+                              ,Sort = @Sort
+                              ,IsMenu = @IsMenu
+                              ,FrontNumber = @FrontNumber
+                              ,IconClass = @IconClass
+                              ,IsBlank = @IsBlank
+                              ,ModifyDate = @ModifyDate
+                              ,ModifyUser = @ModifyUser
+                              ,ModifyDept = @ModifyDept
+                         WHERE ID = @ID
+                        ";
 
+            try
+            {
+                using (var conn = new SqlConnection(_dBList.erp))
+                {
+                    var result = await conn.ExecuteAsync(sql, sqlparam);
+                    return result > 0;
+                }
+            }
+            catch (Exception ex)
+            {
+
+                throw;
+            }
+        }
         /// <summary>
         /// 取得控制器資訊
         /// </summary>
@@ -289,7 +331,10 @@ namespace ERP.Web.Models.Respository.ControllerSetting
                 return result.ToList();
             }
         }
-
+        /// <summary>
+        /// 撈取站台清單
+        /// </summary>
+        /// <returns></returns>
         public async Task<List<StationMainModel>> GetStationMainDataAsync()
         {
             var sqlQuery = @"select ID 
@@ -370,5 +415,7 @@ namespace ERP.Web.Models.Respository.ControllerSetting
                 return false;
             }
         }
+
+
     }
 }

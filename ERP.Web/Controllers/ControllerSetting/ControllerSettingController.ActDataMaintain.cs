@@ -12,19 +12,12 @@ namespace ERP.Web.Controllers.ControllerSetting
 
             return View("ControllerDataMaintain", result);
         }
-        //[HttpPost]
-        //public async Task<IActionResult> EditActDataMaintain(SettingActDataMaintainViewModel_param param)
-        //{
+        [HttpPost]
+        public async Task<IActionResult> EditActDataMaintain(ControllerSettingDataMaintainViewModel_param param)
+        {
 
-        //    var result = await _settingActDataMaintainService.UpdateActDataAsync(param);
-
-        //    if (!string.IsNullOrEmpty(result.Msg))
-        //    {
-        //        TempData["msg"] = result.Msg;
-        //        return RedirectToAction("ActDataMaintain", new { id = param.ID, mode = param.mode });
-        //    }
-
-        //    return RedirectToAction("ActDetail", new { id = param.ID });
-        //}
+            var result = await _controllerSettingService.UpdateActDataMaintain(param);
+            return Json(result);
+        }
     }
 }
