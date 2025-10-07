@@ -1,0 +1,78 @@
+﻿@model ERP.Web.Utility.ViewModel.LeftSidebarViewModel
+@* MenuTreeViewModel 內有:
+   List<MenuData> TreeData
+   Guid? CurrentNodeId *@
+
+<div class="container mt-4">
+    <h4>Controller / Action 樹狀圖</h4>
+    <div id="controllerTree"></div>
+</div>
+
+@section Scripts {
+    <link href="https://cdnjs.cloudflare.com/ajax/libs/bootstrap-treeview/1.2.0/bootstrap-treeview.min.css" rel="stylesheet" />
+    <script src="https://cdnjs.cloudflare.com/ajax/libs/bootstrap-treeview/1.2.0/bootstrap-treeview.min.js"></script>
+
+    <script>
+        // === 將後端資料轉為前端樹狀格式 ===
+        function toTreeData(nodes) {
+            if (!nodes) return [];
+            return nodes.map(n => {
+                const children = n.children && n.children.length ? toTreeData(n.children) : null;
+                return {
+                    id: n.id,
+                    text: (n.displayName ?? '(未命名)') + (n.action ? ` (${n.action})` : ''),
+                    icon: n.iconClass ,
+                    nodes: children
+                };
+            });
+        }
+
+        var data = toTreeData(@Html.Raw(Json.Serialize(Model.List)));
+        var currentNodeId = '@Model.CurrentNodeId'; // 可為空
+
+        // === 初始化樹狀圖 ===
+        var $tree = $('#controllerTree').treeview({
+            data: data,
+            showIcon: true,
+            levels: 3,
+            expandIcon: "fa fa-plus",
+            collapseIcon: "fa fa-minus",
+            color: "#000000",
+            backColor: "#FFFFFF",
+            onNodeSelected: function (event, node) { toggleNode(node); },
+            onNodeUnselected: function (event, node) { toggleNode(node); }
+        });
+
+        // === 點一下即可展開/收合 ===
+        function toggleNode(node) {
+            if (node.nodes && node.nodes.length) {
+                if (node.state && node.state.expanded)
+                    $tree.treeview('collapseNode', [node.nodeId, { silent: true }]);
+                else
+                    $tree.treeview('expandNode', [node.nodeId, { silent: true }]);
+            }
+        }
+
+        // === 自動展開到目前節點 ===
+        if (currentNodeId && currentNodeId !== '00000000-0000-0000-0000-000000000000') {
+            // 找出節點
+            var foundNodes = $tree.treeview('search', [currentNodeId, { ignoreCase: true, exactMatch: true, revealResults: true }]);
+            if (foundNodes && foundNodes.length > 0) {
+                var targetNode = foundNodes[0];
+                // 逐層展開父節點
+                var parentNode = $tree.treeview('getParent', targetNode);
+                while (parentNode && parentNode.nodeId !== undefined) {
+                    $tree.treeview('expandNode', [parentNode.nodeId, { silent: true }]);
+                    parentNode = $tree.treeview('getParent', parentNode);
+                }
+                // 高亮當前節點
+                $tree.treeview('selectNode', [targetNode.nodeId, { silent: false }]);
+            }
+        }
+
+        // === 滑鼠移入提示 & 手型 ===
+        $('#controllerTree').on('mouseover', '.list-group-item', function () {
+            $(this).css('cursor', 'pointer');
+        });
+    </script>
+}

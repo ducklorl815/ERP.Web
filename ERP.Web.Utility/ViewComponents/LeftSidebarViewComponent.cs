@@ -75,8 +75,8 @@ namespace ERP.Web.Utility.ViewComponents
                 .Where(s => s != null)
                 .Select(s => new MenuData
                 {
-                    ID = s.ID?.ToString() ?? Guid.NewGuid().ToString(),
-                    ParentControllerMainID = s.ParentControllerMainID?.ToString() ?? "00000000-0000-0000-0000-000000000000",
+                    ID = s.ID,
+                    ParentControllerMainID = s.ParentControllerMainID,
                     Level = s.Level,
                     Controller = s.Controller ?? string.Empty,
                     Action = s.ActName ?? s.Action ?? string.Empty,
@@ -100,7 +100,7 @@ namespace ERP.Web.Utility.ViewComponents
 
             foreach (var item in flatMenuList)
             {
-                if (item.ParentControllerMainID == "00000000-0000-0000-0000-000000000000")
+                if (item.ParentControllerMainID == Guid.Empty)
                 {
                     rootMenuList.Add(item);
                 }

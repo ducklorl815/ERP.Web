@@ -5,8 +5,8 @@
 
     @foreach (var item in Model.List)
     {
-        var domain = (!string.IsNullOrEmpty(item.StationMainID) && _sharedDomain.Value.ContainsKey(item.StationMainID))
-            ? _sharedDomain.Value[item.StationMainID]
+    var domain = (!string.IsNullOrEmpty(item.StationMainID.ToString()) && _sharedDomain.Value.ContainsKey(item.StationMainID.ToString()))
+        ? _sharedDomain.Value[item.StationMainID.ToString()]
             : "";
 
         var mainHref = string.IsNullOrEmpty(item.Controller) ? "#" : $"{domain}{item.Controller}/{item.Action}";

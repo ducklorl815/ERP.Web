@@ -2,6 +2,7 @@
 using ERP.Web.Models.Models.ControllerSetting;
 using ERP.Web.Utility.Models;
 using ERP.Web.Utility.Paging;
+using ERP.Web.Utility.ViewModel;
 using Microsoft.Extensions.Options;
 using System.Data.SqlClient;
 
@@ -142,7 +143,7 @@ namespace ERP.Web.Models.Respository.ControllerSetting
                       FROM Controller.dbo.ControllerMain cm
                       LEFT JOIN Controller.dbo.ControllerStationMain stat ON stat.ID = cm.StationMainID
                       LEFT JOIN Controller.dbo.ControllerMain cm2 ON cm2.ID = cm.ParentControllerMainID
-					  ORDER BY StationMainID, ParentSeq 
+					  ORDER BY StationMainID, ParentSeq ,IsMenu desc
                         ";
 
             using var conn = new SqlConnection(_dBList.erp);
@@ -438,6 +439,75 @@ namespace ERP.Web.Models.Respository.ControllerSetting
             }
         }
 
+        public async Task<List<MenuData>> GetMenuDataAsync()
+        {
+            var sqlQuery = @"
+                                WITH ControllerTree AS
+                                (
+                                    -- Root 節點
+                                    SELECT
+                                        c.ID,
+                                        c.Controller,
+                                        c.DisplayName,
+                                        c.Action,
+                                        c.ControllerDesc,
+                                        c.HttpMethod,
+                                        c.StationMainID,
+                                        0 AS Level,
+                                        c.Sort,
+                                        c.IsMenu,
+                                        c.FrontNumber,
+                                        c.IconClass,
+                                        c.IsBlank,
+                                        c.AbandonReason,
+                                        c.Enabled,
+                                        c.Deleted,
+                                        c.ParentControllerMainID
+                                    FROM Controller.dbo.ControllerMain c
+                                    WHERE c.ParentControllerMainID = '00000000-0000-0000-0000-000000000000'
 
+                                    UNION ALL
+
+                                    -- 遞迴子節點
+                                    SELECT
+                                        c.ID,
+                                        c.Controller,
+                                        c.DisplayName,
+                                        c.Action,
+                                        c.ControllerDesc,
+                                        c.HttpMethod,
+                                        c.StationMainID,
+                                        ct.Level + 1,
+                                        c.Sort,
+                                        c.IsMenu,
+                                        c.FrontNumber,
+                                        c.IconClass,
+                                        c.IsBlank,
+                                        c.AbandonReason,
+                                        c.Enabled,
+                                        c.Deleted,
+                                        c.ParentControllerMainID
+                                    FROM Controller.dbo.ControllerMain c
+                                    INNER JOIN ControllerTree ct ON c.ParentControllerMainID = ct.ID
+                                )
+                                SELECT 
+                                    ct.*
+                                FROM ControllerTree ct
+                                ORDER BY ct.Level, ct.Sort
+
+                            ";
+
+
+            using var conn = new SqlConnection(_dBList.erp);
+            try
+            {
+                var result = await conn.QueryAsync<MenuData>(sqlQuery);
+                return result.ToList();
+            }
+            catch (Exception)
+            {
+                return null;
+            }
+        }
     }
 }

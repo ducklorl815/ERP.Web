@@ -2,6 +2,7 @@
 using ERP.Web.Service.ViewModels.ControllerSetting;
 using ERP.Web.Utility.Models;
 using ERP.Web.Utility.Paging;
+using ERP.Web.Utility.ViewModel;
 using Microsoft.AspNetCore.Mvc.Rendering;
 
 namespace ERP.Web.Service.Service.ControllerSetting
@@ -38,6 +39,8 @@ namespace ERP.Web.Service.Service.ControllerSetting
             result.Pager = pager;
             return result;
         }
+
+
         /// <summary>
         /// 建置控制器文字工具
         /// </summary>
@@ -63,5 +66,50 @@ namespace ERP.Web.Service.Service.ControllerSetting
 
             return string.Join(" ", parts);
         }
+        public async Task<List<MenuData>> TreeView()
+        {
+            var roots = new List<MenuData>();
+            var menuData = await _controllerSettingRepo.GetMenuDataAsync(); // 假設這是你原本抓資料的方法
+
+            if (menuData == null || !menuData.Any())
+                return roots;
+
+            // ======= 以下重用你原本 LEFTSIDER 的邏輯 =======
+            var flatMenuList = menuData
+                .Where(s => s != null)
+                .Select(s => new MenuData
+                {
+                    ID = s.ID,
+                    ParentControllerMainID = s.ParentControllerMainID,
+                    Level = s.Level,
+                    Controller = s.Controller ?? string.Empty,
+                    Action = s.Action ?? string.Empty,
+                    DisplayName = string.IsNullOrEmpty(s.DisplayName) ? s.Controller ?? "" : s.DisplayName,
+                    IconClass = string.IsNullOrEmpty(s.IconClass) ? "" : s.IconClass,
+                    Sort = s.Sort,
+                    IsMenu = s.IsMenu,
+                    Children = new List<MenuData>(),
+                    IsActive = false,
+                    Domain = "https://localhost:44372/",
+                    IsBlank = s.IsBlank,
+                    Enabled = s.Enabled,
+                    Deleted = s.Deleted
+                })
+                .ToList();
+
+            var lookup = flatMenuList.ToDictionary(x => x.ID);
+
+            foreach (var item in flatMenuList)
+            {
+                if (item.ParentControllerMainID == Guid.Empty)
+                    roots.Add(item);
+                else if (lookup.TryGetValue(item.ParentControllerMainID, out var parent))
+                    parent.Children.Add(item);
+            }
+
+            return roots;
+        }
+
+
     }
 }

@@ -33,7 +33,7 @@
             @if (Model.List != null)
             {
                 @foreach (var item in Model.List
-               .Where(m => m.ParentControllerMainID == "00000000-0000-0000-0000-000000000000")
+               .Where(m => m.ParentControllerMainID == Guid.Empty)
                .OrderBy(m => m.Sort))
                 {
                     <li class="@(item.IsActive ? "active" : "")">

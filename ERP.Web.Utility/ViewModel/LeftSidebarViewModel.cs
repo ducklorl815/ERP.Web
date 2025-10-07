@@ -3,19 +3,20 @@
     public class LeftSidebarViewModel
     {
         public List<MenuData> List { get; set; }
+        public Guid CurrentNodeId { get; set; }
     }
 
     public class MenuData
     {
-        public string ID { get; set; }
-        public string ParentControllerMainID { get; set; }
+        public Guid ID { get; set; }
+        public Guid ParentControllerMainID { get; set; }
         public string Controller { get; set; }
         public string Action { get; set; }       // 來自 ControllerAction
         public string ControllerActionID { get; set; }
         public string DisplayName { get; set; }
         public string ControllerDesc { get; set; }
         public string HttpMethod { get; set; }
-        public string StationMainID { get; set; }
+        public Guid StationMainID { get; set; }
         public int Level { get; set; }
         public int Sort { get; set; }
         public bool IsMenu { get; set; }
