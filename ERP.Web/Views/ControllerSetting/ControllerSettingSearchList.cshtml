@@ -2,13 +2,7 @@
 
 <div class="wrapper wrapper-content animated fadeIn">
     <div class="row">
-        ﻿<div class="panel-heading">
-            <h5 class="panel-title">
-                <a data-toggle="collapse" aria-expanded="false" data-parent="#accordion" href="#collapseThree" class="collapsed">搜尋條件 <i class="fa fa-hand-o-left"></i></a>
-                <a href="/ControllerSetting/ControllerCreate"><span class="float-right" style="cursor:pointer;"><i class="fa fa-plus"></i>新增選單</span></a>
-            </h5>
-        </div>
-@*         <div class="col-lg-12">
+        <div class="col-lg-12">
             <div class="ibox ">
                 <div class="ibox-content" style="padding:0px;">
                     <div class="panel-body">
@@ -17,17 +11,17 @@
                                 <div class="panel-heading">
                                     <h5 class="panel-title">
                                         <a data-toggle="collapse" data-parent="#accordion" href="#collapseThree" class="collapsed">搜尋條件 <i class="fa fa-hand-o-left"></i></a>
-                                        <a asp-action="Create" asp-controller="EmailGroup"><span class="float-right" style="cursor:pointer;"><i class="fa fa-plus"></i> 新增信件群組</span></a>
+                                        <a asp-action="ControllerCreate" asp-controller="ControllerSetting"><span class="float-right" style="cursor:pointer;"><i class="fa-solid fa-plus"></i> 新增Controller</span></a>
                                     </h5>
                                 </div>
-                                <div id="collapseThree" class="panel-collapse collapse in (@Model.EmailGroupList !=null && @Model.EmailGroupList.Any()?" ":" show")">
+                                <div id="collapseThree" class="panel-collapse collapse in (@Model.ControllerList !=null && @Model.ControllerList.Any()?" ":" show")">
                                     <div class="panel-body">
                                         <form method="get">
                                             <div class="row">
                                                 <div class="col-xl-4 col-lg-6 row">
-                                                    <label for="Number" class="col-sm-4 col-form-label font-weight-bold text-sm-right">信件群組名稱</label>
+                                                    <label for="Number" class="col-sm-4 col-form-label font-weight-bold text-sm-right">站台碼</label>
                                                     <div class="col-sm-8 input-group">
-                                                        <input asp-for="Keyword.GroupName" type="text" class="form-control form-control-sm Search" placeholder="信件群組名稱">
+                                                        <input asp-for="Keyword.StationCode" type="text" class="form-control form-control-sm Search" placeholder="站台碼">
                                                         <span class="input-group-append" style="height:31px;">
                                                             <button type="submit" class="btn-sm btn-success">
                                                                 <i class="fa fa-search"></i>
@@ -36,9 +30,9 @@
                                                     </div>
                                                 </div>
                                                 <div class="col-xl-4 col-lg-6 row">
-                                                    <label for="Number" class="col-sm-4 col-form-label font-weight-bold text-sm-right">信件群組備註</label>
+                                                    <label for="Number" class="col-sm-4 col-form-label font-weight-bold text-sm-right">站台</label>
                                                     <div class="col-sm-8 input-group">
-                                                        <input asp-for="Keyword.GroupEtc" type="text" class="form-control form-control-sm Search" placeholder="信件群組備註">
+                                                        <input asp-for="Keyword.Domain" type="text" class="form-control form-control-sm Search" placeholder="站台">
                                                         <span class="input-group-append" style="height:31px;">
                                                             <button type="submit" class="btn-sm btn-success">
                                                                 <i class="fa fa-search"></i>
@@ -47,9 +41,9 @@
                                                     </div>
                                                 </div>
                                                 <div class="col-xl-4 col-lg-6 row">
-                                                    <label for="Number" class="col-sm-4 col-form-label font-weight-bold text-sm-right">收件人</label>
+                                                    <label for="Number" class="col-sm-4 col-form-label font-weight-bold text-sm-right">控制器</label>
                                                     <div class="col-sm-8 input-group">
-                                                        <input asp-for="Keyword.EmpName" type="text" class="form-control form-control-sm Search" placeholder="收件人">
+                                                        <input asp-for="Keyword.Controller" type="text" class="form-control form-control-sm Search" placeholder="控制器">
                                                         <span class="input-group-append" style="height:31px;">
                                                             <button type="submit" class="btn-sm btn-success">
                                                                 <i class="fa fa-search"></i>
@@ -58,9 +52,20 @@
                                                     </div>
                                                 </div>
                                                 <div class="col-xl-4 col-lg-6 row">
-                                                    <label for="Number" class="col-sm-4 col-form-label font-weight-bold text-sm-right">類型</label>
+                                                    <label for="Number" class="col-sm-4 col-form-label font-weight-bold text-sm-right">活動名稱</label>
                                                     <div class="col-sm-8 input-group">
-                                                        <input asp-for="Keyword.Type" type="text" class="form-control form-control-sm Search" placeholder="類型">
+                                                        <input asp-for="Keyword.Action" type="text" class="form-control form-control-sm Search" placeholder="活動名稱">
+                                                        <span class="input-group-append" style="height:31px;">
+                                                            <button type="submit" class="btn-sm btn-success">
+                                                                <i class="fa fa-search"></i>
+                                                            </button>
+                                                        </span>
+                                                    </div>
+                                                </div>
+                                                <div class="col-xl-4 col-lg-6 row">
+                                                    <label for="Number" class="col-sm-4 col-form-label font-weight-bold text-sm-right">顯示名稱</label>
+                                                    <div class="col-sm-8 input-group">
+                                                        <input asp-for="Keyword.DisplayName" type="text" class="form-control form-control-sm Search" placeholder="顯示名稱">
                                                         <span class="input-group-append" style="height:31px;">
                                                             <button type="submit" class="btn-sm btn-success">
                                                                 <i class="fa fa-search"></i>
@@ -85,7 +90,7 @@
                     </div>
                 </div>
             </div>
-        </div> *@
+        </div>
     </div>
     <div class="row">
         <div class="col-lg-12">

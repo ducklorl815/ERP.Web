@@ -1,26 +1,26 @@
 ﻿@model ERP.Web.Utility.ViewModel.MenuData
 
 
-<li>
+<li class="@(Model.IsActive ? "active" : "")">
     @if (Model.Children != null && Model.Children.Any())
     {
-        <a href="#">
-            <i class="@Model.IconClass"></i>
-            <span class="nav-label">@Model.DisplayName</span>
-            <span class="fa arrow"></span>
-        </a>
-        <ul class="nav nav-second-level collapse">
+            <a href="#">
+                <i class="@Model.IconClass"></i>
+                <span class="nav-label">@Model.DisplayName</span>
+                <span class="fa arrow"></span>
+            </a>
+            <ul class="nav nav-second-level @(Model.IsActive ? "in" : "collapse")">
             @foreach (var child in Model.Children.OrderBy(c => c.Sort))
             {
                 @Html.Partial("_MenuItem", child)
             }
-        </ul>
+            </ul>
     }
     else
     {
-        <a href="@Model.Domain@Model.Controller/@Model.Action">
-            <i class="@Model.IconClass"></i>
-            <span class="nav-label">@Model.DisplayName</span>
-        </a>
+            <a href="@Model.Domain@Model.Controller/@Model.Action">
+                <i class="@Model.IconClass"></i>
+                <span class="nav-label">@Model.DisplayName</span>
+            </a>
     }
 </li>

@@ -8,8 +8,9 @@
                 <th data-sort-ignore="true">站台碼</th>
                 <th data-sort-ignore="true">控制器</th>
                 <th data-sort-ignore="true">活動名稱</th>
-                <th data-sort-ignore="true">使用方法</th>
+
                 <th data-sort-ignore="true">顯示名稱</th>
+                <th data-sort-ignore="true">使用方法</th>
                 <th data-sort-ignore="true">排序</th>
                 <th data-sort-ignore="true">父序號</th>
                 <th data-sort-ignore="true">站台</th>
@@ -35,10 +36,11 @@
                         @item.Action
                     </td>
                     <td>
-                        @item.HttpMethod
+                        <i class="@item.IconClass"></i>
+                        @(string.IsNullOrEmpty(item.FrontNumber) ? "" : $" {item.FrontNumber}.")@item.DisplayName
                     </td>
                     <td>
-                        @item.DisplayName
+                        @item.HttpMethod
                     </td>
                     <td>
                         @item.Sort

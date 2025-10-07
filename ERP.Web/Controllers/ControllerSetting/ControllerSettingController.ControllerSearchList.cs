@@ -19,7 +19,5 @@ namespace ERP.Web.Controllers.ControllerSetting
             }
 
         }
-
-
     }
 }

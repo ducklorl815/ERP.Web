@@ -150,7 +150,7 @@
                                 </div>
                             </div>
                         </div>
-
+                        <input asp-for="@Model.ControllerMain.ID" type="hidden" />
                     </form>
                 </div>
             </div>
@@ -180,13 +180,10 @@
             type: 'POST',
             data: $("#ControllerDataMaintainForm").serialize(),
             success: function (res) {
-                if (res.IsSuccess) {
-                    alert("新增成功！");
-                    setTimeout(function () {
-                        window.location.href = '/ControllerSetting/ControllerSettingSearchList';
-                    }, 500);
+                if (res.isSuccess) {
+                    alert("修改成功！");
                 } else {
-                    alert("新增失敗！");
+                    alert("修改失敗！");
                 }
             }
         });

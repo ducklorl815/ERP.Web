@@ -98,8 +98,6 @@ namespace ERP.Web.Service.Service.ControllerSetting
             var ControllerData = JsonConvert.DeserializeObject<ControllerMainModel>(JsonConvert.SerializeObject(param.ControllerMain));
             var chkUpdate = await _controllerSettingRepo.UpdateActDataMaintain(ControllerData);
             result.IsSuccess = chkUpdate;
-            result.ID = param.ControllerMain.ID.ToString();
-
             return result;
         }
     }

@@ -36,6 +36,8 @@
         public int IsMenu { get; set; }
         public string ActionDesc { get; set; }
         public string Domain { get; set; }
+        public string FrontNumber { get; set; }
+        public string IconClass { get; set; }
 
     }
 }

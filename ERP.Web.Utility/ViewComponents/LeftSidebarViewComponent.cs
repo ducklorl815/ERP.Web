@@ -131,7 +131,46 @@ namespace ERP.Web.Utility.ViewComponents
             foreach (var root in rootMenuList)
                 SetIsShow(root);
 
-            // 6️ 回傳樹狀 Menu
+            // 6️ 設定目前選單的 Active 狀態
+            currentController = (string)ViewContext.RouteData.Values["Controller"];
+            currentAction = (string)ViewContext.RouteData.Values["Action"];
+            // 用遞迴找出目前頁面對應的選單項目
+            MenuData FindCurrentMenu(MenuData node)
+            {
+                if (node.Controller.Equals(currentController, StringComparison.OrdinalIgnoreCase) &&
+                    node.Action.Equals(currentAction, StringComparison.OrdinalIgnoreCase) &&
+                    node.IsMenu)
+                {
+                    return node;
+                }
+
+                foreach (var child in node.Children)
+                {
+                    var found = FindCurrentMenu(child);
+                    if (found != null)
+                        return found;
+                }
+
+                return null;
+            }
+
+            // 找出目前的 Menu 節點（從 rootMenuList 開始）
+            MenuData currentMenuItem = null;
+            foreach (var root in rootMenuList)
+            {
+                currentMenuItem = FindCurrentMenu(root);
+                if (currentMenuItem != null)
+                    break;
+            }
+
+            // 若找到，就一路往上標記 Active
+            while (currentMenuItem != null)
+            {
+                currentMenuItem.IsActive = true;
+                currentMenuItem = flatMenuList.FirstOrDefault(f => f.ID == currentMenuItem.ParentControllerMainID);
+            }
+
+            // 7️ 回傳樹狀 Menu
             result.List = rootMenuList;
             return View(result);
         }

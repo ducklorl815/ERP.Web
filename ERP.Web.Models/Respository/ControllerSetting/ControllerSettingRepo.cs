@@ -131,6 +131,8 @@ namespace ERP.Web.Models.Respository.ControllerSetting
 	                      ,cm.Action
 						  ,cm.DisplayName
                           ,cm.HttpMethod
+						  ,cm.FrontNumber
+						  ,cm.IconClass
                           ,cm.Level
                           ,cm.Sort
 	                      ,cm2.Seq as ParentSeq
@@ -159,6 +161,7 @@ namespace ERP.Web.Models.Respository.ControllerSetting
         {
             var sqlparam = new DynamicParameters();
             sqlparam.Add("ID", ID);
+
             var sql = @"
                         SELECT ID
                               ,Controller
@@ -199,7 +202,26 @@ namespace ERP.Web.Models.Respository.ControllerSetting
         public async Task<bool> UpdateActDataMaintain(ControllerMainModel param)
         {
             var sqlparam = new DynamicParameters();
+
+            sqlparam.Add("Controller", string.IsNullOrEmpty(param.Controller) ? "" : param.Controller);
+            sqlparam.Add("Action", string.IsNullOrEmpty(param.Action) ? "" : param.Action);
+            sqlparam.Add("HttpMethod", string.IsNullOrEmpty(param.HttpMethod) ? "" : param.HttpMethod);
+            sqlparam.Add("IconClass", string.IsNullOrEmpty(param.IconClass) ? "" : param.IconClass);
+            sqlparam.Add("FrontNumber", string.IsNullOrEmpty(param.FrontNumber) ? "" : param.FrontNumber);
+
             sqlparam.Add("ID", param.ID);
+            sqlparam.Add("StationMainID", param.StationMainID);
+            sqlparam.Add("DisplayName", param.DisplayName);
+            sqlparam.Add("ParentControllerMainID", param.ParentControllerMainID);
+            sqlparam.Add("PageNumber", param.PageNumber);
+            sqlparam.Add("Sort", param.Sort);
+            sqlparam.Add("IsMenu", param.IsMenu);
+            sqlparam.Add("IsBlank", param.IsBlank);
+            sqlparam.Add("Level", param.Level);
+            sqlparam.Add("ControllerDesc", param.ControllerDesc);
+
+            sqlparam.Add("ModifyUser", CreateUser);
+            sqlparam.Add("ModifyDept", CreateDept);
             var sql = @"
                         UPDATE Controller.dbo.ControllerMain
                            SET 
@@ -217,7 +239,7 @@ namespace ERP.Web.Models.Respository.ControllerSetting
                               ,FrontNumber = @FrontNumber
                               ,IconClass = @IconClass
                               ,IsBlank = @IsBlank
-                              ,ModifyDate = @ModifyDate
+                              ,ModifyDate = GETDATE()
                               ,ModifyUser = @ModifyUser
                               ,ModifyDept = @ModifyDept
                          WHERE ID = @ID

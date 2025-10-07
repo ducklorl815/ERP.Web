@@ -32,12 +32,11 @@
 
             @if (Model.List != null)
             {
-
                 @foreach (var item in Model.List
                .Where(m => m.ParentControllerMainID == "00000000-0000-0000-0000-000000000000")
                .OrderBy(m => m.Sort))
                 {
-                    <li>
+                    <li class="@(item.IsActive ? "active" : "")">
                         @if (item.Children != null && item.Children.Any())
                         {
                             <a href="#">
@@ -45,17 +44,24 @@
                                 <span class="nav-label">@item.DisplayName</span>
                                 <span class="fa arrow"></span>
                             </a>
-                            <ul class="nav nav-second-level collapse">
+                            <ul class="nav nav-second-level @(item.IsActive ? "in" : "collapse")">
                                 @foreach (var child in item.Children.OrderBy(c => c.Sort))
                                 {
                                     @Html.Partial("_MenuItem", child)
                                 }
                             </ul>
                         }
+                        else
+                        {
+                            <a href="@item.Domain@item.Controller/@item.Action">
+                                <i class="@item.IconClass"></i>
+                                <span class="nav-label">@item.DisplayName</span>
+                            </a>
+                        }
                     </li>
                 }
-
             }
+
 
             @*後台管理Menu*@
             <li>
