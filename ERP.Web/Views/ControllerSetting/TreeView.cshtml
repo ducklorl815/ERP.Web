@@ -3,55 +3,66 @@
 
 <style>
     /* === 樣式區 === */
-    .tree-list { 
-        list-style: none; 
-        padding-left: 1rem; 
+    .tree-list {
+        list-style: none;
+        padding-left: 1rem;
     }
-    .tree-node { 
-        margin: 2px 0; 
+
+    .tree-node {
+        margin: 2px 0;
     }
-    .tree-node > .node-content {
-        display: flex;
-        align-items: center;
-        padding: 4px 8px;
-        border-radius: 6px; 
-        transition: all 0.2s ease;
-    }
-    .tree-node > .node-content:hover { 
-        background-color: #f0f0f0; 
-        cursor: pointer; 
-    }
+
+        .tree-node > .node-content {
+            display: flex;
+            align-items: center;
+            padding: 4px 8px;
+            border-radius: 6px;
+            transition: all 0.2s ease;
+        }
+
+            .tree-node > .node-content:hover {
+                background-color: #f0f0f0;
+                cursor: pointer;
+            }
+
     .toggle-icon, .toggle-placeholder, .node-icon {
-        width: 18px; 
-        text-align: center; 
+        width: 18px;
+        text-align: center;
         margin-right: 4px;
     }
-    .toggle-icon { 
-        cursor: pointer; 
-        transition: transform 0.2s; 
+
+    .toggle-icon {
+        cursor: pointer;
+        transition: transform 0.2s;
     }
-    .node-text { 
-        user-select: none; 
+
+    .node-text {
+        user-select: none;
     }
-    .selected { 
-        background-color: #428bca !important; 
-        color: white; 
+
+    .selected {
+        background-color: #428bca !important;
+        color: white;
     }
-    ul.tree-list ul.tree-list { 
-        margin-left: 1rem; 
-        border-left: 1px dashed #ccc; 
-        padding-left: 0.8rem; 
+
+    ul.tree-list ul.tree-list {
+        margin-left: 1rem;
+        border-left: 1px dashed #ccc;
+        padding-left: 0.8rem;
     }
-    .collapsed > ul.tree-list { 
-        display: none; 
+
+    .collapsed > ul.tree-list {
+        display: none;
     }
-    .expanded > .node-content > .toggle-icon { 
-        transform: rotate(90deg); 
+
+    .expanded > .node-content > .toggle-icon {
+        transform: rotate(90deg);
     }
-    .tree-checkbox { 
-        width: 16px; 
-        height: 16px; 
-        vertical-align: middle; 
+
+    .tree-checkbox {
+        width: 16px;
+        height: 16px;
+        vertical-align: middle;
         margin-right: 6px;
     }
 </style>
@@ -83,7 +94,7 @@
             html += $"<li data-id='{n.ID}' class='tree-node'>";
             html += $"<div class='node-content'>";
             html += hasChildren ? $"<i class='toggle-icon fa fa-chevron-right'></i>" : "<i class='toggle-placeholder'></i>";
-            html += $"<input type='checkbox' class='tree-checkbox' data-id='{n.ID}'/>";
+            html += $"<input type='checkbox' class='tree-checkbox ' data-id='{n.ID}'/>";
             html += $"<i class='node-icon {icon}'></i>";
             html += $"<span class='node-text'>{n.DisplayName}</span>";
             html += "</div>";
@@ -96,106 +107,116 @@
 }
 
 <script>
-document.addEventListener("DOMContentLoaded", function () {
-    const tree = document.getElementById("controllerTree");
+    document.addEventListener("DOMContentLoaded", function () {
+        const tree = document.getElementById("controllerTree");
 
-    // 展開/收合
-    tree.querySelectorAll(".toggle-icon").forEach(icon => {
-        icon.addEventListener("click", e => {
-            e.stopPropagation();
-            const li = icon.closest(".tree-node");
-            li.classList.toggle("collapsed");
-            li.classList.toggle("expanded");
+        // 展開/收合
+        tree.querySelectorAll(".toggle-icon").forEach(icon => {
+            icon.addEventListener("click", e => {
+                e.stopPropagation();
+                const li = icon.closest(".tree-node");
+                li.classList.toggle("collapsed");
+                li.classList.toggle("expanded");
+            });
         });
-    });
 
-    // 初始化全部收合
-    tree.querySelectorAll(".tree-node").forEach(li => {
-        if (li.querySelector("ul")) li.classList.add("collapsed");
-    });
-
-    // Checkbox 父子聯動
-    tree.querySelectorAll(".tree-checkbox").forEach(chk => {
-        chk.addEventListener("change", e => {
-            e.stopPropagation();
-            const li = chk.closest(".tree-node");
-
-            // 子節點跟隨父勾選
-            li.querySelectorAll("ul .tree-checkbox").forEach(c => { c.checked = chk.checked; c.indeterminate = false; });
-
-            // 勾選父節點 → 展開整棵樹
-            if (chk.checked) expandTree(li);
-
-            // 更新父節點半勾
-            updateParentState(li);
+        // 初始化全部收合
+        tree.querySelectorAll(".tree-node").forEach(li => {
+            if (li.querySelector("ul")) li.classList.add("collapsed");
         });
-    });
 
-    // 展開父子樹
-    function expandTree(li) {
-        if (!li) return;
-        li.classList.remove("collapsed"); li.classList.add("expanded");
-        li.querySelectorAll("ul li.tree-node").forEach(c => { c.classList.remove("collapsed"); c.classList.add("expanded"); });
-        const parentLi = li.parentElement.closest(".tree-node");
-        if (parentLi) expandTree(parentLi);
-    }
+        // Checkbox 父子聯動
+        tree.querySelectorAll(".tree-checkbox").forEach(chk => {
+            chk.addEventListener("change", e => {
+                e.stopPropagation();
+                const li = chk.closest(".tree-node");
 
-    // 遞迴更新父節點半勾
-    function updateParentState(li) {
-        const parentLi = li.parentElement.closest(".tree-node");
-        if (!parentLi) return;
+                // 子節點跟隨父勾選
+                li.querySelectorAll("ul .tree-checkbox").forEach(c => { c.checked = chk.checked; c.indeterminate = false; });
 
-        const parentChk = parentLi.querySelector(".node-content .tree-checkbox");
-        const siblingCheckboxes = parentLi.querySelectorAll("ul > .tree-node > .node-content > .tree-checkbox");
+                // 勾選父節點 → 展開整棵樹
+                if (chk.checked) expandTree(li);
 
-        const allChecked = Array.from(siblingCheckboxes).every(c => c.checked);
-        const noneChecked = Array.from(siblingCheckboxes).every(c => !c.checked);
+                // 更新父節點半勾
+                updateParentState(li);
+            });
+        });
 
-        parentChk.checked = allChecked;
-        parentChk.indeterminate = !(allChecked || noneChecked);
+        // 展開父子樹
+        function expandTree(li) {
+            if (!li) return;
+            li.classList.remove("collapsed"); li.classList.add("expanded");
+            li.querySelectorAll("ul li.tree-node").forEach(c => { c.classList.remove("collapsed"); c.classList.add("expanded"); });
+            const parentLi = li.parentElement.closest(".tree-node");
+            if (parentLi) expandTree(parentLi);
+        }
 
-        updateParentState(parentLi);
-    }
+        // 遞迴更新父節點半勾
+        function updateParentState(li) {
+            const parentLi = li.parentElement.closest(".tree-node");
+            if (!parentLi) return;
 
-    // 送出按鈕
-    document.getElementById("submitGroup").addEventListener("click", () => {
-        const groupName = document.getElementById("groupName").value.trim();
-        if (!groupName) return alert("請輸入群組名稱");
+            const parentChk = parentLi.querySelector(".node-content .tree-checkbox");
 
-        const selectedTree = getCheckedTree(document.querySelector("#controllerTree > ul"));
-        const data = { groupName: groupName, selectedNodes: selectedTree };
+            // :scope 保證只針對 parentLi 底下的「直接」> ul > .tree-node
+            const siblingCheckboxes = parentLi.querySelectorAll(':scope > ul > .tree-node > .node-content > .tree-checkbox');
 
-        console.log(JSON.stringify(data)); // 可直接 AJAX 送出
+            const allChecked = Array.from(siblingCheckboxes).every(c => c.checked);
+            const noneChecked = Array.from(siblingCheckboxes).every(c => !c.checked);
 
-        $.ajax({
-            url: '/ControllerSetting/SaveGroupPermissions', // 改成你的後端 Action
-            type: 'POST',
-            contentType: 'application/json',
-            data: JSON.stringify(data),
-            success: function (res) {
-                alert("送出成功");
-            },
-            error: function (err) {
-                console.error(err);
-                alert("送出失敗");
+            if (allChecked) {
+                parentChk.checked = true;
+                parentChk.indeterminate = false;
+            } else if (noneChecked) {
+                parentChk.checked = false;
+                parentChk.indeterminate = false;
+            } else {
+                parentChk.checked = false;
+                parentChk.indeterminate = true;
             }
+            updateParentState(parentLi);
+        }
+
+
+        // 送出按鈕
+        document.getElementById("submitGroup").addEventListener("click", () => {
+            const groupName = document.getElementById("groupName").value.trim();
+            if (!groupName) return alert("請輸入群組名稱");
+
+            const selectedTree = getCheckedTree(document.querySelector("#controllerTree > ul"));
+            const data = { groupName: groupName, selectedNodes: selectedTree };
+
+            console.log(JSON.stringify(data)); // 可直接 AJAX 送出
+
+            $.ajax({
+                url: '/ControllerSetting/SaveGroupPermissions', // 改成你的後端 Action
+                type: 'POST',
+                contentType: 'application/json',
+                data: JSON.stringify(data),
+                success: function (res) {
+                    alert("送出成功");
+                },
+                error: function (err) {
+                    console.error(err);
+                    alert("送出失敗");
+                }
+            });
         });
+
+        // 遞迴抓勾選節點
+        function getCheckedTree(ul) {
+            if (!ul) return [];
+            const result = [];
+            ul.querySelectorAll(":scope > li.tree-node").forEach(li => {
+                const chk = li.querySelector(":scope > .node-content > .tree-checkbox");
+                if (!chk) return;
+
+                const children = getCheckedTree(li.querySelector(":scope > ul.tree-list"));
+                if (chk.checked || children.length > 0) {
+                    result.push({ id: li.dataset.id, text: li.querySelector(".node-text").innerText, children: children.length ? children : null });
+                }
+            });
+            return result;
+        }
     });
-
-    // 遞迴抓勾選節點
-    function getCheckedTree(ul) {
-        if (!ul) return [];
-        const result = [];
-        ul.querySelectorAll(":scope > li.tree-node").forEach(li => {
-            const chk = li.querySelector(":scope > .node-content > .tree-checkbox");
-            if (!chk) return;
-
-            const children = getCheckedTree(li.querySelector(":scope > ul.tree-list"));
-            if (chk.checked || children.length > 0) {
-                result.push({ id: li.dataset.id, text: li.querySelector(".node-text").innerText, children: children.length ? children : null });
-            }
-        });
-        return result;
-    }
-});
 </script>
