@@ -4,6 +4,7 @@ using ERP.Web.Utility.Models;
 using ERP.Web.Utility.Paging;
 using ERP.Web.Utility.ViewModel;
 using Microsoft.AspNetCore.Mvc.Rendering;
+using Microsoft.CodeAnalysis;
 
 namespace ERP.Web.Service.Service.ControllerSetting
 {
@@ -110,6 +111,48 @@ namespace ERP.Web.Service.Service.ControllerSetting
             return roots;
         }
 
+        public async Task<List<ErpMenuData>> ErpTreeView()
+        {
+            var roots = new List<ErpMenuData>();
+            var erpMenuData = await _controllerSettingRepo.GetErpMenuDataAsync();
 
+            if (erpMenuData == null || !erpMenuData.Any())
+                return roots;
+
+            // ======= 以下重用你原本 LEFTSIDER 的邏輯 =======
+            var flatMenuList = erpMenuData
+                .Where(s => s != null)
+                .Select(s => new ErpMenuData
+                {
+                    ID = s.ID,
+                    ControllerMainID = s.ControllerMainID,
+                    Level = s.Level,
+                    ControllerDesc = s.ControllerDesc,
+                    ControllerName = s.ControllerName ?? string.Empty,
+                    ActName = s.ActName ?? string.Empty,
+                    Name = string.IsNullOrEmpty(s.Name) ? s.ControllerName ?? "" : s.Name,
+                    IconClass = string.IsNullOrEmpty(s.IconClass) ? "" : s.IconClass,
+                    Sort = s.Sort,
+                    IsMenu = s.IsMenu,
+                    Children = new List<ErpMenuData>(),
+                    IsActive = false,
+                    Domain = "https://localhost:44372/",
+                    Enabled = s.Enabled,
+                    Deleted = s.Deleted
+                })
+                .ToList();
+
+            var lookup = flatMenuList.ToDictionary(x => x.ID);
+
+            foreach (var item in flatMenuList)
+            {
+                if (item.ControllerMainID == Guid.Empty)
+                    roots.Add(item);
+                else if (lookup.TryGetValue(item.ControllerMainID, out var parent))
+                    parent.Children.Add(item);
+            }
+
+            return roots;
+        }
     }
 }

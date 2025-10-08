@@ -171,7 +171,6 @@ namespace ERP.Web.Models.Respository.ControllerSetting
                               ,ControllerDesc
                               ,HttpMethod
                               ,ParentControllerMainID
-                              ,ControllerActionID
                               ,StationMainID
                               ,PageNumber
                               ,Level
@@ -188,12 +187,20 @@ namespace ERP.Web.Models.Respository.ControllerSetting
                           AND Enabled = 1
                           AND Deleted = 0
                         ";
-
-            using (var conn = new SqlConnection(_dBList.erp))
+            try
             {
-                var result = await conn.QueryFirstOrDefaultAsync<ControllerMainModel>(sql, sqlparam);
-                return result;
+                using (var conn = new SqlConnection(_dBList.erp))
+                {
+                    var result = await conn.QueryFirstOrDefaultAsync<ControllerMainModel>(sql, sqlparam);
+                    return result;
+                }
             }
+            catch (Exception ex)
+            {
+
+                throw;
+            }
+
         }
         /// <summary>
         /// 更新ActDataMaintain
@@ -502,6 +509,74 @@ namespace ERP.Web.Models.Respository.ControllerSetting
             try
             {
                 var result = await conn.QueryAsync<MenuData>(sqlQuery);
+                return result.ToList();
+            }
+            catch (Exception)
+            {
+                return null;
+            }
+        }
+
+        public async Task<List<ErpMenuData>> GetErpMenuDataAsync()
+        {
+            var sqlQuery = @"
+                                WITH ControllerTree AS
+                                (
+                                    -- Root 節點
+                                    SELECT
+                                        c.ID,
+                                        c.ControllerName,
+                                        c.Name,
+                                        c.ActName,
+                                        c.ControllerDesc,
+                                        c.HttpMethod,
+                                        c.StationMainID,
+                                        0 AS Level,
+                                        c.Sort,
+                                        c.IsMenu,
+                                        c.FrontNumber,
+                                        c.IconClass,
+                                        c.AbandonReason,
+                                        c.Enabled,
+                                        c.Deleted,
+                                        c.ControllerMainID
+                                    FROM erp.dbo.ControllerMain c
+                                    WHERE c.ControllerMainID = '00000000-0000-0000-0000-000000000000'
+
+                                    UNION ALL
+
+                                    -- 遞迴子節點
+                                    SELECT
+                                        c.ID,
+                                        c.ControllerName,
+                                        c.Name,
+                                        c.ActName,
+                                        c.ControllerDesc,
+                                        c.HttpMethod,
+                                        c.StationMainID,
+                                        ct.Level + 1,
+                                        c.Sort,
+                                        c.IsMenu,
+                                        c.FrontNumber,
+                                        c.IconClass,
+                                        c.AbandonReason,
+                                        c.Enabled,
+                                        c.Deleted,
+                                        c.ControllerMainID
+                                    FROM erp.dbo.ControllerMain c
+                                    INNER JOIN ControllerTree ct ON c.ControllerMainID = ct.ID
+                                )
+                                SELECT 
+                                    ct.*
+                                FROM ControllerTree ct
+                                ORDER BY ct.Level, ct.Sort
+                            ";
+
+
+            using var conn = new SqlConnection("Data Source=DBA-uERP1;Initial Catalog=erp;User ID=master2;Password=MasteR2;Integrated Security=false;Pooling=TRUE;Application Name=ERP.Web");
+            try
+            {
+                var result = await conn.QueryAsync<ErpMenuData>(sqlQuery);
                 return result.ToList();
             }
             catch (Exception)

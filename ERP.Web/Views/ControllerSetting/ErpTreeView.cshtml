@@ -1,4 +1,4 @@
-﻿@model ERP.Web.Utility.ViewModel.LeftSidebarViewModel
+﻿@model ERP.Web.Models.Models.ControllerSetting.ErpMenuDataViewModel
 
 
 <style>
@@ -71,21 +71,21 @@
 </div>
 
 @functions {
-    private string RenderTree(List<ERP.Web.Utility.ViewModel.MenuData> nodes)
+    private string RenderTree(List<ERP.Web.Models.Models.ControllerSetting.ErpMenuData> nodes)
     {
         if (nodes == null || !nodes.Any()) return "";
         var html = "<ul class='tree-list'>";
         foreach (var n in nodes.OrderBy(x => x.Sort))
         {
             bool hasChildren = n.Children != null && n.Children.Any();
-            string icon = string.IsNullOrEmpty(n.IconClass) ? "fa fa-folder" : n.IconClass;
+            string icon = string.IsNullOrEmpty(n.IconClass) ? "" : n.IconClass;
 
             html += $"<li data-id='{n.ID}' class='tree-node'>";
             html += $"<div class='node-content'>";
             html += hasChildren ? $"<i class='toggle-icon fa fa-chevron-right'></i>" : "<i class='toggle-placeholder'></i>";
             html += $"<input type='checkbox' class='tree-checkbox' data-id='{n.ID}'/>";
             html += $"<i class='node-icon {icon}'></i>";
-            html += $"<span class='node-text'>{n.DisplayName}</span>";
+            html += $"<span class='node-text'>{n.Name}</span>";
             html += "</div>";
             if (hasChildren) html += RenderTree(n.Children);
             html += "</li>";
