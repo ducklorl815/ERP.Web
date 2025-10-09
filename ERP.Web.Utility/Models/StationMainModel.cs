@@ -24,5 +24,9 @@
 
         /// <summary>使用方法</summary>
         public string HttpMethod { get; set; }
+        /// <summary>父節點ID</summary>
+        public Guid ParentControllerMainID { get; set; }
+        /// <summary>父節點顯示名稱</summary>
+        public string ParentDisplayName { get; set; }
     }
 }

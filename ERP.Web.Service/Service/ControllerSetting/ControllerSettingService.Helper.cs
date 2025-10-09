@@ -54,6 +54,8 @@ namespace ERP.Web.Service.Service.ControllerSetting
             // Controller/Action
             if (!string.IsNullOrEmpty(x.Action))
                 parts.Add($"{x.StationCode} {x.Controller}/{x.Action}");
+            else if (x.ParentControllerMainID != Guid.Empty)
+                parts.Add($"{x.StationCode} {x.ParentDisplayName} 的內層標籤 : ");
             else
                 parts.Add(x.StationCode + " 最外層標籤 : ");
 
@@ -82,7 +84,6 @@ namespace ERP.Web.Service.Service.ControllerSetting
                 {
                     ID = s.ID,
                     ParentControllerMainID = s.ParentControllerMainID,
-                    Level = s.Level,
                     Controller = s.Controller ?? string.Empty,
                     Action = s.Action ?? string.Empty,
                     DisplayName = string.IsNullOrEmpty(s.DisplayName) ? s.Controller ?? "" : s.DisplayName,

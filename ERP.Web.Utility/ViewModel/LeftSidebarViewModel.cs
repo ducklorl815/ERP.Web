@@ -17,7 +17,6 @@
         public string ControllerDesc { get; set; }
         public string HttpMethod { get; set; }
         public Guid StationMainID { get; set; }
-        public int Level { get; set; }
         public int Sort { get; set; }
         public bool IsMenu { get; set; }
         public string FrontNumber { get; set; }

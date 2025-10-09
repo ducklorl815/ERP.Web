@@ -53,10 +53,13 @@
                         }
                         else
                         {
-                            <a href="@item.Domain@item.Controller/@item.Action">
-                                <i class="@item.IconClass"></i>
-                                <span class="nav-label">@item.DisplayName</span>
-                            </a>
+                            @if (!string.IsNullOrEmpty(item.Controller))
+                            {
+                                <a href="@item.Domain@item.Controller/@item.Action">
+                                    <i class="@item.IconClass"></i>
+                                    <span class="nav-label">@item.DisplayName</span>
+                                </a>
+                            }
                         }
                     </li>
                 }

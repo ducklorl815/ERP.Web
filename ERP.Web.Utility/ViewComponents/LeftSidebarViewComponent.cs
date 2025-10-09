@@ -77,7 +77,6 @@ namespace ERP.Web.Utility.ViewComponents
                 {
                     ID = s.ID,
                     ParentControllerMainID = s.ParentControllerMainID,
-                    Level = s.Level,
                     Controller = s.Controller ?? string.Empty,
                     Action = s.ActName ?? s.Action ?? string.Empty,
                     DisplayName = $"{s.FrontNumber ?? string.Empty}.{s.Name ?? s.DisplayName ?? string.Empty}",

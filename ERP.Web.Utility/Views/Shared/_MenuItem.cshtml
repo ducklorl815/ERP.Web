@@ -18,9 +18,12 @@
     }
     else
     {
+        @if (!string.IsNullOrEmpty(Model.Controller))
+        {
             <a href="@Model.Domain@Model.Controller/@Model.Action">
                 <i class="@Model.IconClass"></i>
                 <span class="nav-label">@Model.DisplayName</span>
             </a>
+        }
     }
 </li>

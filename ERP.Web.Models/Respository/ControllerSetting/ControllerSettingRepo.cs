@@ -32,21 +32,20 @@ namespace ERP.Web.Models.Respository.ControllerSetting
         public async Task<Guid> ControllerCreate(ControllerMainModel param)
         {
             var sqlparam = new DynamicParameters();
+
+            sqlparam.Add("Controller", string.IsNullOrEmpty(param.Controller) ? "" : param.Controller);
+            sqlparam.Add("Action", string.IsNullOrEmpty(param.Action) ? "" : param.Action);
+            sqlparam.Add("HttpMethod", string.IsNullOrEmpty(param.HttpMethod) ? "" : param.HttpMethod);
+            sqlparam.Add("IconClass", string.IsNullOrEmpty(param.IconClass) ? "" : param.IconClass);
+            sqlparam.Add("FrontNumber", string.IsNullOrEmpty(param.FrontNumber) ? "" : param.FrontNumber);
+
             sqlparam.Add("StationMainID", param.StationMainID);
             sqlparam.Add("DisplayName", param.DisplayName);
-            sqlparam.Add("Controller", param.Controller);
-            sqlparam.Add("Action", param.Action);
-            sqlparam.Add("HttpMethod", param.HttpMethod);
             sqlparam.Add("ParentControllerMainID", param.ParentControllerMainID);
-            sqlparam.Add("PageNumber", param.PageNumber);
-            sqlparam.Add("IconClass", param.IconClass);
-            sqlparam.Add("FrontNumber", param.FrontNumber);
             sqlparam.Add("Sort", param.Sort);
             sqlparam.Add("IsMenu", param.IsMenu);
             sqlparam.Add("IsBlank", param.IsBlank);
-            sqlparam.Add("Level", param.Level);
             sqlparam.Add("ControllerDesc", param.ControllerDesc);
-
             sqlparam.Add("CreateUser", CreateUser);
             sqlparam.Add("CreateDept", CreateDept);
             sqlparam.Add("ModifyUser", CreateUser);
@@ -61,7 +60,6 @@ namespace ERP.Web.Models.Respository.ControllerSetting
                                    ,ParentControllerMainID
                                    ,Action
                                    ,StationMainID
-                                   ,Level
                                    ,Sort
                                    ,IsMenu
                                    ,FrontNumber
@@ -86,7 +84,6 @@ namespace ERP.Web.Models.Respository.ControllerSetting
                                    ,@ParentControllerMainID
                                    ,@Action
                                    ,@StationMainID
-                                   ,@Level
                                    ,@Sort
                                    ,@IsMenu
                                    ,@FrontNumber
@@ -134,7 +131,6 @@ namespace ERP.Web.Models.Respository.ControllerSetting
                           ,cm.HttpMethod
 						  ,cm.FrontNumber
 						  ,cm.IconClass
-                          ,cm.Level
                           ,cm.Sort
 	                      ,cm2.Seq as ParentSeq
                           ,cm.ParentControllerMainID
@@ -172,8 +168,6 @@ namespace ERP.Web.Models.Respository.ControllerSetting
                               ,HttpMethod
                               ,ParentControllerMainID
                               ,StationMainID
-                              ,PageNumber
-                              ,Level
                               ,Sort
                               ,IsMenu
                               ,FrontNumber
@@ -221,11 +215,9 @@ namespace ERP.Web.Models.Respository.ControllerSetting
             sqlparam.Add("StationMainID", param.StationMainID);
             sqlparam.Add("DisplayName", param.DisplayName);
             sqlparam.Add("ParentControllerMainID", param.ParentControllerMainID);
-            sqlparam.Add("PageNumber", param.PageNumber);
             sqlparam.Add("Sort", param.Sort);
             sqlparam.Add("IsMenu", param.IsMenu);
             sqlparam.Add("IsBlank", param.IsBlank);
-            sqlparam.Add("Level", param.Level);
             sqlparam.Add("ControllerDesc", param.ControllerDesc);
 
             sqlparam.Add("ModifyUser", CreateUser);
@@ -240,8 +232,6 @@ namespace ERP.Web.Models.Respository.ControllerSetting
                               ,HttpMethod = @HttpMethod
                               ,ParentControllerMainID = @ParentControllerMainID
                               ,StationMainID = @StationMainID
-                              ,Level = @Level
-                              ,PageNumber = @PageNumber
                               ,Sort = @Sort
                               ,IsMenu = @IsMenu
                               ,FrontNumber = @FrontNumber
@@ -281,12 +271,15 @@ namespace ERP.Web.Models.Respository.ControllerSetting
                               ,cm.Controller
 							  ,cs.StationCode
 	                          ,cm.Action
-                              ,DisplayName
-                              ,HttpMethod
+                              ,cm.DisplayName
+                              ,cm.HttpMethod
                               ,cs.Domain
 							  ,cm.StationMainID
+							  ,cm.ParentControllerMainID
+							  ,cm1.DisplayName as ParentDisplayName
                           FROM Controller.dbo.ControllerMain cm
                           JOIN Controller.dbo.ControllerStationMain cs ON cs.ID = cm.StationMainID AND cs.Enabled = 1 AND cs.Deleted = 0
+						  LEFT JOIN Controller.dbo.ControllerMain cm1 ON cm1.ID = cm.ParentControllerMainID 
                           WHERE cm.Enabled = 1
                           AND cm.Deleted = 0
                             ";
@@ -296,7 +289,7 @@ namespace ERP.Web.Models.Respository.ControllerSetting
                 sqlparam.Add("StationMainID", StationMainID.ToUpper());
                 sql += " AND cm.StationMainID = @StationMainID";
             }
-            sql += " ORDER BY CASE WHEN cm.Controller = '' THEN 0 ELSE 1 END, cm.CreateDate DESC";
+            sql += " ORDER BY CASE WHEN cm.Controller = '' THEN 0 ELSE 1 END, cm.ParentControllerMainID , cm.CreateDate DESC";
 
             try
             {
