@@ -47,22 +47,24 @@
                             <ul class="nav nav-second-level @(item.IsActive ? "in" : "collapse")">
                                 @foreach (var child in item.Children.OrderBy(c => c.Sort))
                                 {
-                                    @Html.Partial("_MenuItem", child)
+
+                                    var childVD = new ViewDataDictionary(ViewData);
+                                    childVD["Level"] = 3; // 第一次呼叫 partial 的層級（child 為第三層）
+
+                                    @Html.Partial("_MenuItem", child, childVD)
                                 }
                             </ul>
                         }
                         else
                         {
-                            @if (!string.IsNullOrEmpty(item.Controller))
-                            {
-                                <a href="@item.Domain@item.Controller/@item.Action">
-                                    <i class="@item.IconClass"></i>
-                                    <span class="nav-label">@item.DisplayName</span>
-                                </a>
-                            }
+                            <a href="@item.Domain@item.Controller/@item.Action">
+                                <i class="@item.IconClass"></i>
+                                <span class="nav-label">@item.DisplayName</span>
+                            </a>
                         }
                     </li>
                 }
+
             }
 
 

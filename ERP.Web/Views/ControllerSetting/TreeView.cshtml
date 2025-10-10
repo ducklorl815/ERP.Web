@@ -89,13 +89,14 @@
         foreach (var n in nodes.OrderBy(x => x.Sort))
         {
             bool hasChildren = n.Children != null && n.Children.Any();
-            string icon = string.IsNullOrEmpty(n.IconClass) ? "fa fa-folder" : n.IconClass;
+            string icon = string.IsNullOrEmpty(n.IconClass) ? "" : n.IconClass;
 
             html += $"<li data-id='{n.ID}' class='tree-node'>";
             html += $"<div class='node-content'>";
             html += hasChildren ? $"<i class='toggle-icon fa fa-chevron-right'></i>" : "<i class='toggle-placeholder'></i>";
             html += $"<input type='checkbox' class='tree-checkbox ' data-id='{n.ID}'/>";
-            html += $"<i class='node-icon {icon}'></i>";
+            if (!string.IsNullOrEmpty(n.IconClass))
+                html += $"<i class='node-icon {icon}'></i>";
             html += $"<span class='node-text'>{n.DisplayName}</span>";
             html += "</div>";
             if (hasChildren) html += RenderTree(n.Children);
@@ -158,22 +159,28 @@
 
             const parentChk = parentLi.querySelector(".node-content .tree-checkbox");
 
-            // :scope 保證只針對 parentLi 底下的「直接」> ul > .tree-node
+            // 取得 parentLi 直接子層的 checkbox
             const siblingCheckboxes = parentLi.querySelectorAll(':scope > ul > .tree-node > .node-content > .tree-checkbox');
 
             const allChecked = Array.from(siblingCheckboxes).every(c => c.checked);
-            const noneChecked = Array.from(siblingCheckboxes).every(c => !c.checked);
+            const anyChecked = Array.from(siblingCheckboxes).some(c => c.checked || c.indeterminate);
+            const noneChecked = Array.from(siblingCheckboxes).every(c => !c.checked && !c.indeterminate);
 
             if (allChecked) {
+                // 全勾選
                 parentChk.checked = true;
                 parentChk.indeterminate = false;
             } else if (noneChecked) {
+                // 全沒勾
                 parentChk.checked = false;
                 parentChk.indeterminate = false;
-            } else {
+            } else if (anyChecked) {
+                // 有部分勾選或半勾
                 parentChk.checked = false;
                 parentChk.indeterminate = true;
             }
+
+            // 遞迴往上更新
             updateParentState(parentLi);
         }
 

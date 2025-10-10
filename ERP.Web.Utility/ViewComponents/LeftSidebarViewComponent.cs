@@ -79,7 +79,7 @@ namespace ERP.Web.Utility.ViewComponents
                     ParentControllerMainID = s.ParentControllerMainID,
                     Controller = s.Controller ?? string.Empty,
                     Action = s.ActName ?? s.Action ?? string.Empty,
-                    DisplayName = $"{s.FrontNumber ?? string.Empty}.{s.Name ?? s.DisplayName ?? string.Empty}",
+                    DisplayName = $"{(string.IsNullOrEmpty(s.FrontNumber) ? "" : s.FrontNumber + ".")}{s.DisplayName ?? string.Empty}",
                     IconClass = s.IconClass ?? string.Empty,
                     Sort = s.Sort,
                     IsMenu = s.IsMenu,

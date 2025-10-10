@@ -1,20 +1,35 @@
 ﻿@model ERP.Web.Utility.ViewModel.MenuData
 
+@{
+    // 從 ViewData 讀取層級，預設 2（root 的下一層）
+    var level = ViewData["Level"] as int? ?? 2;
+    var nextLevel = level + 1;
 
+    var levelClass = level == 2 ? "nav-second-level"
+                    : level == 3 ? "nav-third-level"
+                    : level == 4 ? "nav-forth-level"
+                    : level == 5 ? "nav-fifth-level"
+                    : $"nav-level-{level}";
+}
 <li class="@(Model.IsActive ? "active" : "")">
     @if (Model.Children != null && Model.Children.Any())
     {
-            <a href="#">
-                <i class="@Model.IconClass"></i>
-                <span class="nav-label">@Model.DisplayName</span>
-                <span class="fa arrow"></span>
-            </a>
-            <ul class="nav nav-second-level @(Model.IsActive ? "in" : "collapse")">
+        <a href="#">
+            <i class="@Model.IconClass"></i>
+            <span class="nav-label">@Model.DisplayName</span>
+            <span class="fa arrow"></span>
+        </a>
+        <ul class="nav @levelClass @(Model.IsActive ? "in" : "collapse")">
             @foreach (var child in Model.Children.OrderBy(c => c.Sort))
             {
-                @Html.Partial("_MenuItem", child)
+
+                // 正確的做法：複製 ViewData 並用索引器覆寫/設定 Level
+                var childViewData = new ViewDataDictionary(ViewData);
+                childViewData["Level"] = nextLevel;
+
+                @Html.Partial("_MenuItem", child, childViewData)
             }
-            </ul>
+        </ul>
     }
     else
     {
