@@ -1,0 +1,21 @@
+﻿@model ERP.Web.Service.ViewModels.ControllerSetting.IconGroup
+
+<partial name="~/Views/Shared/_Page.cshtml" model="@Model.Pager" />
+
+<div class="row footable mb-3 mt-3" id="IconListContainer">
+    @if (Model.IconList != null)
+    {
+        foreach (var icon in Model.IconList)
+        {
+            <div class="col-2 p-1">
+                <div class="border rounded p-3 icon-item d-flex align-items-center"
+                     data-icon="@icon.IconStyle @icon.IconClass"
+                     style="cursor:pointer; gap:10px;">
+                    <i class="@icon.IconStyle @icon.IconClass fa-1x"></i>
+                    <span class="small" style="font-size:14px">@icon.IconName</span>
+                </div>
+            </div>
+        }
+    }
+</div>
+<partial name="~/Views/Shared/_Page.cshtml" model="@Model.Pager" />

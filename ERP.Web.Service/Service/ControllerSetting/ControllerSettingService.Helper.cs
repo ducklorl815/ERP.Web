@@ -1,10 +1,12 @@
 ﻿using ERP.Web.Models.Models.ControllerSetting;
+using ERP.Web.Models.Models.Tools;
 using ERP.Web.Service.ViewModels.ControllerSetting;
 using ERP.Web.Utility.Models;
 using ERP.Web.Utility.Paging;
 using ERP.Web.Utility.ViewModel;
 using Microsoft.AspNetCore.Mvc.Rendering;
 using Microsoft.CodeAnalysis;
+using Newtonsoft.Json;
 
 namespace ERP.Web.Service.Service.ControllerSetting
 {
@@ -26,18 +28,20 @@ namespace ERP.Web.Service.Service.ControllerSetting
             // 控制器清單
             result.ControllerListItem = await GetControllerListItemAsync(param.StationMainID.ToString());
             // Icon 清單 & 分頁
-            result.IconGroup = await GetIconGroup();
+            result.IconGroup = await GetIconGroup(new IconGroup_param());
             return result;
         }
 
-        public async Task<IconGroup> GetIconGroup(int page = 1, int pageSize = 100)
+        public async Task<IconGroup> GetIconGroup(IconGroup_param param)
         {
             var result = new IconGroup();
-            var datacount = await _controllerSettingRepo.GetIconCountAsync();
-            var pager = new Paging(page, pageSize, datacount);
-            var icons = await _controllerSettingRepo.GetIconList(pager);
+            IconGroupMain_param IconModel = JsonConvert.DeserializeObject<IconGroupMain_param>(JsonConvert.SerializeObject(param));
+            var datacount = await _controllerSettingRepo.GetIconCountAsync(IconModel);
+            IconModel.Pager = new Paging(param.Page, param.PageSize, datacount);
+
+            var icons = await _controllerSettingRepo.GetIconList(IconModel);
             result.IconList = icons;
-            result.Pager = pager;
+            result.Pager = IconModel.Pager;
             return result;
         }
 

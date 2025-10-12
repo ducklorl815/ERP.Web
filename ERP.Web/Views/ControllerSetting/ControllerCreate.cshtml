@@ -131,7 +131,7 @@
                                         <h5 class="modal-title">選擇 Icon</h5>
                                         <button type="button" class="btn-close" data-bs-dismiss="modal"></button>
                                     </div>
-                                    <div class="modal-body" id="icon-list-container">
+                                    <div class="modal-body" id="IconListContainer">
                                         @* 一開始先載入第一頁 *@
                                         @await Html.PartialAsync("_IconListPartial", Model.IconGroup)
                                     </div>
@@ -214,19 +214,19 @@
 
 
 
-    // 建立 callback，告訴 PageTurning 目標容器在哪裡
-    var callback = function () {
-        return {
-            method: "get",
-            url: '@Url.Action("IconList")',
-            footable: true,
-            wrapperContent: "#icon-list-container", // 只更新這個容器
-            data: {}
-        };
-    };
+    //// 建立 callback，告訴 PageTurning 目標容器在哪裡
+    //var callback = function () {
+    //    return {
+    //        method: "get",
+    //        url: '@Url.Action("IconList")',
+    //        footable: true,
+    //        wrapperContent: "#icon-list-container", // 只更新這個容器
+    //        data: {}
+    //    };
+    //};
 
-    // 初始化分頁控制
-    PageTurning(callback);
+    //// 初始化分頁控制
+    //PageTurning(callback);
 
 </script>
 

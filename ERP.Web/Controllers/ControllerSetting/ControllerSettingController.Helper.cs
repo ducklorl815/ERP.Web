@@ -1,4 +1,5 @@
-﻿using Microsoft.AspNetCore.Mvc;
+﻿using ERP.Web.Service.ViewModels.ControllerSetting;
+using Microsoft.AspNetCore.Mvc;
 
 namespace ERP.Web.Controllers.ControllerSetting
 {
@@ -12,10 +13,12 @@ namespace ERP.Web.Controllers.ControllerSetting
             return Json(result);
         }
 
-        public async Task<IActionResult> IconList(int page = 1, int pageSize = 100)
+        public async Task<IActionResult> IconList(IconGroup_param param)
         {
+            var result = await _controllerSettingService.GetIconGroup(param);
 
-            var result = await _controllerSettingService.GetIconGroup(page, pageSize);
+            if (Request.IsAjaxRequest())
+                return PartialView("_IconListPartialData", result);
 
             return PartialView("_IconListPartial", result);
         }

@@ -19,8 +19,17 @@ namespace ERP.Web.Service.ViewModels.ControllerSetting
         public ControllerMainModel ControllerMain { get; set; }
     }
 
-    public class IconGroup : PageViewModel
+    public class IconGroup : IconGroup_param
     {
         public List<IconUtilityModel> IconList { get; set; }
+    }
+
+    public class IconGroup_param : PageViewModel
+    {
+        public IconKeyword IconKeyword { get; set; }
+    }
+    public class IconKeyword
+    {
+        public string IconClass { get; set; }
     }
 }

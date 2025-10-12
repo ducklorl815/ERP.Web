@@ -18,7 +18,7 @@ namespace ERP.Web.Service.Service.ControllerSetting
             List<StationMainModel> stationDataTask = await _controllerSettingRepo.GetStationMainDataAsync();
 
             result.ControllerListItem = await GetControllerListItemAsync("");
-            result.IconGroup = await GetIconGroup();
+            result.IconGroup = await GetIconGroup(new IconGroup_param());
             result.StationListItem = stationDataTask.Select(s => new SelectListItem
             {
                 Text = $"{s.StationCode} {s.StationName} {s.Domain}",

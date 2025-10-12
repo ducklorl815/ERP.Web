@@ -1,7 +1,7 @@
 ﻿using Dapper;
 using ERP.Web.Models.Models.ControllerSetting;
+using ERP.Web.Models.Models.Tools;
 using ERP.Web.Utility.Models;
-using ERP.Web.Utility.Paging;
 using ERP.Web.Utility.ViewModel;
 using Microsoft.Extensions.Options;
 using System.Data.SqlClient;
@@ -306,17 +306,23 @@ namespace ERP.Web.Models.Respository.ControllerSetting
             }
 
         }
-        public async Task<int> GetIconCountAsync()
+        public async Task<int> GetIconCountAsync(IconGroupMain_param param)
         {
+            var sqlparam = new DynamicParameters();
             var sql = @"
                         SELECT COUNT(*)
                         FROM Controller.dbo.FontAwesomeMain
                         WHERE Deleted = 0 AND Enabled = 1
                         ";
 
+            if (param.IconKeyword != null && !string.IsNullOrEmpty(param.IconKeyword.IconClass))
+            {
+                sqlparam.Add("IconClass", $"%{param.IconKeyword.IconClass}%");
+                sql += " AND IconClass LIKE @IconClass";
+            }
             using (var conn = new SqlConnection(_dBList.erp))
             {
-                var result = await conn.QueryFirstOrDefaultAsync<int>(sql);
+                var result = await conn.QueryFirstOrDefaultAsync<int>(sql, sqlparam);
                 return result;
             }
         }
@@ -326,9 +332,10 @@ namespace ERP.Web.Models.Respository.ControllerSetting
         /// <param name="page"></param>
         /// <param name="pageSize"></param>
         /// <returns></returns>
-        public async Task<List<IconUtilityModel>> GetIconList(Paging pager)
+        public async Task<List<IconUtilityModel>> GetIconList(IconGroupMain_param param)
         {
             var sqlparam = new DynamicParameters();
+
             var sql = @"
                         SELECT ID
                               ,seq
@@ -340,14 +347,21 @@ namespace ERP.Web.Models.Respository.ControllerSetting
                               ,Deleted
                         FROM Controller.dbo.FontAwesomeMain
                         WHERE Deleted = 0 AND Enabled = 1
-                        ORDER BY seq ASC
                         ";
-            //分頁功能
-            sqlparam.Add("Offset", pager.ItemStart - 1);
-            sqlparam.Add("Fetch", pager.PageSize);
+            if (param.IconKeyword != null && !string.IsNullOrEmpty(param.IconKeyword.IconClass))
+            {
+                sqlparam.Add("IconClass", $"%{param.IconKeyword.IconClass}%");
+                sql += " AND IconClass LIKE @IconClass";
+            }
 
-            sql += "offset @Offset Rows ";
-            sql += "fetch next @Fetch Rows Only ";
+            sql += " ORDER BY seq ASC";
+
+            //分頁功能
+            sqlparam.Add("Offset", param.Pager.ItemStart - 1);
+            sqlparam.Add("Fetch", param.Pager.PageSize);
+
+            sql += " offset @Offset Rows ";
+            sql += " fetch next @Fetch Rows Only ";
             using (var conn = new SqlConnection(_dBList.erp))
             {
                 var result = await conn.QueryAsync<IconUtilityModel>(sql, sqlparam);

@@ -80,7 +80,7 @@
         public int Page { get; set; } = 1;
 
         /// <summary>每頁幾筆</summary>
-        public int PageSize { get; set; } = 15;
+        public int PageSize { get; set; } = 102;
 
         /// <summary>分頁資訊</summary>
         public Paging Pager { get; set; }
