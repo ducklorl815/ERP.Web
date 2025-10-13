@@ -1,6 +1,7 @@
 ﻿using ERP.Web.Models.Models.ControllerSetting;
 using ERP.Web.Models.Models.Tools;
 using ERP.Web.Service.ViewModels.ControllerSetting;
+using ERP.Web.Service.ViewModels.Tools;
 using ERP.Web.Utility.Models;
 using ERP.Web.Utility.Paging;
 using ERP.Web.Utility.ViewModel;
@@ -93,6 +94,7 @@ namespace ERP.Web.Service.Service.ControllerSetting
                     DisplayName = string.IsNullOrEmpty(s.DisplayName) ? s.Controller ?? "" : s.DisplayName,
                     IconClass = string.IsNullOrEmpty(s.IconClass) ? "" : s.IconClass,
                     Sort = s.Sort,
+                    ControllerDesc = s.ControllerDesc,
                     IsMenu = s.IsMenu,
                     Children = new List<MenuData>(),
                     IsActive = false,
@@ -159,5 +161,6 @@ namespace ERP.Web.Service.Service.ControllerSetting
 
             return roots;
         }
+
     }
 }

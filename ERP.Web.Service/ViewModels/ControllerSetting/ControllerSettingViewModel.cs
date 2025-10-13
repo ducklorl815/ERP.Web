@@ -1,4 +1,5 @@
 ﻿using ERP.Web.Models.Models.ControllerSetting;
+using ERP.Web.Service.ViewModels.Tools;
 using ERP.Web.Utility.Models;
 using ERP.Web.Utility.Paging;
 using Microsoft.AspNetCore.Mvc.Rendering;
@@ -19,17 +20,5 @@ namespace ERP.Web.Service.ViewModels.ControllerSetting
         public ControllerMainModel ControllerMain { get; set; }
     }
 
-    public class IconGroup : IconGroup_param
-    {
-        public List<IconUtilityModel> IconList { get; set; }
-    }
 
-    public class IconGroup_param : PageViewModel
-    {
-        public IconKeyword IconKeyword { get; set; }
-    }
-    public class IconKeyword
-    {
-        public string IconClass { get; set; }
-    }
 }

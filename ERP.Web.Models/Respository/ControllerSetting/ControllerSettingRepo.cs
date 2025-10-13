@@ -591,5 +591,57 @@ namespace ERP.Web.Models.Respository.ControllerSetting
                 return null;
             }
         }
+        /// <summary>
+        /// 新增權限群組ID
+        /// </summary>
+        /// <param name="GroupName"></param>
+        /// <param name="NodeJson"></param>
+        /// <returns></returns>
+        public async Task<Guid> SaveAccessGroup(string GroupName, string NodeJson)
+        {
+            var sqlparam = new DynamicParameters();
+            sqlparam.Add("GroupName", GroupName);
+            sqlparam.Add("NodeJson", NodeJson);
+
+            sqlparam.Add("ModifyUser", CreateUser);
+            sqlparam.Add("ModifyDept", CreateDept);
+
+            var sql = $@"
+                        INSERT INTO Controller.dbo.ControllerAccessGroup
+                                   (
+		                            ID
+                                   ,GroupName
+                                   ,NodeJson
+                                   ,ModifyDate
+                                   ,ModifyUser
+                                   ,ModifyDept
+                                   ,Enabled
+                                   ,Deleted
+		                           )
+	                         OUTPUT INSERTED.ID
+                             VALUES
+                                   (
+		                            NEWID()
+                                   ,@GroupName
+                                   ,@NodeJson
+                                   ,GETDATE()
+                                   ,@ModifyUser
+                                   ,@ModifyDept
+                                   ,1
+                                   ,0
+		                           )
+                        ";
+
+            using var conn = new SqlConnection(_dBList.erp);
+            try
+            {
+                var result = await conn.ExecuteScalarAsync<Guid>(sql, sqlparam);
+                return result;
+            }
+            catch (Exception)
+            {
+                return Guid.Empty;
+            }
+        }
     }
 }

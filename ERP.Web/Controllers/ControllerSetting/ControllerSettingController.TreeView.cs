@@ -1,5 +1,8 @@
-﻿using ERP.Web.Utility.ViewModel;
+﻿using ERP.Web.Models.Models.ControllerSetting;
+using ERP.Web.Service.ViewModels.ControllerSetting;
+using ERP.Web.Utility.ViewModel;
 using Microsoft.AspNetCore.Mvc;
+using static ERP.Web.Controllers.ControllerSetting.ControllerSettingController;
 
 namespace ERP.Web.Controllers.ControllerSetting
 {
@@ -24,27 +27,23 @@ namespace ERP.Web.Controllers.ControllerSetting
 
 
         [HttpPost]
-        public IActionResult SaveGroupPermissions([FromBody] GroupPermissionModel model)
+        public async Task<IActionResult> SaveAccessGroup([FromBody] AccessGroupModel model)
         {
-            // model.GroupName
-            // model.SelectedNodeIds -> List<string> 或 List<Guid>
-            // 你後續可以補完整性驗證、寫入 DB
-            return Ok(new { success = true });
-        }
+            if (model == null)
+                return BadRequest("無效的資料");
 
-        // 對應的 ViewModel
-        public class GroupPermissionModel
-        {
-            public string GroupName { get; set; }
+            if (string.IsNullOrWhiteSpace(model.GroupName))
+                return BadRequest("群組名稱不得為空");
 
-            public List<TreeNodeModel> SelectedNodes { get; set; }
-        }
+            if (model.SelectedNodes == null || !model.SelectedNodes.Any())
+                return BadRequest("請至少選擇一個節點");
 
-        public class TreeNodeModel
-        {
-            public Guid Id { get; set; }      // 對應 JSON id
-            public string Text { get; set; }  // 對應 JSON text
-            public List<TreeNodeModel> Children { get; set; } // 對應 JSON children
+            bool SaveAccessGroup = await _controllerSettingService.SaveAccessGroup(model);
+
+            return Ok(new
+            {
+                success = SaveAccessGroup
+            });
         }
     }
 }

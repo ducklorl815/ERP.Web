@@ -65,6 +65,24 @@
         vertical-align: middle;
         margin-right: 6px;
     }
+
+    .node-text-group {
+        display: inline-flex;
+        flex-direction: column; /* 垂直排列 */
+        margin-left: 5px;
+    }
+
+    .node-name {
+        font-weight: 600;
+        font-size: 14px;
+        line-height: 1.2;
+    }
+
+    .node-desc {
+        font-size: 12px;
+        color: #888;
+        margin-top: 2px;
+    }
 </style>
 
 <div class="container mt-4">
@@ -77,35 +95,10 @@
 
     <h4>Controller / Action 樹狀圖</h4>
     <div id="controllerTree">
-        @Html.Raw(RenderTree(Model.List))
+        @Html.Partial("_TreePartial", Model.List)
     </div>
 </div>
 
-@functions {
-    private string RenderTree(List<ERP.Web.Utility.ViewModel.MenuData> nodes)
-    {
-        if (nodes == null || !nodes.Any()) return "";
-        var html = "<ul class='tree-list'>";
-        foreach (var n in nodes.OrderBy(x => x.Sort))
-        {
-            bool hasChildren = n.Children != null && n.Children.Any();
-            string icon = string.IsNullOrEmpty(n.IconClass) ? "" : n.IconClass;
-
-            html += $"<li data-id='{n.ID}' class='tree-node'>";
-            html += $"<div class='node-content'>";
-            html += hasChildren ? $"<i class='toggle-icon fa fa-chevron-right'></i>" : "<i class='toggle-placeholder'></i>";
-            html += $"<input type='checkbox' class='tree-checkbox ' data-id='{n.ID}'/>";
-            if (!string.IsNullOrEmpty(n.IconClass))
-                html += $"<i class='node-icon {icon}'></i>";
-            html += $"<span class='node-text'>{n.DisplayName}</span>";
-            html += "</div>";
-            if (hasChildren) html += RenderTree(n.Children);
-            html += "</li>";
-        }
-        html += "</ul>";
-        return html;
-    }
-}
 
 <script>
     document.addEventListener("DOMContentLoaded", function () {
@@ -193,10 +186,10 @@
             const selectedTree = getCheckedTree(document.querySelector("#controllerTree > ul"));
             const data = { groupName: groupName, selectedNodes: selectedTree };
 
-            console.log(JSON.stringify(data)); // 可直接 AJAX 送出
+            console.log(JSON.stringify(data));
 
             $.ajax({
-                url: '/ControllerSetting/SaveGroupPermissions', // 改成你的後端 Action
+                url: '/ControllerSetting/SaveAccessGroup', 
                 type: 'POST',
                 contentType: 'application/json',
                 data: JSON.stringify(data),
@@ -214,16 +207,39 @@
         function getCheckedTree(ul) {
             if (!ul) return [];
             const result = [];
+
             ul.querySelectorAll(":scope > li.tree-node").forEach(li => {
                 const chk = li.querySelector(":scope > .node-content > .tree-checkbox");
                 if (!chk) return;
 
-                const children = getCheckedTree(li.querySelector(":scope > ul.tree-list"));
-                if (chk.checked || children.length > 0) {
-                    result.push({ id: li.dataset.id, text: li.querySelector(".node-text").innerText, children: children.length ? children : null });
+                const childUl = li.querySelector(":scope > ul.tree-list");
+                const children = getCheckedTree(childUl);
+
+                // 先嘗試常見 class，容錯以前你改過的命名或多了一層包裹
+                let textEl = li.querySelector(".node-name")
+                    || li.querySelector(".node-text")
+                    || li.querySelector(".node-text-group");
+
+                let text = "";
+                if (textEl) {
+                    // 如果選到的是 group，嘗試取裡面的 .node-name；沒有則取 element 的 innerText
+                    const innerName = (textEl.querySelector && textEl.querySelector(".node-name"))
+                        ? textEl.querySelector(".node-name").innerText
+                        : textEl.innerText;
+                    text = innerName ? innerName.trim() : "";
+                }
+
+                if (chk.checked || (children && children.length > 0)) {
+                    result.push({
+                        ID: li.dataset.id,
+                        DisplayName: text,
+                        children: children.length ? children : null
+                    });
                 }
             });
+
             return result;
         }
+
     });
 </script>
