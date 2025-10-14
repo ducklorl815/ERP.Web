@@ -176,7 +176,34 @@
             // 遞迴往上更新
             updateParentState(parentLi);
         }
+        // === 初始化父節點的半勾 / 全勾狀態 ===
+        function initParentCheckState() {
+            const allNodes = tree.querySelectorAll(".tree-node");
+            // 反向排序，先處理底層節點，確保狀態正確往上更新
+            Array.from(allNodes).reverse().forEach(li => {
+                updateParentState(li);
+            });
+        }
+        // === 自動展開有勾選的節點 ===
+        function expandCheckedNodes() {
+            const checkedNodes = tree.querySelectorAll(".tree-checkbox:checked");
 
+            checkedNodes.forEach(chk => {
+                let li = chk.closest(".tree-node");
+                while (li) {
+                    li.classList.remove("collapsed");
+                    li.classList.add("expanded");
+
+                    // 向上找父層，逐層展開
+                    li = li.parentElement.closest(".tree-node");
+                }
+            });
+        }
+
+
+        // === 畫面載入完成後初始化 ===
+        initParentCheckState();
+        expandCheckedNodes();
 
         // 送出按鈕
         document.getElementById("submitGroup").addEventListener("click", () => {

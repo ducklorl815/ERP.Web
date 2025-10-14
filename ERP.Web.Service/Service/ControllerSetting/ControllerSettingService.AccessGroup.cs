@@ -1,5 +1,6 @@
 ﻿using ERP.Web.Models.Models.ControllerSetting;
 using ERP.Web.Service.ViewModels.ControllerSetting;
+using ERP.Web.Utility.ViewModel;
 using Newtonsoft.Json;
 
 namespace ERP.Web.Service.Service.ControllerSetting
@@ -7,7 +8,7 @@ namespace ERP.Web.Service.Service.ControllerSetting
     public partial class ControllerSettingService
     {
 
-        public async Task<bool> SaveAccessGroup(AccessGroupModel model)
+        public async Task<bool> SaveAccessGroup(AccessGroupViewModel model)
         {
             var GroupName = model.GroupName;
             var NodeJson = JsonConvert.SerializeObject(model.SelectedNodes);
@@ -15,10 +16,10 @@ namespace ERP.Web.Service.Service.ControllerSetting
             Guid InsertID = await _controllerSettingRepo.SaveAccessGroup(GroupName, NodeJson);
 
             // 🔹 將樹狀結構攤平成一維清單
-            var allNodes = FlattenNodes(model.SelectedNodes);
+            var allNodes = await FlattenNodes(model.SelectedNodes);
 
             // 🔹 組成要寫入 DB 的模型
-            var groupData = new AccessGroupMainModel
+            var groupData = new AccessGroupParallelModel
             {
                 GroupName = model.GroupName,
                 Nodes = allNodes
@@ -28,7 +29,7 @@ namespace ERP.Web.Service.Service.ControllerSetting
 
         }
         // 🔹 遞迴攤平 TreeNode 結構
-        private List<NodeRecord> FlattenNodes(List<TreeNodeModel> nodes)
+        private async Task<List<NodeRecord>> FlattenNodes(List<TreeNodeModel> nodes)
         {
             var result = new List<NodeRecord>();
 
@@ -42,11 +43,33 @@ namespace ERP.Web.Service.Service.ControllerSetting
 
                 if (node.Children != null && node.Children.Any())
                 {
-                    result.AddRange(FlattenNodes(node.Children));
+                    result.AddRange(await FlattenNodes(node.Children));
                 }
             }
 
             return result;
+        }
+
+        private async Task<List<MenuData>> UpdateMenuCheckStatus(List<TreeNodeModel> nodes, List<MenuData> menuData)
+        {
+            if (nodes == null || !nodes.Any() || menuData == null || !menuData.Any())
+                return menuData;
+
+            foreach (var node in nodes)
+            {
+                var target = menuData.FirstOrDefault(m => m.ID == node.ID);
+                if (target != null)
+                {
+                    target.IsCheck = true;
+                }
+
+                if (node.Children != null && node.Children.Any())
+                {
+                    await UpdateMenuCheckStatus(node.Children, menuData);
+                }
+            }
+
+            return menuData;
         }
         private List<TreeNodeModel> RestoreTree(List<NodeRecord> flatList)
         {

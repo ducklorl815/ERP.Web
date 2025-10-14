@@ -74,13 +74,20 @@ namespace ERP.Web.Service.Service.ControllerSetting
 
             return string.Join(" ", parts);
         }
-        public async Task<List<MenuData>> TreeView()
+        public async Task<List<MenuData>> TreeView(Guid CurrentId)
         {
             var roots = new List<MenuData>();
-            var menuData = await _controllerSettingRepo.GetMenuDataAsync(); // 假設這是你原本抓資料的方法
+            AccessGroupModel AccessGroupData = await _controllerSettingRepo.GetAccessGroupData(CurrentId);
 
+            List<MenuData> menuData = await _controllerSettingRepo.GetMenuDataAsync();
             if (menuData == null || !menuData.Any())
                 return roots;
+
+            if (!string.IsNullOrEmpty(AccessGroupData?.NodeJson))
+            {
+                List<TreeNodeModel> TreeNodeData = JsonConvert.DeserializeObject<List<TreeNodeModel>>(AccessGroupData.NodeJson);
+                List<MenuData> NodeRecordList = await UpdateMenuCheckStatus(TreeNodeData, menuData);
+            }
 
             // ======= 以下重用你原本 LEFTSIDER 的邏輯 =======
             var flatMenuList = menuData
@@ -101,7 +108,8 @@ namespace ERP.Web.Service.Service.ControllerSetting
                     Domain = "https://localhost:44372/",
                     IsBlank = s.IsBlank,
                     Enabled = s.Enabled,
-                    Deleted = s.Deleted
+                    Deleted = s.Deleted,
+                    IsCheck = s.IsCheck,
                 })
                 .ToList();
 

@@ -1,15 +1,13 @@
-﻿using ERP.Web.Models.Models.ControllerSetting;
-using ERP.Web.Service.ViewModels.ControllerSetting;
+﻿using ERP.Web.Service.ViewModels.ControllerSetting;
 using ERP.Web.Utility.ViewModel;
 using Microsoft.AspNetCore.Mvc;
-using static ERP.Web.Controllers.ControllerSetting.ControllerSettingController;
 
 namespace ERP.Web.Controllers.ControllerSetting
 {
     public partial class ControllerSettingController : Controller
     {
         [HttpGet]
-        public async Task<IActionResult> TreeView(Guid currentId)
+        public async Task<IActionResult> TreeView(Guid CurrentId)
         {
             //var model = new ErpMenuDataViewModel
             //{
@@ -19,15 +17,15 @@ namespace ERP.Web.Controllers.ControllerSetting
             //return View("ErpTreeView", model);
             var model = new LeftSidebarViewModel
             {
-                List = await _controllerSettingService.TreeView(),
-                CurrentNodeId = currentId
+                List = await _controllerSettingService.TreeView(CurrentId),
+                CurrentNodeId = CurrentId
             };
             return View(model);
         }
 
 
         [HttpPost]
-        public async Task<IActionResult> SaveAccessGroup([FromBody] AccessGroupModel model)
+        public async Task<IActionResult> SaveAccessGroup([FromBody] AccessGroupViewModel model)
         {
             if (model == null)
                 return BadRequest("無效的資料");

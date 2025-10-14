@@ -643,5 +643,40 @@ namespace ERP.Web.Models.Respository.ControllerSetting
                 return Guid.Empty;
             }
         }
+        /// <summary>
+        /// 撈取Json資料
+        /// </summary>
+        /// <param name="CurrentId"></param>
+        /// <returns></returns>
+        public async Task<AccessGroupModel> GetAccessGroupData(Guid CurrentId)
+        {
+            //CurrentId = Guid.Parse("171EC9C6-4CA1-49F8-B5BB-3EC3E1E9DA5A");
+            CurrentId = Guid.Parse("ED6D657F-2D11-4EAA-AA70-228EAA303CAB");
+            var sqlparam = new DynamicParameters();
+            sqlparam.Add("CurrentId", CurrentId);
+
+
+            var sql = $@"
+                    SELECT  
+	                       ID
+                          ,GroupName
+                          ,NodeJson
+                      FROM Controller.dbo.ControllerAccessGroup
+                      WHERE ID = @CurrentId
+                      AND Enabled = 1
+                      AND Deleted = 0
+                        ";
+
+            using var conn = new SqlConnection(_dBList.erp);
+            try
+            {
+                var result = await conn.QueryFirstOrDefaultAsync<AccessGroupModel>(sql, sqlparam);
+                return result;
+            }
+            catch (Exception)
+            {
+                return null;
+            }
+        }
     }
 }

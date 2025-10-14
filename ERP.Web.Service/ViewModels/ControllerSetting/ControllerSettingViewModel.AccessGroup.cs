@@ -1,6 +1,6 @@
 ﻿namespace ERP.Web.Service.ViewModels.ControllerSetting
 {
-    public class AccessGroupModel
+    public class AccessGroupViewModel
     {
         public string GroupName { get; set; }
 

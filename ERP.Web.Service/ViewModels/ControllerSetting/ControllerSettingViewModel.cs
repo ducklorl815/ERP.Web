@@ -1,7 +1,5 @@
 ﻿using ERP.Web.Models.Models.ControllerSetting;
 using ERP.Web.Service.ViewModels.Tools;
-using ERP.Web.Utility.Models;
-using ERP.Web.Utility.Paging;
 using Microsoft.AspNetCore.Mvc.Rendering;
 
 namespace ERP.Web.Service.ViewModels.ControllerSetting
