@@ -597,10 +597,11 @@ namespace ERP.Web.Models.Respository.ControllerSetting
         /// <param name="GroupName"></param>
         /// <param name="NodeJson"></param>
         /// <returns></returns>
-        public async Task<Guid> SaveAccessGroup(string GroupName, string NodeJson)
+        public async Task<Guid> SaveAccessGroup(string GroupName, string GroupDesc, string NodeJson)
         {
             var sqlparam = new DynamicParameters();
             sqlparam.Add("GroupName", GroupName);
+            sqlparam.Add("GroupDesc", GroupDesc);
             sqlparam.Add("NodeJson", NodeJson);
 
             sqlparam.Add("ModifyUser", CreateUser);
@@ -611,6 +612,7 @@ namespace ERP.Web.Models.Respository.ControllerSetting
                                    (
 		                            ID
                                    ,GroupName
+                                   ,GroupDesc
                                    ,NodeJson
                                    ,ModifyDate
                                    ,ModifyUser
@@ -623,6 +625,7 @@ namespace ERP.Web.Models.Respository.ControllerSetting
                                    (
 		                            NEWID()
                                    ,@GroupName
+                                   ,@GroupDesc
                                    ,@NodeJson
                                    ,GETDATE()
                                    ,@ModifyUser

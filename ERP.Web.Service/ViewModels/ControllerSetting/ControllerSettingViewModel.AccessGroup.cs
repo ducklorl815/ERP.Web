@@ -3,7 +3,7 @@
     public class AccessGroupViewModel
     {
         public string GroupName { get; set; }
-
+        public string GroupDesc { get; set; }
         public List<TreeNodeModel> SelectedNodes { get; set; }
     }
 

@@ -30,12 +30,6 @@ namespace ERP.Web.Controllers.ControllerSetting
             if (model == null)
                 return BadRequest("無效的資料");
 
-            if (string.IsNullOrWhiteSpace(model.GroupName))
-                return BadRequest("群組名稱不得為空");
-
-            if (model.SelectedNodes == null || !model.SelectedNodes.Any())
-                return BadRequest("請至少選擇一個節點");
-
             bool SaveAccessGroup = await _controllerSettingService.SaveAccessGroup(model);
 
             return Ok(new

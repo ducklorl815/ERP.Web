@@ -11,9 +11,10 @@ namespace ERP.Web.Service.Service.ControllerSetting
         public async Task<bool> SaveAccessGroup(AccessGroupViewModel model)
         {
             var GroupName = model.GroupName;
+            var GroupDesc = model.GroupDesc;
             var NodeJson = JsonConvert.SerializeObject(model.SelectedNodes);
 
-            Guid InsertID = await _controllerSettingRepo.SaveAccessGroup(GroupName, NodeJson);
+            Guid InsertID = await _controllerSettingRepo.SaveAccessGroup(GroupName, GroupDesc, NodeJson);
 
             // 🔹 將樹狀結構攤平成一維清單
             var allNodes = await FlattenNodes(model.SelectedNodes);
