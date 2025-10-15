@@ -240,7 +240,7 @@
         // 篩出可用模組
         const available = groupList.filter(g => !selectedIds.includes(g.GroupID.toString()));
         if (available.length === 0) {
-            alert("沒有可加入的模組了");
+            element.style.display = "none";
             return;
         }
 
