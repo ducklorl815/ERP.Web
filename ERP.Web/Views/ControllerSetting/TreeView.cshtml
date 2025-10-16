@@ -205,9 +205,18 @@
 
 
 <script>
+    //載入群組清單
     const groupList = @Html.Raw(JsonSerializer.Serialize(GroupList));
 
     // 更新描述
+
+    //tip
+    // 當使用者選擇下拉選單時被呼叫（onchange = "updateDesc(this)"）。
+    // 透過 closest(".module-row") 找到該選單所在的整列。
+    // 取出對應的描述顯示區.module - desc。
+    // 如果沒選模組（value 空），清空描述。
+    // 如果選了，就從 groupList 找到那個模組的描述(GroupDesc)。
+    // 顯示格式為：模組敘述：xxx。
     function updateDesc(selectEl) {
         const selectedId = selectEl.value;
         const row = selectEl.closest(".module-row");
@@ -217,7 +226,13 @@
         descEl.textContent = group ? `模組敘述：${group.GroupDesc}` : "";
     }
 
-    // ✅ 外層防呆（請選擇模組）
+    // 點擊「加入模組」的檢查
+
+    //tip
+    // 當按「加入模組」時執行。
+    // 找到當前那一行的下拉選單值。
+    // 如果沒選擇任何模組（value 為空），就跳出警示：「請先選擇現有模組！」。
+    // 如果有選擇模組，才真正呼叫 addModuleRow(addBtnEl) 新增下一行。
     function onAddBtnClick(addBtnEl) {
         const currentRow = addBtnEl.closest(".module-row");
         const selectEl = currentRow.querySelector("select");
@@ -229,39 +244,65 @@
     }
 
     // 新增模組行
+
+    //tip
+    // 取得包住所有模組列的容器 <div id="moduleContainer">。
     function addModuleRow(element) {
         const container = document.getElementById("moduleContainer");
 
         // 收集已選模組 ID
+
+        //tip
+        // 抓出目前所有下拉選單中已選擇的模組 ID。
+        // 避免重複選取同樣模組。
         const selectedIds = [...container.querySelectorAll("select")]
             .map(s => s.value)
             .filter(v => v !== "");
 
         // 篩出可用模組
+
+        //tip
+        // 篩出還沒被選過的模組。
+        // 如果都選完（沒有可選模組），就把「加入模組」按鈕隱藏起來。
         const available = groupList.filter(g => !selectedIds.includes(g.GroupID.toString()));
         if (available.length === 0) {
             element.style.display = "none";
             return;
         }
 
+        //tip
         // 建立新行（預設不顯示刪除）
+        // 建立一個新的模組列容器（Bootstrap 間距）。
         const div = document.createElement("div");
         div.className = "module-row mb-3";
+
+        //tip
+        // 一個 <select> 下拉選模組。
+        // 一個「加入模組」按鈕。
+        // 一個「刪除模組」按鈕（預設 display:none 隱藏）。
+
+        // 一個放模組敘述的 <div>。
         div.innerHTML = `
-                <div class="d-flex align-items-center gap-2">
-                    <select class="form-select module-select flex-grow-1" onchange="updateDesc(this)">
-                        <option value="">請選擇模組</option>
-                        ${available.map(g => `<option value="${g.GroupID}">${g.GroupName}</option>`).join("")}
-                    </select>
-                    <span class="add-btn text-primary" style="cursor:pointer" onclick="onAddBtnClick(this)">
-                        <i class="fa-solid fa-plus"></i>加入模組
-                    </span>
-                    <span class="del-btn text-danger" style="cursor:pointer; display:none;" onclick="removeRow(this)">
-                        <i class="fa-solid fa-xmark"></i>
-                    </span>
-                </div>
-                <div class="module-desc text-secondary small mt-1 ms-1"></div>
-            `;
+            <div class="d-flex align-items-center gap-2">
+                <select class="form-select module-select flex-grow-1" onchange="updateDesc(this)">
+                    <option value="">請選擇模組</option>
+                    ${available.map(g => `<option value="${g.GroupID}">${g.GroupName}</option>`).join("")}
+                </select>
+                <span class="add-btn text-primary" style="cursor:pointer" onclick="onAddBtnClick(this)">
+                    <i class="fa-solid fa-plus"></i>加入模組
+                </span>
+                <span class="del-btn text-danger" style="cursor:pointer; display:none;" onclick="removeRow(this)">
+                    <i class="fa-solid fa-xmark"></i>
+                </span>
+            </div>
+            <div class="module-desc text-secondary small mt-1 ms-1"></div>
+        `;
+
+        //tip
+        // 把新的一行加進容器。
+        // 同時隱藏上一行的「加入模組」按鈕（避免重複新增）。
+        // 最後呼叫 updateRowButtons() 更新整體按鈕顯示邏輯。
+
         container.appendChild(div);
 
         // 隱藏前一行的「加入」按鈕
@@ -278,7 +319,11 @@
         updateRowButtons();
     }
 
-    // ✅ 更新各列按鈕狀態
+    // 更新各列按鈕狀態
+
+    //tip
+    // 抓出目前所有模組列。
+    // 把所有「加入」與「刪除」按鈕一律先隱藏，等下根據條件再開啟。
     function updateRowButtons() {
         const container = document.getElementById("moduleContainer");
         const rows = Array.from(container.querySelectorAll(".module-row"));
@@ -287,12 +332,32 @@
             const addBtn = row.querySelector(".add-btn");
             const delBtn = row.querySelector(".del-btn");
 
-            // 只有最後一行顯示「加入模組」
-            addBtn.style.display = (idx === rows.length - 1) ? "inline" : "none";
+            // 預設全部先隱藏 等下根據條件再開啟
+            addBtn.style.display = "none";
+            delBtn.style.display = "none";
 
-            // 除最後一行外，其餘行才顯示刪除鍵（確保第一行剛開始沒出現）
-            delBtn.style.display = (rows.length > 1 && idx < rows.length - 1) ? "inline" : "none";
+            // 若只有一行：只顯示加入
+            if (rows.length === 1) {
+                addBtn.style.display = "inline";
+                delBtn.style.display = "none";
+            }
+            // 若有多行：所有行都能刪除，只有最後一行能加入
+            else {
+                delBtn.style.display = "inline";
+                if (idx === rows.length - 1) addBtn.style.display = "inline";
+            }
         });
+
+        // 檢查是否還有未選模組，若沒有則隱藏最後一行的加入鍵
+        const selectedIds = [...container.querySelectorAll("select")]
+            .map(s => s.value)
+            .filter(v => v !== "");
+        const available = groupList.filter(g => !selectedIds.includes(g.GroupID.toString()));
+        if (available.length === 0) {
+            const lastRow = rows[rows.length - 1];
+            const lastAddBtn = lastRow.querySelector(".add-btn");
+            if (lastAddBtn) lastAddBtn.style.display = "none";
+        }
     }
 
     document.addEventListener("DOMContentLoaded", () => {
