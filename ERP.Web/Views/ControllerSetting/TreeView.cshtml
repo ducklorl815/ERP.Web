@@ -168,7 +168,7 @@
                     <span class="add-btn text-primary" style="cursor:pointer" onclick="onAddBtnClick(this)">
                         <i class="fa-solid fa-plus"></i>加入模組
                     </span>
-                    <span class="del-btn text-danger" style="cursor:pointer; display:none;" onclick="removeRow(this)"><i class="fa-solid fa-xmark"></i></span>
+                    <span class="del-btn" style="cursor:pointer; display:none;" onclick="removeRow(this)"> <i class="fa-solid fa-xmark"></i></span>
                 </div>
                 <div class="module-desc text-secondary small mt-1 ms-1"></div>
             </div>
@@ -223,7 +223,7 @@
         const descEl = row.querySelector(".module-desc");
         if (!selectedId) { descEl.textContent = ""; return; }
         const group = groupList.find(g => g.GroupID.toString() === selectedId);
-        descEl.textContent = group ? `模組敘述：${group.GroupDesc}` : "";
+        descEl.textContent = group ? `${group.GroupDesc}` : "";
     }
 
     // 點擊「加入模組」的檢查
@@ -266,7 +266,7 @@
         // 如果都選完（沒有可選模組），就把「加入模組」按鈕隱藏起來。
         const available = groupList.filter(g => !selectedIds.includes(g.GroupID.toString()));
         if (available.length === 0) {
-            element.style.display = "none";
+            updateRowButtons()
             return;
         }
 
@@ -291,8 +291,8 @@
                 <span class="add-btn text-primary" style="cursor:pointer" onclick="onAddBtnClick(this)">
                     <i class="fa-solid fa-plus"></i>加入模組
                 </span>
-                <span class="del-btn text-danger" style="cursor:pointer; display:none;" onclick="removeRow(this)">
-                    <i class="fa-solid fa-xmark"></i>
+                <span class="del-btn" style="cursor:pointer; display:none;" onclick="removeRow(this)">
+                     <i class="fa-solid fa-xmark"></i>
                 </span>
             </div>
             <div class="module-desc text-secondary small mt-1 ms-1"></div>
@@ -327,7 +327,6 @@
     function updateRowButtons() {
         const container = document.getElementById("moduleContainer");
         const rows = Array.from(container.querySelectorAll(".module-row"));
-
         rows.forEach((row, idx) => {
             const addBtn = row.querySelector(".add-btn");
             const delBtn = row.querySelector(".del-btn");
@@ -344,11 +343,15 @@
             // 若有多行：所有行都能刪除，只有最後一行能加入
             else {
                 delBtn.style.display = "inline";
-                if (idx === rows.length - 1) addBtn.style.display = "inline";
+                if (idx === rows.length - 1) {
+                    addBtn.style.display = "inline";
+                    delBtn.style.display = "none";
+                }
             }
         });
 
         // 檢查是否還有未選模組，若沒有則隱藏最後一行的加入鍵
+        // 如果都被選完（沒有可加入的模組），就把最後一行的「加入模組」按鈕隱藏起來。
         const selectedIds = [...container.querySelectorAll("select")]
             .map(s => s.value)
             .filter(v => v !== "");
@@ -356,7 +359,9 @@
         if (available.length === 0) {
             const lastRow = rows[rows.length - 1];
             const lastAddBtn = lastRow.querySelector(".add-btn");
+            const lastDelBtn = lastRow.querySelector(".del-btn");
             if (lastAddBtn) lastAddBtn.style.display = "none";
+            if (lastDelBtn) lastDelBtn.style.display = "inline";
         }
     }
 
