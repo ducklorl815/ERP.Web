@@ -16,6 +16,7 @@
     {
         public Guid ID { get; set; }
         public string GroupName { get; set; }
+        public string GroupDesc { get; set; }
         public string NodeJson { get; set; }
     }
 }

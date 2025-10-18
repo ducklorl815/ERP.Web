@@ -74,23 +74,25 @@ namespace ERP.Web.Service.Service.ControllerSetting
 
             return string.Join(" ", parts);
         }
-        public async Task<List<MenuData>> TreeView(Guid CurrentId)
+        public async Task<LeftSidebarViewModel> TreeView(string ModuleIDs)
         {
-            var roots = new List<MenuData>();
-            AccessGroupModel AccessGroupData = await _controllerSettingRepo.GetAccessGroupData(CurrentId);
+            var result = new LeftSidebarViewModel();
+            var NodeRecordList = new List<MenuData>();
+            result.AccessGroupList = await _controllerSettingRepo.GetAccessGroupList();
+
+            AccessGroupModel AccessGroupData = await _controllerSettingRepo.GetAccessGroupData(Guid.Empty);
 
             List<MenuData> menuData = await _controllerSettingRepo.GetMenuDataAsync();
             if (menuData == null || !menuData.Any())
-                return roots;
+                return result;
 
             if (!string.IsNullOrEmpty(AccessGroupData?.NodeJson))
             {
                 List<TreeNodeModel> TreeNodeData = JsonConvert.DeserializeObject<List<TreeNodeModel>>(AccessGroupData.NodeJson);
-                List<MenuData> NodeRecordList = await UpdateMenuCheckStatus(TreeNodeData, menuData);
+                NodeRecordList = await UpdateMenuCheckStatus(TreeNodeData, menuData);
             }
 
-            // ======= 以下重用你原本 LEFTSIDER 的邏輯 =======
-            var flatMenuList = menuData
+            var flatMenuList = (NodeRecordList.Count > 0 ? NodeRecordList : menuData)
                 .Where(s => s != null)
                 .Select(s => new MenuData
                 {
@@ -114,6 +116,7 @@ namespace ERP.Web.Service.Service.ControllerSetting
                 .ToList();
 
             var lookup = flatMenuList.ToDictionary(x => x.ID);
+            var roots = new List<MenuData>();
 
             foreach (var item in flatMenuList)
             {
@@ -122,8 +125,9 @@ namespace ERP.Web.Service.Service.ControllerSetting
                 else if (lookup.TryGetValue(item.ParentControllerMainID, out var parent))
                     parent.Children.Add(item);
             }
+            result.List = roots;
 
-            return roots;
+            return result;
         }
 
         public async Task<List<ErpMenuData>> ErpTreeView()

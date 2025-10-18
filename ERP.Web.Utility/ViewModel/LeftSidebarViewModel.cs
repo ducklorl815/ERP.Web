@@ -3,6 +3,8 @@
     public class LeftSidebarViewModel
     {
         public List<MenuData> List { get; set; }
+
+        public List<AccessGroupUtilityModel> AccessGroupList { get; set; }
         public Guid CurrentNodeId { get; set; }
     }
 
@@ -30,5 +32,12 @@
         public bool IsActive { get; set; }
         public string Domain { get; set; }
         public bool IsCheck { get; set; }
+    }
+    public class AccessGroupUtilityModel
+    {
+        public Guid ID { get; set; }
+        public string GroupName { get; set; }
+        public string GroupDesc { get; set; }
+        public string NodeJson { get; set; }
     }
 }

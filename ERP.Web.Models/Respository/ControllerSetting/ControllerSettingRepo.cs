@@ -654,8 +654,11 @@ namespace ERP.Web.Models.Respository.ControllerSetting
         public async Task<AccessGroupModel> GetAccessGroupData(Guid CurrentId)
         {
             //CurrentId = Guid.Parse("171EC9C6-4CA1-49F8-B5BB-3EC3E1E9DA5A");
-            CurrentId = Guid.Parse("ED6D657F-2D11-4EAA-AA70-228EAA303CAB");
+            //CurrentId = Guid.Parse("ED6D657F-2D11-4EAA-AA70-228EAA303CAB");
+            //CurrentId = Guid.Parse("2795A419-5DD5-46F7-B6D3-68A7C55D5B59");
+
             var sqlparam = new DynamicParameters();
+
             sqlparam.Add("CurrentId", CurrentId);
 
 
@@ -668,13 +671,44 @@ namespace ERP.Web.Models.Respository.ControllerSetting
                       WHERE ID = @CurrentId
                       AND Enabled = 1
                       AND Deleted = 0
+                      AND ID = @CurrentId
                         ";
+
+
 
             using var conn = new SqlConnection(_dBList.erp);
             try
             {
                 var result = await conn.QueryFirstOrDefaultAsync<AccessGroupModel>(sql, sqlparam);
                 return result;
+            }
+            catch (Exception)
+            {
+                return null;
+            }
+        }
+        /// <summary>
+        /// 取得權限模組清單
+        /// </summary>
+        /// <returns></returns>
+        public async Task<List<AccessGroupUtilityModel>> GetAccessGroupList()
+        {
+            var sql = $@"
+                        SELECT ID
+                              ,GroupName
+                              ,GroupDesc
+                          FROM Controller.dbo.ControllerAccessGroup
+                          WHERE Enabled = 1 
+                          AND Deleted = 0
+                        ";
+
+
+
+            using var conn = new SqlConnection(_dBList.erp);
+            try
+            {
+                var result = await conn.QueryAsync<AccessGroupUtilityModel>(sql);
+                return result.ToList();
             }
             catch (Exception)
             {

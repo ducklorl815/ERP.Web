@@ -7,6 +7,10 @@
         public List<TreeNodeModel> SelectedNodes { get; set; }
     }
 
+    public class AccessGroupViewModel_param
+    {
+        public List<string> ModuleIDs { get; set; }
+    }
     public class TreeNodeModel
     {
         public Guid ID { get; set; }      // 對應 JSON id
