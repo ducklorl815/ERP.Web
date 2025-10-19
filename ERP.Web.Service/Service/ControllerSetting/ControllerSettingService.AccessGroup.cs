@@ -51,27 +51,41 @@ namespace ERP.Web.Service.Service.ControllerSetting
             return result;
         }
 
-        private async Task<List<MenuData>> UpdateMenuCheckStatus(List<TreeNodeModel> nodes, List<MenuData> menuData)
+        /// <summary>
+        /// 遞迴比對節點清單，更新 menuData 的勾選狀態。
+        /// 為避免不同群組重複節點重複設定，使用 HashSet 過濾。
+        /// </summary>
+        private async Task<List<MenuData>> UpdateMenuCheckStatus(List<TreeNodeModel> nodes, List<MenuData> menuData, HashSet<Guid> updatedNodeIds)
         {
             if (nodes == null || !nodes.Any() || menuData == null || !menuData.Any())
                 return menuData;
 
             foreach (var node in nodes)
             {
-                var target = menuData.FirstOrDefault(m => m.ID == node.ID);
-                if (target != null)
+                if (!Guid.TryParse(node.ID.ToString(), out Guid nodeId))
+                    continue;
+
+                // 如果該節點還沒更新過，才執行設定
+                if (!updatedNodeIds.Contains(nodeId))
                 {
-                    target.IsCheck = true;
+                    var target = menuData.FirstOrDefault(m => m.ID == nodeId);
+                    if (target != null)
+                    {
+                        target.IsCheck = true;
+                        updatedNodeIds.Add(nodeId); // ✅ 記錄這個節點已處理
+                    }
                 }
 
+                // 遞迴處理子節點
                 if (node.Children != null && node.Children.Any())
                 {
-                    await UpdateMenuCheckStatus(node.Children, menuData);
+                    await UpdateMenuCheckStatus(node.Children, menuData, updatedNodeIds);
                 }
             }
 
             return menuData;
         }
+
         private List<TreeNodeModel> RestoreTree(List<NodeRecord> flatList)
         {
             var lookup = flatList.ToDictionary(x => x.ID, x => new TreeNodeModel

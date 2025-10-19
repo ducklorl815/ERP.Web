@@ -77,20 +77,38 @@ namespace ERP.Web.Service.Service.ControllerSetting
         public async Task<LeftSidebarViewModel> TreeView(string ModuleIDs)
         {
             var result = new LeftSidebarViewModel();
-            var NodeRecordList = new List<MenuData>();
-            result.AccessGroupList = await _controllerSettingRepo.GetAccessGroupList();
-
-            AccessGroupModel AccessGroupData = await _controllerSettingRepo.GetAccessGroupData(Guid.Empty);
 
             List<MenuData> menuData = await _controllerSettingRepo.GetMenuDataAsync();
             if (menuData == null || !menuData.Any())
                 return result;
 
-            if (!string.IsNullOrEmpty(AccessGroupData?.NodeJson))
+            result.AccessGroupList = await _controllerSettingRepo.GetAccessGroupList();
+
+            var NodeRecordList = new List<MenuData>();
+
+            if (!string.IsNullOrEmpty(ModuleIDs))
             {
-                List<TreeNodeModel> TreeNodeData = JsonConvert.DeserializeObject<List<TreeNodeModel>>(AccessGroupData.NodeJson);
-                NodeRecordList = await UpdateMenuCheckStatus(TreeNodeData, menuData);
+                List<string> ModuleIDList = ModuleIDs.Split(",").ToList();
+
+                // 用來避免重複更新的節點 ID 集合
+                var updatedNodeIds = new HashSet<Guid>();
+
+                foreach (var ID in ModuleIDList)
+                {
+                    // 撈取群組權限資料
+                    var AccessGroupData = await _controllerSettingRepo.GetAccessGroupData(Guid.Parse(ID));
+
+                    if (!string.IsNullOrEmpty(AccessGroupData?.NodeJson))
+                    {
+                        // 將 NodeJson 還原成節點資料
+                        List<TreeNodeModel> TreeNodeData = JsonConvert.DeserializeObject<List<TreeNodeModel>>(AccessGroupData.NodeJson);
+
+                        // 呼叫更新方法，傳入 HashSet 追蹤已更新的節點
+                        NodeRecordList = await UpdateMenuCheckStatus(TreeNodeData, menuData, updatedNodeIds);
+                    }
+                }
             }
+
 
             var flatMenuList = (NodeRecordList.Count > 0 ? NodeRecordList : menuData)
                 .Where(s => s != null)

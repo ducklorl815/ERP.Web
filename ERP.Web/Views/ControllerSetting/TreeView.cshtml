@@ -297,13 +297,13 @@
         $.ajax({
             url: `/ControllerSetting/TreeView?ModuleIDs=${query}`,
             type: 'GET',
-            success: function (res) {
-                console.log("回傳結果：", res);
-                alert("送出成功！");
+            success: function (result) {
+                $('#controllerTree').html(result);
+                initTreeEvents();
             },
             error: function (err) {
                 console.error("送出失敗：", err);
-                alert("儲存失敗！");
+                alert("送出失敗！");
             }
         });
     }
@@ -311,11 +311,14 @@
 </script>
 
 
-
-
 <script>
     document.addEventListener("DOMContentLoaded", function () {
+        initTreeEvents();
+    });
+
+    function initTreeEvents(){
         const tree = document.getElementById("controllerTree");
+        if (!tree) return;
 
         // 展開/收合
         tree.querySelectorAll(".toggle-icon").forEach(icon => {
@@ -481,6 +484,5 @@
 
             return result;
         }
-
-    });
+    }
 </script>

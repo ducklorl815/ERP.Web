@@ -16,6 +16,8 @@ namespace ERP.Web.Controllers.ControllerSetting
             //return View("ErpTreeView", model);
 
             var result = await _controllerSettingService.TreeView(ModuleIDs);
+            if (Request.IsAjaxRequest())
+                return PartialView("_TreePartial", result.List);
 
             return View(result);
         }
