@@ -592,7 +592,7 @@ namespace ERP.Web.Models.Respository.ControllerSetting
             }
         }
         /// <summary>
-        /// 新增權限群組ID
+        /// 新增權限群組
         /// </summary>
         /// <param name="GroupName"></param>
         /// <param name="NodeJson"></param>
@@ -644,6 +644,48 @@ namespace ERP.Web.Models.Respository.ControllerSetting
             catch (Exception)
             {
                 return Guid.Empty;
+            }
+        }
+        /// <summary>
+        /// 更新權限群組
+        /// </summary>
+        /// <param name="GroupName"></param>
+        /// <param name="NodeJson"></param>
+        /// <returns></returns>
+        public async Task<bool> UpdateAccessGroup(string ID, string GroupName, string GroupDesc, string NodeJson)
+        {
+            var sqlparam = new DynamicParameters();
+            sqlparam.Add("ID", ID);
+            sqlparam.Add("GroupName", GroupName);
+            sqlparam.Add("GroupDesc", GroupDesc);
+            sqlparam.Add("NodeJson", NodeJson);
+
+            sqlparam.Add("ModifyUser", CreateUser);
+            sqlparam.Add("ModifyDept", CreateDept);
+
+            var sql = $@"
+                        UPDATE Controller.dbo.ControllerAccessGroup
+                           SET 
+                               GroupName = @GroupName
+                              ,GroupDesc = @GroupDesc
+                              ,NodeJson = @NodeJson
+                              ,ModifyDate = GETDATE()
+                              ,ModifyUser = @ModifyUser
+                              ,ModifyDept = @ModifyDept
+                         WHERE ID = @ID
+                         AND Enabled = 1
+                         AND Deleted = 0
+                        ";
+
+            using var conn = new SqlConnection(_dBList.erp);
+            try
+            {
+                var result = await conn.ExecuteAsync(sql, sqlparam);
+                return result > 0;
+            }
+            catch (Exception)
+            {
+                return false;
             }
         }
         /// <summary>

@@ -7,7 +7,11 @@ namespace ERP.Web.Service.Service.ControllerSetting
 {
     public partial class ControllerSettingService
     {
-
+        /// <summary>
+        /// 儲存新的模組
+        /// </summary>
+        /// <param name="model"></param>
+        /// <returns></returns>
         public async Task<bool> SaveAccessGroup(AccessGroupViewModel model)
         {
             var GroupName = model.GroupName;
@@ -28,6 +32,23 @@ namespace ERP.Web.Service.Service.ControllerSetting
             // 存入權限群組資料庫
             return true;
 
+        }
+        /// <summary>
+        /// 更新新的模組
+        /// </summary>
+        /// <param name="model"></param>
+        /// <returns></returns>
+        public async Task<bool> UpdateAccessGroup(AccessGroupViewModel model)
+        {
+            var ID = model.ID;
+            var GroupName = model.GroupName;
+            var GroupDesc = model.GroupDesc;
+            var NodeJson = JsonConvert.SerializeObject(model.SelectedNodes);
+
+            bool ChkUpdateAccess = await _controllerSettingRepo.UpdateAccessGroup(ID, GroupName, GroupDesc, NodeJson);
+
+
+            return ChkUpdateAccess;
         }
         // 🔹 遞迴攤平 TreeNode 結構
         private async Task<List<NodeRecord>> FlattenNodes(List<TreeNodeModel> nodes)

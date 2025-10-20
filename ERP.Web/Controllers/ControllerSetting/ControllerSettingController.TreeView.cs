@@ -19,10 +19,14 @@ namespace ERP.Web.Controllers.ControllerSetting
             if (Request.IsAjaxRequest())
                 return PartialView("_TreePartial", result.List);
 
-            return View(result);
+            return View("TreeViewDataMaintain", result);
         }
 
+        public async Task<IActionResult> TreeDataMaintain([FromBody] AccessGroupViewModel model)
+        {
 
+            return View("TreeViewDataMaintain");
+        }
         [HttpPost]
         public async Task<IActionResult> SaveAccessGroup([FromBody] AccessGroupViewModel model)
         {
@@ -34,6 +38,19 @@ namespace ERP.Web.Controllers.ControllerSetting
             return Ok(new
             {
                 success = SaveAccessGroup
+            });
+        }
+        [HttpPost]
+        public async Task<IActionResult> UpdateAccessGroup([FromBody] AccessGroupViewModel model)
+        {
+            if (model == null)
+                return BadRequest("無效的資料");
+
+            bool UpdateAccessGroup = await _controllerSettingService.UpdateAccessGroup(model);
+
+            return Ok(new
+            {
+                success = UpdateAccessGroup
             });
         }
     }
