@@ -19,13 +19,14 @@ namespace ERP.Web.Controllers.ControllerSetting
             if (Request.IsAjaxRequest())
                 return PartialView("_TreePartial", result.List);
 
-            return View("TreeViewDataMaintain", result);
+            return View(result);
         }
 
-        public async Task<IActionResult> TreeDataMaintain([FromBody] AccessGroupViewModel model)
+        public async Task<IActionResult> TreeDataMaintain(string ModuleID)
         {
-
-            return View("TreeViewDataMaintain");
+            ModuleID = "171ec9c6-4ca1-49f8-b5bb-3ec3e1e9da5a".ToUpper();
+            var result = await _controllerSettingService.TreeDataMaintain(ModuleID);
+            return View("TreeViewDataMaintain", result);
         }
         [HttpPost]
         public async Task<IActionResult> SaveAccessGroup([FromBody] AccessGroupViewModel model)

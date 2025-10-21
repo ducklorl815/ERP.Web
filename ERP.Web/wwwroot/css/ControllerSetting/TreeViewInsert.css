@@ -1,0 +1,128 @@
+﻿/* === 卡片樣式 === */
+.card-section {
+    background: #fff;
+    border-radius: 10px;
+    box-shadow: 0 2px 6px rgba(0,0,0,0.08);
+    padding: 1rem;
+    margin-bottom: 0.5rem;
+}
+
+/* === 表單區 === */
+.form-label {
+    font-weight: 500;
+    margin-bottom: 0.3rem;
+}
+
+.module-row {
+    border: 1px solid #e0e0e0;
+    border-radius: 8px;
+    padding: 8px 12px;
+    background-color: #fafafa;
+    border-bottom: 1px solid #e0e0e0;
+    padding-bottom: 8px;
+}
+
+.module-desc {
+    padding-left: 4px;
+    color: #666;
+}
+
+.add-btn {
+    display: flex;
+    align-items: center;
+    gap: 6px;
+    color: #007bff;
+    cursor: pointer;
+    font-weight: 500;
+}
+
+    .add-btn:hover {
+        text-decoration: underline;
+        opacity: 0.8;
+    }
+
+.module-select {
+    flex: 1;
+}
+
+.btn-primary {
+    min-width: 120px;
+}
+
+/* === 樹狀結構 === */
+.tree-list {
+    list-style: none;
+    padding-left: 1rem;
+}
+
+.tree-node {
+    margin: 2px 0;
+}
+
+.node-content {
+    display: flex;
+    align-items: center;
+    padding: 4px 8px;
+    border-radius: 6px;
+    transition: background 0.2s;
+}
+
+    .node-content:hover {
+        background-color: #f7f7f7;
+        cursor: pointer;
+    }
+
+.toggle-icon, .toggle-placeholder, .node-icon {
+    width: 18px;
+    text-align: center;
+    margin-right: 4px;
+    cursor: pointer;
+    transition: transform 0.2s;
+}
+
+.expanded > .node-content > .toggle-icon {
+    transform: rotate(90deg);
+}
+
+.tree-checkbox {
+    width: 16px;
+    height: 16px;
+    margin-right: 6px;
+}
+
+.node-text-group {
+    display: flex;
+    flex-direction: column;
+    margin-left: 5px;
+}
+
+.node-name {
+    font-weight: 600;
+    font-size: 14px;
+}
+
+.node-desc {
+    font-size: 12px;
+    color: #888;
+}
+
+ul.tree-list ul.tree-list {
+    margin-left: 1rem;
+    border-left: 1px dashed #ddd;
+    padding-left: 0.8rem;
+}
+
+.collapsed > ul.tree-list {
+    display: none;
+}
+
+.selected {
+    background-color: #428bca !important;
+    color: white;
+}
+
+select:disabled {
+    background-color: #e9ecef;
+    color: black !important;
+    cursor: not-allowed;
+}

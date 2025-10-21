@@ -74,80 +74,30 @@ namespace ERP.Web.Service.Service.ControllerSetting
 
             return string.Join(" ", parts);
         }
+        /// <summary>
+        /// 新增模組功能
+        /// </summary>
+        /// <param name="ModuleIDs"></param>
+        /// <returns></returns>
         public async Task<LeftSidebarViewModel> TreeView(string ModuleIDs)
         {
-            var result = new LeftSidebarViewModel();
-
-            List<MenuData> menuData = await _controllerSettingRepo.GetMenuDataAsync();
-            if (menuData == null || !menuData.Any())
-                return result;
-
-            result.AccessGroupList = await _controllerSettingRepo.GetAccessGroupList();
-
-            var NodeRecordList = new List<MenuData>();
-
-            if (!string.IsNullOrEmpty(ModuleIDs))
-            {
-                List<string> ModuleIDList = ModuleIDs.Split(",").ToList();
-
-                // 用來避免重複更新的節點 ID 集合
-                var updatedNodeIds = new HashSet<Guid>();
-
-                foreach (var ID in ModuleIDList)
-                {
-                    // 撈取群組權限資料
-                    var AccessGroupData = await _controllerSettingRepo.GetAccessGroupData(Guid.Parse(ID));
-
-                    if (!string.IsNullOrEmpty(AccessGroupData?.NodeJson))
-                    {
-                        // 將 NodeJson 還原成節點資料
-                        List<TreeNodeModel> TreeNodeData = JsonConvert.DeserializeObject<List<TreeNodeModel>>(AccessGroupData.NodeJson);
-
-                        // 呼叫更新方法，傳入 HashSet 追蹤已更新的節點
-                        NodeRecordList = await UpdateMenuCheckStatus(TreeNodeData, menuData, updatedNodeIds);
-                    }
-                }
-            }
-
-
-            var flatMenuList = (NodeRecordList.Count > 0 ? NodeRecordList : menuData)
-                .Where(s => s != null)
-                .Select(s => new MenuData
-                {
-                    ID = s.ID,
-                    ParentControllerMainID = s.ParentControllerMainID,
-                    Controller = s.Controller ?? string.Empty,
-                    Action = s.Action ?? string.Empty,
-                    DisplayName = string.IsNullOrEmpty(s.DisplayName) ? s.Controller ?? "" : s.DisplayName,
-                    IconClass = string.IsNullOrEmpty(s.IconClass) ? "" : s.IconClass,
-                    Sort = s.Sort,
-                    ControllerDesc = s.ControllerDesc,
-                    IsMenu = s.IsMenu,
-                    Children = new List<MenuData>(),
-                    IsActive = false,
-                    Domain = "https://localhost:44372/",
-                    IsBlank = s.IsBlank,
-                    Enabled = s.Enabled,
-                    Deleted = s.Deleted,
-                    IsCheck = s.IsCheck,
-                })
-                .ToList();
-
-            var lookup = flatMenuList.ToDictionary(x => x.ID);
-            var roots = new List<MenuData>();
-
-            foreach (var item in flatMenuList)
-            {
-                if (item.ParentControllerMainID == Guid.Empty)
-                    roots.Add(item);
-                else if (lookup.TryGetValue(item.ParentControllerMainID, out var parent))
-                    parent.Children.Add(item);
-            }
-            result.List = roots;
+            var result = await GetTreeDataAsync(ModuleIDs);
 
             return result;
         }
+        /// <summary>
+        /// 修改模組功能
+        /// </summary>
+        /// <param name="ModuleIDs"></param>
+        /// <returns></returns>
+        public async Task<LeftSidebarViewModel> TreeDataMaintain(string ModuleIDs)
+        {
+            var result = await GetTreeDataAsync(ModuleIDs);
 
+            result.CurrentNodeId = Guid.Parse(ModuleIDs);
+
+            return result;
+        }
         public async Task<List<ErpMenuData>> ErpTreeView()
         {
             var roots = new List<ErpMenuData>();
@@ -192,5 +142,74 @@ namespace ERP.Web.Service.Service.ControllerSetting
             return roots;
         }
 
+
+        private async Task<LeftSidebarViewModel> GetTreeDataAsync(string ModuleIDs)
+        {
+            var result = new LeftSidebarViewModel();
+            List<MenuData> menuData = await _controllerSettingRepo.GetMenuDataAsync();
+            if (menuData == null || !menuData.Any())
+                return result;
+            var NodeRecordList = new List<MenuData>();
+            result.AccessGroupList = await _controllerSettingRepo.GetAccessGroupList();
+
+            if (!string.IsNullOrEmpty(ModuleIDs))
+            {
+                List<string> ModuleIDList = ModuleIDs.Split(",").ToList();
+
+                // 用來避免重複更新的節點 ID 集合
+                var updatedNodeIds = new HashSet<Guid>();
+
+                foreach (var ID in ModuleIDList)
+                {
+                    // 撈取群組權限資料
+                    var AccessGroupData = await _controllerSettingRepo.GetAccessGroupData(Guid.Parse(ID));
+
+                    if (!string.IsNullOrEmpty(AccessGroupData?.NodeJson))
+                    {
+                        // 將 NodeJson 還原成節點資料
+                        List<TreeNodeModel> TreeNodeData = JsonConvert.DeserializeObject<List<TreeNodeModel>>(AccessGroupData.NodeJson);
+
+                        // 呼叫更新方法，傳入 HashSet 追蹤已更新的節點
+                        NodeRecordList = await UpdateMenuCheckStatus(TreeNodeData, menuData, updatedNodeIds);
+                    }
+                }
+            }
+            var flatMenuList = (NodeRecordList.Count > 0 ? NodeRecordList : menuData)
+            .Where(s => s != null)
+            .Select(s => new MenuData
+            {
+                ID = s.ID,
+                ParentControllerMainID = s.ParentControllerMainID,
+                Controller = s.Controller ?? string.Empty,
+                Action = s.Action ?? string.Empty,
+                DisplayName = string.IsNullOrEmpty(s.DisplayName) ? s.Controller ?? "" : s.DisplayName,
+                IconClass = string.IsNullOrEmpty(s.IconClass) ? "" : s.IconClass,
+                Sort = s.Sort,
+                ControllerDesc = s.ControllerDesc,
+                IsMenu = s.IsMenu,
+                Children = new List<MenuData>(),
+                IsActive = false,
+                Domain = "https://localhost:44372/",
+                IsBlank = s.IsBlank,
+                Enabled = s.Enabled,
+                Deleted = s.Deleted,
+                IsCheck = s.IsCheck,
+            })
+            .ToList();
+
+            var lookup = flatMenuList.ToDictionary(x => x.ID);
+            var roots = new List<MenuData>();
+
+            foreach (var item in flatMenuList)
+            {
+                if (item.ParentControllerMainID == Guid.Empty)
+                    roots.Add(item);
+                else if (lookup.TryGetValue(item.ParentControllerMainID, out var parent))
+                    parent.Children.Add(item);
+            }
+            result.List = roots;
+
+            return result;
+        }
     }
 }

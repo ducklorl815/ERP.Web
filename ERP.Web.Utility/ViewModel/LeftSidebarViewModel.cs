@@ -6,6 +6,8 @@
 
         public List<AccessGroupUtilityModel> AccessGroupList { get; set; }
         public Guid CurrentNodeId { get; set; }
+        public string GroupName { get; set; }
+        public string ControllerDesc { get; set; }
     }
 
     public class MenuData
