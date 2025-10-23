@@ -1,16 +1,14 @@
 ﻿using ERP.Web.Utility.ViewModel;
-using System;
-using System.Collections.Generic;
-using System.Linq;
-using System.Text;
-using System.Threading.Tasks;
 
 namespace ERP.Web.Models.Models.ControllerSetting
 {
     public class ErpMenuDataViewModel
     {
         public List<ErpMenuData> List { get; set; }
+        public List<AccessGroupUtilityModel> AccessGroupList { get; set; }
         public Guid CurrentNodeId { get; set; }
+        public string GroupName { get; set; }
+        public string ControllerDesc { get; set; }
     }
 
     public class ErpMenuData

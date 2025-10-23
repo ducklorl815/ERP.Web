@@ -27,4 +27,11 @@
     <PackageReference Include="EPPlus" Version="7.6.0" />
   </ItemGroup>
 
+  <ItemGroup>
+    <Content Update="Views\ControllerSetting\_ErpTreePartial.cshtml">
+      <ExcludeFromSingleFile>true</ExcludeFromSingleFile>
+      <CopyToPublishDirectory>PreserveNewest</CopyToPublishDirectory>
+    </Content>
+  </ItemGroup>
+
 </Project>

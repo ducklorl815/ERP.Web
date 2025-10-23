@@ -1,241 +1,185 @@
-﻿@model ERP.Web.Models.Models.ControllerSetting.ErpMenuDataViewModel
+﻿@using System.Text.Json
+@model ERP.Web.Models.Models.ControllerSetting.ErpMenuDataViewModel
 
 
-<style>
-    /* === 樣式區 === */
-    .tree-list { 
-        list-style: none; 
-        padding-left: 1rem; 
-    }
-    .tree-node { 
-        margin: 2px 0; 
-    }
-    .tree-node > .node-content {
-        display: flex;
-        align-items: center;
-        padding: 4px 8px;
-        border-radius: 6px; 
-        transition: all 0.2s ease;
-    }
-    .tree-node > .node-content:hover { 
-        background-color: #f0f0f0; 
-        cursor: pointer; 
-    }
-    .toggle-icon, .toggle-placeholder, .node-icon {
-        width: 18px; 
-        text-align: center; 
-        margin-right: 4px;
-    }
-    .toggle-icon { 
-        cursor: pointer; 
-        transition: transform 0.2s; 
-    }
-    .node-text { 
-        user-select: none; 
-    }
-    .selected { 
-        background-color: #428bca !important; 
-        color: white; 
-    }
-    ul.tree-list ul.tree-list { 
-        margin-left: 1rem; 
-        border-left: 1px dashed #ccc; 
-        padding-left: 0.8rem; 
-    }
-    .collapsed > ul.tree-list { 
-        display: none; 
-    }
-    .expanded > .node-content > .toggle-icon { 
-        transform: rotate(90deg); 
-    }
-    .tree-checkbox { 
-        width: 16px; 
-        height: 16px; 
-        vertical-align: middle; 
-        margin-right: 6px;
-    }
-
-    .node-text-group {
-        display: inline-flex;
-        flex-direction: column; /* 垂直排列 */
-        margin-left: 5px;
-    }
-
-    .node-name {
-        font-weight: 600;
-        font-size: 14px;
-        line-height: 1.2;
-    }
-
-    .node-desc {
-        font-size: 12px;
-        color: #888;
-        margin-top: 2px;
-    }
-</style>
+<link href="~/css/controllersetting/treeviewinsert.css" rel="stylesheet" />
 
 <div class="container mt-4">
-    <h4>群組權限設定</h4>
-    <div class="mb-3">
-        <label for="groupName" class="form-label">群組名稱</label>
-        <input type="text" id="groupName" class="form-control" placeholder="請輸入群組名稱" />
-    </div>
-    <button id="submitGroup" class="btn btn-primary mb-3">送出</button>
 
-    <h4>Controller / Action 樹狀圖</h4>
-    <div id="controllerTree">
-        @Html.Raw(RenderTree(Model.List))
+    <!-- ✅ 新增群組輸入區 (可收合) -->
+    <div class="card-section border rounded shadow-sm">
+        <div class="card-header bg-light d-flex justify-content-between align-items-center"
+             style="cursor:pointer" onclick="toggleSection('createSection')">
+            <h3 class="mb-0"><i class="fa-solid fa-folder-plus me-2"></i>新增群組模組設定</h3>
+            <i class="fa-solid fa-chevron-down toggle-icon"></i>
+        </div>
+
+        <div id="createSection" class="card-body">
+            <h4 class="mb-3">加入現有模組</h4>
+
+            <!-- 第一組模組選單 -->
+            <div id="moduleContainer" class="mt-3">
+                <!-- 加入模組按鈕 -->
+                <div class="d-flex justify-content-end mt-2">
+                    <span class="add-btn text-primary" style="cursor:pointer" onclick="onAddBtnClick(this)">
+                        <i class="fa-solid fa-plus"></i> 加入模組
+                    </span>
+                </div>
+            </div>
+
+            <hr>
+
+            <h4 class="mb-3">建立新群組</h4>
+            <div class="row">
+                <div class="col-md-5 mb-3">
+                    <label for="groupName" class="form-label">群組名稱</label>
+                    <input type="text" id="groupName" class="form-control" placeholder="請輸入新群組名稱">
+                </div>
+                <div class="col-md-5 mb-3">
+                    <label for="groupDesc" class="form-label">群組敘述</label>
+                    <input type="text" id="groupDesc" class="form-control" placeholder="請輸入新群組敘述">
+                </div>
+                <div class="col-md-2 mb-3 d-flex align-items-end">
+                    <button id="submitGroup" class="btn btn-primary w-100">確認新增</button>
+                </div>
+            </div>
+        </div>
     </div>
+
+    <!-- === Controller / Action Tree === -->
+    <div class="card-section">
+        <h5 class="mb-3">Controller / Action 權限樹狀圖</h5>
+        <div id="controllerTree">
+            @Html.Partial("_ErpTreePartial", Model.List)
+        </div>
+    </div>
+
 </div>
 
-@functions {
-    private string RenderTree(List<ERP.Web.Models.Models.ControllerSetting.ErpMenuData> nodes)
-    {
-        if (nodes == null || !nodes.Any()) return "";
-        var html = "<ul class='tree-list'>";
-        foreach (var n in nodes.OrderBy(x => x.Sort))
-        {
-            bool hasChildren = n.Children != null && n.Children.Any();
-            string icon = string.IsNullOrEmpty(n.IconClass) ? "" : n.IconClass;
-
-            html += $"<li data-id='{n.ID}' class='tree-node'>";
-            html += $"<div class='node-content'>";
-            html += hasChildren ? $"<i class='toggle-icon fa fa-chevron-right'></i>" : "<i class='toggle-placeholder'></i>";
-            html += $"<input type='checkbox' class='tree-checkbox' data-id='{n.ID}'/>";
-            html += $"<i class='node-icon {icon}'></i>";
-
-            // 🔹 用 span 包起來讓兩者在同一行顯示，但有上下排版效果
-            html += $"<span class='node-text-group'>";
-            html += $"<span class='node-name'>{n.Name}</span>";
-            html += $"<span class='node-desc'>{n.ControllerDesc}</span>";
-            html += $"</span>";
-
-            html += "</div>"; // node-content
-            if (hasChildren) html += RenderTree(n.Children);
-            html += "</li>";
-        }
-        html += "</ul>";
-        return html;
-    }
-}
-
+<script src="~/js/controllersetting/togglesection.js"></script>
+<script src="~/js/controllersetting/inittreeevents.js"></script>
 <script>
-    document.addEventListener("DOMContentLoaded", function () {
-        const tree = document.getElementById("controllerTree");
+    // === 群組清單資料 ===
+    const groupList = @Html.Raw(JsonSerializer.Serialize(Model.AccessGroupList));
 
-        // 展開/收合
-        tree.querySelectorAll(".toggle-icon").forEach(icon => {
-            icon.addEventListener("click", e => {
-                e.stopPropagation();
-                const li = icon.closest(".tree-node");
-                li.classList.toggle("collapsed");
-                li.classList.toggle("expanded");
-            });
-        });
+    // === 新增模組 ===
+    function onAddBtnClick() {
+        const container = document.getElementById("moduleContainer");
 
-        // 初始化全部收合
-        tree.querySelectorAll(".tree-node").forEach(li => {
-            if (li.querySelector("ul")) li.classList.add("collapsed");
-        });
+        const lastRows = container.querySelectorAll(".module-row");
+        const lastSelect = lastRows.length > 0
+            ? lastRows[lastRows.length - 1].querySelector("select")
+            : null;
 
-        // Checkbox 父子聯動
-        tree.querySelectorAll(".tree-checkbox").forEach(chk => {
-            chk.addEventListener("change", e => {
-                e.stopPropagation();
-                const li = chk.closest(".tree-node");
-
-                // 子節點跟隨父勾選
-                li.querySelectorAll("ul .tree-checkbox").forEach(c => { c.checked = chk.checked; c.indeterminate = false; });
-
-                // 勾選父節點 → 展開整棵樹
-                if (chk.checked) expandTree(li);
-
-                // 更新父節點半勾
-                updateParentState(li);
-            });
-        });
-
-        // 展開父子樹
-        function expandTree(li) {
-            if (!li) return;
-            li.classList.remove("collapsed"); li.classList.add("expanded");
-            li.querySelectorAll("ul li.tree-node").forEach(c => { c.classList.remove("collapsed"); c.classList.add("expanded"); });
-            const parentLi = li.parentElement.closest(".tree-node");
-            if (parentLi) expandTree(parentLi);
+        if (lastSelect && !lastSelect.value) {
+            alert("請先選擇現有模組！");
+            return;
         }
 
-        // 遞迴更新父節點半勾
-        function updateParentState(li) {
-            const parentLi = li.parentElement.closest(".tree-node");
-            if (!parentLi) return;
+        if (lastSelect) lastSelect.disabled = true;
 
-            const parentChk = parentLi.querySelector(".node-content .tree-checkbox");
+        addModuleRow();
+    }
 
-            // 取得 parentLi 直接子層的 checkbox
-            const siblingCheckboxes = parentLi.querySelectorAll(':scope > ul > .tree-node > .node-content > .tree-checkbox');
+    // === 建立新的模組列 ===
+    function addModuleRow() {
+        const container = document.getElementById("moduleContainer");
 
-            const allChecked = Array.from(siblingCheckboxes).every(c => c.checked);
-            const anyChecked = Array.from(siblingCheckboxes).some(c => c.checked || c.indeterminate);
-            const noneChecked = Array.from(siblingCheckboxes).every(c => !c.checked && !c.indeterminate);
+        const selectedIds = [...container.querySelectorAll("select")]
+            .map(s => s.value)
+            .filter(v => v !== "");
 
-            if (allChecked) {
-                // 全勾選
-                parentChk.checked = true;
-                parentChk.indeterminate = false;
-            } else if (noneChecked) {
-                // 全沒勾
-                parentChk.checked = false;
-                parentChk.indeterminate = false;
-            } else if (anyChecked) {
-                // 有部分勾選或半勾
-                parentChk.checked = false;
-                parentChk.indeterminate = true;
+        const available = groupList.filter(g => !selectedIds.includes(g.ID.toString()));
+
+        saveModules();
+        if (available.length === 0) {
+            alert("所有模組都已加入，無法再新增！");
+            return;
+        }
+
+        const div = document.createElement("div");
+        div.className = "module-row mb-3";
+        div.innerHTML = `
+                <div class="d-flex align-items-center gap-2">
+                    <select name="ModuleIDs" class="form-select module-select flex-grow-1" onchange="updateDesc(this)">
+                        <option value="">請選擇模組</option>
+                        ${available.map(g => `<option value="${g.ID}">${g.GroupName}</option>`).join("")}
+                    </select>
+                    <span class="del-btn" style="cursor:pointer; display:inline;" onclick="removeRow(this)">
+                        <i class="fa-solid fa-xmark"></i>
+                    </span>
+                </div>
+                <div class="module-desc text-secondary small mt-1 ms-1"></div>
+            `;
+
+        const addBtnContainer = container.querySelector(".add-btn").closest(".d-flex");
+        container.insertBefore(div, addBtnContainer);
+
+        updateAddButtonState();
+
+    }
+
+    // === 移除一列 ===
+    function removeRow(el) {
+        el.closest(".module-row").remove();
+        updateAddButtonState();
+    }
+
+    // === 更新加入模組按鈕顯示狀態 ===
+    function updateAddButtonState() {
+        const container = document.getElementById("moduleContainer");
+        const selects = container.querySelectorAll("select");
+        const selectedIds = [...selects].map(s => s.value).filter(v => v !== "");
+        const available = groupList.filter(g => !selectedIds.includes(g.ID.toString()));
+
+        const addBtn = container.querySelector(".add-btn");
+        addBtn.style.display = available.length === 0 ? "none" : "inline";
+    }
+
+    // === 顯示模組描述 ===
+    function updateDesc(selectEl) {
+        const selectedId = selectEl.value;
+        const row = selectEl.closest(".module-row");
+        const descEl = row.querySelector(".module-desc");
+        if (!selectedId) {
+            descEl.textContent = "";
+            return;
+        }
+
+        const selectedGroup = groupList.find(g => g.ID.toString() === selectedId);
+        descEl.textContent = selectedGroup ? selectedGroup.GroupDesc || "" : "";
+    }
+
+    // === AJAX 傳送目前所有模組 ===
+    function saveModules() {
+        const container = document.getElementById("moduleContainer");
+        const moduleIds = [...container.querySelectorAll('select')]
+            .map(s => s.value)
+            .filter(v => v !== "");
+
+        if (moduleIds.length === 0) {
+            return;
+        }
+
+        // 直接將模組 ID 陣列轉成 Query String，例如 ?ModuleIDs=id1,id2,id3
+        const query = encodeURIComponent(moduleIds.join(','));
+
+        $.ajax({
+            url: `/ControllerSetting/TreeView?ModuleIDs=${query}`,
+            type: 'GET',
+            success: function (result) {
+                $('#controllerTree').html(result);
+                initTreeEvents();
+            },
+            error: function (err) {
+                console.error("送出失敗：", err);
+                alert("送出失敗！");
             }
-
-            // 遞迴往上更新
-            updateParentState(parentLi);
-        }
-
-
-        // 送出按鈕
-        document.getElementById("submitGroup").addEventListener("click", () => {
-            const groupName = document.getElementById("groupName").value.trim();
-            if (!groupName) return alert("請輸入群組名稱");
-
-            const selectedTree = getCheckedTree(document.querySelector("#controllerTree > ul"));
-            const data = { groupName: groupName, selectedNodes: selectedTree };
-
-            console.log(JSON.stringify(data)); // 可直接 AJAX 送出
-
-            $.ajax({
-                url: '/ControllerSetting/SaveGroupPermissions', // 改成你的後端 Action
-                type: 'POST',
-                contentType: 'application/json',
-                data: JSON.stringify(data),
-                success: function (res) {
-                    alert("送出成功");
-                },
-                error: function (err) {
-                    console.error(err);
-                    alert("送出失敗");
-                }
-            });
         });
+    }
 
-        // 遞迴抓勾選節點
-        function getCheckedTree(ul) {
-            if (!ul) return [];
-            const result = [];
-            ul.querySelectorAll(":scope > li.tree-node").forEach(li => {
-                const chk = li.querySelector(":scope > .node-content > .tree-checkbox");
-                if (!chk) return;
-
-                const children = getCheckedTree(li.querySelector(":scope > ul.tree-list"));
-                if (chk.checked || children.length > 0) {
-                    result.push({ id: li.dataset.id, text: li.querySelector(".node-text").innerText, children: children.length ? children : null });
-                }
-            });
-            return result;
-        }
-    });
 </script>
+
+
+
+

@@ -1,4 +1,5 @@
-﻿using ERP.Web.Service.ViewModels.ControllerSetting;
+﻿using ERP.Web.Models.Models.ControllerSetting;
+using ERP.Web.Service.ViewModels.ControllerSetting;
 using Microsoft.AspNetCore.Mvc;
 
 namespace ERP.Web.Controllers.ControllerSetting
@@ -8,18 +9,17 @@ namespace ERP.Web.Controllers.ControllerSetting
         [HttpGet]
         public async Task<IActionResult> TreeView(string ModuleIDs)
         {
-            //var model = new ErpMenuDataViewModel
-            //{
-            //    List = await _controllerSettingService.ErpTreeView(),
-            //    CurrentNodeId = currentId
-            //};
-            //return View("ErpTreeView", model);
-
-            var result = await _controllerSettingService.TreeView(ModuleIDs);
+            var result = await _controllerSettingService.ErpTreeView(ModuleIDs);
             if (Request.IsAjaxRequest())
                 return PartialView("_TreePartial", result.List);
 
-            return View(result);
+            return View("ErpTreeView", result);
+
+            //var result = await _controllerSettingService.TreeView(ModuleIDs);
+            //if (Request.IsAjaxRequest())
+            //    return PartialView("_TreePartial", result.List);
+
+            //return View(result);
         }
 
         public async Task<IActionResult> TreeDataMaintain(string ModuleID)

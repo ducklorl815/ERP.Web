@@ -98,38 +98,62 @@ namespace ERP.Web.Service.Service.ControllerSetting
 
             return result;
         }
-        public async Task<List<ErpMenuData>> ErpTreeView()
+        public async Task<ErpMenuDataViewModel> ErpTreeView(string ModuleIDs)
         {
-            var roots = new List<ErpMenuData>();
-            var erpMenuData = await _controllerSettingRepo.GetErpMenuDataAsync();
 
-            if (erpMenuData == null || !erpMenuData.Any())
-                return roots;
+            var result = new ErpMenuDataViewModel();
 
-            // ======= 以下重用你原本 LEFTSIDER 的邏輯 =======
-            var flatMenuList = erpMenuData
-                .Where(s => s != null)
-                .Select(s => new ErpMenuData
+            List<ErpMenuData> menuData = await _controllerSettingRepo.GetErpMenuDataAsync();
+            if (menuData == null || !menuData.Any())
+                return result;
+            var NodeRecordList = new List<ErpMenuData>();
+            result.AccessGroupList = await _controllerSettingRepo.GetAccessGroupList();
+
+            if (!string.IsNullOrEmpty(ModuleIDs))
+            {
+                List<string> ModuleIDList = ModuleIDs.Split(",").ToList();
+
+                // 用來避免重複更新的節點 ID 集合
+                var updatedNodeIds = new HashSet<Guid>();
+
+                foreach (var ID in ModuleIDList)
                 {
-                    ID = s.ID,
-                    ControllerMainID = s.ControllerMainID,
-                    Level = s.Level,
-                    ControllerDesc = s.ControllerDesc,
-                    ControllerName = s.ControllerName ?? string.Empty,
-                    ActName = s.ActName ?? string.Empty,
-                    Name = string.IsNullOrEmpty(s.Name) ? s.ControllerName ?? "" : s.Name,
-                    IconClass = string.IsNullOrEmpty(s.IconClass) ? "" : s.IconClass,
-                    Sort = s.Sort,
-                    IsMenu = s.IsMenu,
-                    Children = new List<ErpMenuData>(),
-                    IsActive = false,
-                    Domain = "https://localhost:44372/",
-                    Enabled = s.Enabled,
-                    Deleted = s.Deleted
-                })
-                .ToList();
+                    // 撈取群組權限資料
+                    var AccessGroupData = await _controllerSettingRepo.GetAccessGroupData(Guid.Parse(ID));
+
+                    if (!string.IsNullOrEmpty(AccessGroupData?.NodeJson))
+                    {
+                        // 將 NodeJson 還原成節點資料
+                        List<TreeNodeModel> TreeNodeData = JsonConvert.DeserializeObject<List<TreeNodeModel>>(AccessGroupData.NodeJson);
+
+                        // 呼叫更新方法，傳入 HashSet 追蹤已更新的節點
+                        NodeRecordList = await UpdateErpMenuCheckStatus(TreeNodeData, menuData, updatedNodeIds);
+                    }
+                }
+            }
+            var flatMenuList = (NodeRecordList.Count > 0 ? NodeRecordList : menuData)
+            .Where(s => s != null)
+            .Select(s => new ErpMenuData
+            {
+                ID = s.ID,
+                ControllerMainID = s.ControllerMainID,
+                ControllerName = s.ControllerName ?? string.Empty,
+                ActName = s.ActName ?? string.Empty,
+                Name = string.IsNullOrEmpty(s.Name) ? s.ControllerName ?? "" : s.Name,
+                IconClass = string.IsNullOrEmpty(s.IconClass) ? "" : s.IconClass,
+                Sort = s.Sort,
+                ControllerDesc = s.ControllerDesc,
+                IsMenu = s.IsMenu,
+                Children = new List<ErpMenuData>(),
+                IsActive = false,
+                Domain = "https://localhost:44372/",
+                Enabled = s.Enabled,
+                Deleted = s.Deleted,
+            })
+            .ToList();
 
             var lookup = flatMenuList.ToDictionary(x => x.ID);
+            var roots = new List<ErpMenuData>();
 
             foreach (var item in flatMenuList)
             {
@@ -138,8 +162,9 @@ namespace ERP.Web.Service.Service.ControllerSetting
                 else if (lookup.TryGetValue(item.ControllerMainID, out var parent))
                     parent.Children.Add(item);
             }
+            result.List = roots;
 
-            return roots;
+            return result;
         }
 
 

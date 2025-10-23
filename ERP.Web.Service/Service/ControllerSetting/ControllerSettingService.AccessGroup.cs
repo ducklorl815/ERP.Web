@@ -18,7 +18,7 @@ namespace ERP.Web.Service.Service.ControllerSetting
             var GroupDesc = model.GroupDesc;
             var NodeJson = JsonConvert.SerializeObject(model.SelectedNodes);
 
-            Guid InsertID = await _controllerSettingRepo.SaveAccessGroup(GroupName, GroupDesc, NodeJson);
+            var InsertID = await _controllerSettingRepo.SaveAccessGroup(GroupName, GroupDesc, NodeJson);
 
             // 🔹 將樹狀結構攤平成一維清單
             var allNodes = await FlattenNodes(model.SelectedNodes);
@@ -45,8 +45,9 @@ namespace ERP.Web.Service.Service.ControllerSetting
             var GroupDesc = model.GroupDesc;
             var NodeJson = JsonConvert.SerializeObject(model.SelectedNodes);
 
-            bool ChkUpdateAccess = await _controllerSettingRepo.UpdateAccessGroup(ID, GroupName, GroupDesc, NodeJson);
-
+            bool ChkUpdateAccess = string.IsNullOrEmpty(ID)?
+                await _controllerSettingRepo.SaveAccessGroup(GroupName, GroupDesc, NodeJson):
+                await _controllerSettingRepo.UpdateAccessGroup(ID, GroupName, GroupDesc, NodeJson);
 
             return ChkUpdateAccess;
         }
@@ -71,7 +72,36 @@ namespace ERP.Web.Service.Service.ControllerSetting
 
             return result;
         }
+        private async Task<List<ErpMenuData>> UpdateErpMenuCheckStatus(List<TreeNodeModel> nodes, List<ErpMenuData> menuData, HashSet<Guid> updatedNodeIds)
+        {
+            if (nodes == null || !nodes.Any() || menuData == null || !menuData.Any())
+                return menuData;
 
+            foreach (var node in nodes)
+            {
+                if (!Guid.TryParse(node.ID.ToString(), out Guid nodeId))
+                    continue;
+
+                // 如果該節點還沒更新過，才執行設定
+                if (!updatedNodeIds.Contains(nodeId))
+                {
+                    var target = menuData.FirstOrDefault(m => m.ID == nodeId);
+                    if (target != null)
+                    {
+                        target.IsMenu = true;
+                        updatedNodeIds.Add(nodeId); // ✅ 記錄這個節點已處理
+                    }
+                }
+
+                // 遞迴處理子節點
+                if (node.Children != null && node.Children.Any())
+                {
+                    await UpdateErpMenuCheckStatus(node.Children, menuData, updatedNodeIds);
+                }
+            }
+
+            return menuData;
+        }
         /// <summary>
         /// 遞迴比對節點清單，更新 menuData 的勾選狀態。
         /// 為避免不同群組重複節點重複設定，使用 HashSet 過濾。

@@ -597,7 +597,7 @@ namespace ERP.Web.Models.Respository.ControllerSetting
         /// <param name="GroupName"></param>
         /// <param name="NodeJson"></param>
         /// <returns></returns>
-        public async Task<Guid> SaveAccessGroup(string GroupName, string GroupDesc, string NodeJson)
+        public async Task<bool> SaveAccessGroup(string GroupName, string GroupDesc, string NodeJson)
         {
             var sqlparam = new DynamicParameters();
             sqlparam.Add("GroupName", GroupName);
@@ -638,12 +638,12 @@ namespace ERP.Web.Models.Respository.ControllerSetting
             using var conn = new SqlConnection(_dBList.erp);
             try
             {
-                var result = await conn.ExecuteScalarAsync<Guid>(sql, sqlparam);
+                var result = await conn.ExecuteScalarAsync<bool>(sql, sqlparam);
                 return result;
             }
             catch (Exception)
             {
-                return Guid.Empty;
+                return false;
             }
         }
         /// <summary>

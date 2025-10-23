@@ -1,0 +1,42 @@
+﻿@model List<ERP.Web.Models.Models.ControllerSetting.ErpMenuData>
+@if (Model != null && Model.Any())
+{
+    <ul class="tree-list">
+        @foreach (var n in Model.OrderBy(x => x.Sort))
+        {
+            bool hasChildren = n.Children != null && n.Children.Any();
+            string icon = string.IsNullOrEmpty(n.IconClass) ? "" : n.IconClass;
+
+            <li data-id="@n.ID" class="tree-node">
+                <div class="node-content">
+                    @if (hasChildren)
+                    {
+                        <i class="toggle-icon fa fa-chevron-right"></i>
+                    }
+                    else
+                    {
+                        <i class="toggle-placeholder"></i>
+                    }
+
+                    <input type="checkbox" class="tree-checkbox" checked="@n.IsMenu" data-id="@n.ID" />
+
+                    @if (!string.IsNullOrEmpty(n.IconClass))
+                    {
+                        <i class="node-icon @icon"></i>
+                    }
+                    <span class='node-text-group'>
+                        <span class="node-name">@n.Name</span>
+                        <span class="node-desc">@n.ControllerDesc</span>
+                    </span>
+
+                </div>
+
+                @if (hasChildren)
+                {
+                    @Html.Partial("_ErpTreePartial", n.Children)
+                }
+            </li>
+        }
+    </ul>
+}
+
