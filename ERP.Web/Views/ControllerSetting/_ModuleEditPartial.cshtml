@@ -1,0 +1,48 @@
+@model ERP.Web.Utility.ViewModel.LeftSidebarViewModel
+
+<!-- 模組編輯表單 Partial View -->
+<div class="row">
+    <!-- 左側：模組選擇 -->
+    <div class="col-md-6">
+        <h5 class="pl-3 mb-3 text-primary">選擇模組</h5>
+        <div id="moduleContainer" class="p-3">
+            <!-- 模組選擇下拉 (編輯模式) -->
+            <div class="module-row">
+                <div class="d-flex align-items-center gap-2">
+                    <select class="form-select module-select flex-grow-1" onchange="updateDesc(this)">
+                        <option value="">請選擇模組</option>
+                        @foreach (var AccessGroup in Model.AccessGroupList)
+                        {
+                            <option value="@AccessGroup.ID">@AccessGroup.GroupName</option>
+                        }
+                    </select>
+                </div>
+                <div class="module-desc text-secondary small mt-2 ms-1"></div>
+            </div>
+        </div>
+    </div>
+
+    <!-- 右側：修改欄位 -->
+    <div class="col-md-6">
+        <h5 class="pl-3 mb-3 text-primary">修改群組資訊</h5>
+        <div class="p-3">
+            <div class="mb-3">
+                <label for="groupName" class="form-label">群組名稱</label>
+                <input type="text" id="groupName" class="form-control" placeholder="修改群組名稱">
+            </div>
+            <div class="mb-3">
+                <label for="groupDesc" class="form-label">群組敘述</label>
+                <textarea id="groupDesc" class="form-control" rows="4" placeholder="修改群組敘述（可輸入詳細描述）"></textarea>
+            </div>
+            <div class="d-flex justify-content-end">
+                <button id="submitGroup" class="btn btn-warning btn-sm custom-submit-btn">確認修改</button>
+            </div>
+        </div>
+    </div>
+</div>
+
+<!-- 隱藏欄位用於傳遞資料 -->
+@if (Model.CurrentNodeId != null)
+{
+    <div data-current-node-id="@Model.CurrentNodeId" style="display: none;"></div>
+}

@@ -1,0 +1,35 @@
+@model ERP.Web.Utility.ViewModel.LeftSidebarViewModel
+
+<!-- 模組表單 Partial View -->
+<div class="row">
+    <!-- 左側：模組選擇/加入 -->
+    <div class="col-md-6">
+        <h5 class="pl-3 mb-3 text-primary">加入現有模組</h5>
+        <div id="moduleContainer" class="p-3">
+            <!-- 加入模組按鈕 (僅新增模式) -->
+            <div class="d-flex justify-content-end mb-2">
+                <span class="add-btn text-primary compact-btn" style="cursor:pointer" onclick="onAddBtnClick(this)">
+                    <i class="fa-solid fa-plus"></i> 加入模組
+                </span>
+            </div>
+        </div>
+    </div>
+
+    <!-- 右側：群組資訊 -->
+    <div class="col-md-6">
+        <h5 class="pl-3 mb-3 text-primary">建立新群組</h5>
+        <div class="p-3">
+            <div class="mb-3">
+                <label for="groupName" class="form-label">群組名稱</label>
+                <input type="text" id="groupName" class="form-control" placeholder="群組名稱">
+            </div>
+            <div class="mb-3">
+                <label for="groupDesc" class="form-label">群組敘述</label>
+                <textarea id="groupDesc" class="form-control" rows="4" placeholder="群組敘述（可輸入詳細描述）"></textarea>
+            </div>
+            <div class="d-flex justify-content-end">
+                <button id="submitGroup" class="btn btn-success btn-sm custom-submit-btn">確認新增</button>
+            </div>
+        </div>
+    </div>
+</div>

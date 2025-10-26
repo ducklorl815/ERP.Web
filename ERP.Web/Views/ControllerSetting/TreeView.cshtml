@@ -1,182 +1,103 @@
 ﻿@using System.Text.Json
 @model ERP.Web.Utility.ViewModel.LeftSidebarViewModel
 
-<link href="~/css/controllersetting/treeviewinsert.css" rel="stylesheet" />
+<link href="~/css/ControllerSetting/controllerSettingCommon.css" rel="stylesheet" />
 
 <div class="container mt-4">
-
-    <!-- ✅ 新增群組輸入區 (可收合) -->
-    <div class="card-section border rounded shadow-sm">
-        <div class="card-header bg-light d-flex justify-content-between align-items-center"
+    <!-- 新增群組輸入區 (可收合) -->
+    <div class="card-section border rounded shadow-sm compact-card">
+        <div class="card-header bg-light d-flex justify-content-between align-items-center compact-header"
              style="cursor:pointer" onclick="toggleSection('createSection')">
-            <h3 class="mb-0"><i class="fa-solid fa-folder-plus me-2"></i>新增群組模組設定</h3>
+            <h5 class="mb-0"><i class="fa-solid fa-folder-plus me-1"></i>新增群組模組設定</h5>
             <i class="fa-solid fa-chevron-down toggle-icon"></i>
         </div>
 
-        <div id="createSection" class="card-body">
-            <h4 class="mb-3">加入現有模組</h4>
-
-            <!-- 第一組模組選單 -->
-            <div id="moduleContainer" class="mt-3">
-                <!-- 加入模組按鈕 -->
-                <div class="d-flex justify-content-end mt-2">
-                    <span class="add-btn text-primary" style="cursor:pointer" onclick="onAddBtnClick(this)">
-                        <i class="fa-solid fa-plus"></i> 加入模組
-                    </span>
-                </div>
-            </div>
-
-            <hr>
-
-            <h4 class="mb-3">建立新群組</h4>
-            <div class="row">
-                <div class="col-md-5 mb-3">
-                    <label for="groupName" class="form-label">群組名稱</label>
-                    <input type="text" id="groupName" class="form-control" placeholder="請輸入新群組名稱">
-                </div>
-                <div class="col-md-5 mb-3">
-                    <label for="groupDesc" class="form-label">群組敘述</label>
-                    <input type="text" id="groupDesc" class="form-control" placeholder="請輸入新群組敘述">
-                </div>
-                <div class="col-md-2 mb-3 d-flex align-items-end">
-                    <button id="submitGroup" class="btn btn-primary w-100">確認新增</button>
-                </div>
-            </div>
+        <div id="createSection" class="card-body compact-body">
+            @Html.Partial("_ModuleFormPartial", Model)
         </div>
     </div>
 
-    <!-- === Controller / Action Tree === -->
+    <!-- Controller / Action Tree -->
     <div class="card-section">
-        <h5 class="mb-3">Controller / Action 權限樹狀圖</h5>
+        <h5 class="mb-3 d-flex justify-content-between align-items-center">
+            <span>Controller / Action 權限樹狀圖</span>
+            <div>
+                <button id="toggleAllBtn" class="btn btn-outline-primary btn-sm d-flex align-items-center gap-2"
+                        onclick="toggleAll()"
+                        title="切換全部勾選狀態">
+                    <i id="toggleIcon" class="fa-solid fa-square-check"></i>
+                    <span id="toggleText">全部勾選</span>
+                </button>
+            </div>
+        </h5>
+
         <div id="controllerTree">
             @Html.Partial("_TreePartial", Model.List)
         </div>
     </div>
-
 </div>
 
-<script src="~/js/controllersetting/togglesection.js"></script>
-<script src="~/js/controllersetting/inittreeevents.js"></script>
+<script src="~/js/ControllerSetting/toggleSection.js"></script>
+<script src="~/js/ControllerSetting/initTreeEvents.js"></script>
+<script src="~/js/ControllerSetting/controllerSettingCommon.js"></script>
 <script>
-    // === 群組清單資料 ===
-    const groupList = @Html.Raw(JsonSerializer.Serialize(Model.AccessGroupList));
+    // 初始化頁面
+    document.addEventListener("DOMContentLoaded", function () {
+        const groupList = @Html.Raw(JsonSerializer.Serialize(Model.AccessGroupList));
+        initControllerSetting(groupList, false);
+    });
 
-    // === 新增模組 ===
-    function onAddBtnClick() {
-        const container = document.getElementById("moduleContainer");
-
-        const lastRows = container.querySelectorAll(".module-row");
-        const lastSelect = lastRows.length > 0
-            ? lastRows[lastRows.length - 1].querySelector("select")
-            : null;
-
-        if (lastSelect && !lastSelect.value) {
-            alert("請先選擇現有模組！");
-            return;
+    // 全部勾選/取消勾選功能
+    function toggleAll() {
+        const checkboxes = document.querySelectorAll('#controllerTree input[type="checkbox"]');
+        const toggleBtn = document.getElementById('toggleAllBtn');
+        const toggleIcon = document.getElementById('toggleIcon');
+        const toggleText = document.getElementById('toggleText');
+        
+        const currentText = toggleText.textContent;
+        
+        if (currentText === '全部勾選') {
+            checkboxes.forEach(cb => cb.checked = true);
+            toggleIcon.className = 'fa-solid fa-square-xmark';
+            toggleText.textContent = '取消全部勾選';
+            toggleBtn.className = 'btn btn-outline-danger btn-sm d-flex align-items-center gap-2';
+            expandAllTreeNodes();
+        } else {
+            checkboxes.forEach(cb => cb.checked = false);
+            toggleIcon.className = 'fa-solid fa-square-check';
+            toggleText.textContent = '全部勾選';
+            toggleBtn.className = 'btn btn-outline-primary btn-sm d-flex align-items-center gap-2';
+            collapseAllTreeNodes();
         }
-
-        if (lastSelect) lastSelect.disabled = true;
-
-        addModuleRow();
     }
 
-    // === 建立新的模組列 ===
-    function addModuleRow() {
-        const container = document.getElementById("moduleContainer");
-
-        const selectedIds = [...container.querySelectorAll("select")]
-            .map(s => s.value)
-            .filter(v => v !== "");
-
-        const available = groupList.filter(g => !selectedIds.includes(g.ID.toString()));
-
-        saveModules();
-        if (available.length === 0) {
-            alert("所有模組都已加入，無法再新增！");
-            return;
-        }
-
-        const div = document.createElement("div");
-        div.className = "module-row mb-3";
-        div.innerHTML = `
-            <div class="d-flex align-items-center gap-2">
-                <select name="ModuleIDs" class="form-select module-select flex-grow-1" onchange="updateDesc(this)">
-                    <option value="">請選擇模組</option>
-                    ${available.map(g => `<option value="${g.ID}">${g.GroupName}</option>`).join("")}
-                </select>
-                <span class="del-btn" style="cursor:pointer; display:inline;" onclick="removeRow(this)">
-                    <i class="fa-solid fa-xmark"></i>
-                </span>
-            </div>
-            <div class="module-desc text-secondary small mt-1 ms-1"></div>
-        `;
-
-        const addBtnContainer = container.querySelector(".add-btn").closest(".d-flex");
-        container.insertBefore(div, addBtnContainer);
-
-        updateAddButtonState();
- 
-    }
-
-    // === 移除一列 ===
-    function removeRow(el) {
-        el.closest(".module-row").remove();
-        updateAddButtonState();
-    }
-
-    // === 更新加入模組按鈕顯示狀態 ===
-    function updateAddButtonState() {
-        const container = document.getElementById("moduleContainer");
-        const selects = container.querySelectorAll("select");
-        const selectedIds = [...selects].map(s => s.value).filter(v => v !== "");
-        const available = groupList.filter(g => !selectedIds.includes(g.ID.toString()));
-
-        const addBtn = container.querySelector(".add-btn");
-        addBtn.style.display = available.length === 0 ? "none" : "inline";
-    }
-
-    // === 顯示模組描述 ===
-    function updateDesc(selectEl) {
-        const selectedId = selectEl.value;
-        const row = selectEl.closest(".module-row");
-        const descEl = row.querySelector(".module-desc");
-        if (!selectedId) {
-            descEl.textContent = "";
-            return;
-        }
-
-        const selectedGroup = groupList.find(g => g.ID.toString() === selectedId);
-        descEl.textContent = selectedGroup ? selectedGroup.GroupDesc || "" : "";
-    }
-
-    // === AJAX 傳送目前所有模組 ===
-    function saveModules() {
-        const container = document.getElementById("moduleContainer");
-        const moduleIds = [...container.querySelectorAll('select')]
-            .map(s => s.value)
-            .filter(v => v !== "");
-
-        if (moduleIds.length === 0) {
-            return;
-        }
-
-        // 直接將模組 ID 陣列轉成 Query String，例如 ?ModuleIDs=id1,id2,id3
-        const query = encodeURIComponent(moduleIds.join(','));
-
-        $.ajax({
-            url: `/ControllerSetting/TreeView?ModuleIDs=${query}`,
-            type: 'GET',
-            success: function (result) {
-                $('#controllerTree').html(result);
-                initTreeEvents();
-            },
-            error: function (err) {
-                console.error("送出失敗：", err);
-                alert("送出失敗！");
+    // 展開所有樹狀節點
+    function expandAllTreeNodes() {
+        const treeNodes = document.querySelectorAll('#controllerTree .tree-node');
+        treeNodes.forEach(node => {
+            node.classList.remove('collapsed');
+            node.classList.add('expanded');
+            
+            const toggleIcon = node.querySelector('.toggle-icon');
+            if (toggleIcon) {
+                toggleIcon.classList.remove('fa-chevron-right');
+                toggleIcon.classList.add('fa-chevron-down');
             }
         });
     }
 
+    // 收合所有樹狀節點
+    function collapseAllTreeNodes() {
+        const treeNodes = document.querySelectorAll('#controllerTree .tree-node');
+        treeNodes.forEach(node => {
+            node.classList.add('collapsed');
+            node.classList.remove('expanded');
+            
+            const toggleIcon = node.querySelector('.toggle-icon');
+            if (toggleIcon) {
+                toggleIcon.classList.remove('fa-chevron-down');
+                toggleIcon.classList.add('fa-chevron-right');
+            }
+        });
+    }
 </script>
-
-

@@ -2,20 +2,7 @@
 
 <!-- Select2 CSS -->
 <link href="https://cdn.jsdelivr.net/npm/select2@4.1.0-rc.0/dist/css/select2.min.css" rel="stylesheet" />
-<style>
-    /* 針對你的 Modal ID 調整 */
-    #IconClassPreview .modal-dialog {
-        max-width: 90%; /* 最大寬度 90% */
-        width: auto; /* 自動寬度 */
-        height: 90vh; /* 高度 90%  */
-        margin: 1.5rem auto; /* 上下間距 */
-    }
-
-    #IconClassPreview .modal-content {
-        height: 100%; /* 讓內容滿高度 */
-        overflow-y: auto; /* 超過內容可滾動 */
-    }
-</style>
+<link href="~/css/ControllerSetting/controllerSettingCommon.css" rel="stylesheet" />
 <div class="wrapper wrapper-content animated fadeIn">
     <div class="row">
         <div class="col-lg-12">
@@ -23,9 +10,8 @@
                 <div class="ibox-content">
                     <form id="ControllerCreateForm" method="post" onkeydown="return event.keyCode != 13;" action="/ControllerSetting/ControllerCreate" novalidate="novalidate">
                         <div class="row">
-                            <div class="col-sm-12 col-form-label font-weight-bold text-right">
-                                維護人日：
-                                <span>廖家毅 資訊部-系統開發課</span>
+                            <div class="col-sm-12 maintainer-info">
+                                維護人日：<span>廖家毅 資訊部-系統開發課</span>
                             </div>
                         </div>
                         <div class="row">

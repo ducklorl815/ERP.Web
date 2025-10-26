@@ -1,10 +1,32 @@
-﻿/* === 卡片樣式 === */
+/* === ControllerSetting 共用樣式 === */
+
+/* === 卡片樣式 === */
 .card-section {
     background: #fff;
     border-radius: 10px;
     box-shadow: 0 2px 6px rgba(0,0,0,0.08);
     padding: 1rem;
     margin-bottom: 0.5rem;
+}
+
+/* === 緊湊版卡片樣式 === */
+.compact-card {
+    padding: 0.5rem;
+    margin-bottom: 0.5rem;
+}
+
+.compact-header {
+    padding: 0.5rem 0.75rem;
+    border-bottom: 1px solid #e9ecef;
+}
+
+.compact-body {
+    padding: 0.75rem;
+}
+
+.compact-btn {
+    font-size: 0.875rem;
+    padding: 0.25rem 0.5rem;
 }
 
 /* === 表單區 === */
@@ -15,30 +37,46 @@
 
 .module-row {
     border: 1px solid #e0e0e0;
-    border-radius: 8px;
-    padding: 8px 12px;
+    border-radius: 6px;
+    padding: 6px 8px;
     background-color: #fafafa;
+    border-bottom: 1px solid #e0e0e0;
+    padding-bottom: 6px;
     margin-bottom: 0.5rem;
+}
+
+/* 緊湊版模組行 */
+.compact-card .module-row {
+    padding: 4px 6px;
+    margin-bottom: 0.25rem;
 }
 
 .module-desc {
     padding-left: 4px;
     color: #666;
+    font-size: 0.8rem;
 }
 
 .add-btn {
     display: flex;
     align-items: center;
-    gap: 6px;
+    gap: 4px;
     color: #007bff;
     cursor: pointer;
     font-weight: 500;
+    font-size: 0.875rem;
 }
 
-    .add-btn:hover {
-        text-decoration: underline;
-        opacity: 0.8;
-    }
+.add-btn:hover {
+    text-decoration: underline;
+    opacity: 0.8;
+}
+
+/* 緊湊版按鈕 */
+.compact-card .add-btn {
+    font-size: 0.8rem;
+    gap: 3px;
+}
 
 .module-select {
     flex: 1;
@@ -47,6 +85,26 @@
 .btn-primary {
     min-width: 120px;
 }
+
+/* === 自定義按鈕樣式 === */
+.custom-submit-btn {
+    padding: 0.4rem 1.2rem;
+    font-size: 0.85rem;
+    font-weight: 500;
+    border-radius: 6px;
+    transition: all 0.2s ease;
+    min-width: 100px;
+}
+
+.custom-submit-btn:hover {
+    transform: translateY(-1px);
+    box-shadow: 0 4px 8px rgba(40, 167, 69, 0.3);
+}
+
+.custom-submit-btn:active {
+    transform: translateY(0);
+}
+
 /* === 樹狀結構 === */
 .tree-list {
     list-style: none;
@@ -65,10 +123,10 @@
     transition: background 0.2s;
 }
 
-    .node-content:hover {
-        background-color: #f7f7f7;
-        cursor: pointer;
-    }
+.node-content:hover {
+    background-color: #f7f7f7;
+    cursor: pointer;
+}
 
 .toggle-icon, .toggle-placeholder, .node-icon {
     width: 18px;
@@ -125,21 +183,22 @@ select:disabled {
     cursor: not-allowed;
 }
 
-/* === 版面微調 === */
-.edit-form {
-    display: flex;
-    flex-wrap: wrap;
-    align-items: flex-end;
-    justify-content: space-between;
-    gap: 1rem;
+/* === Modal 共用樣式 === */
+.modal-dialog-large {
+    max-width: 90%;
+    width: auto;
+    height: 90vh;
+    margin: 1.5rem auto;
 }
 
-.edit-fields {
-    flex-grow: 1;
+.modal-content-large {
+    height: 100%;
+    overflow-y: auto;
 }
-/* === 調整靠右按鈕 === */
-.submit-wrapper {
-    display: flex;
-    justify-content: flex-end;
-    margin-top: 1rem;
+
+/* === 維護人資訊樣式 === */
+.maintainer-info {
+    font-weight: bold;
+    text-align: right;
+    margin-bottom: 1rem;
 }

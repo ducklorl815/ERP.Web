@@ -1,9 +1,10 @@
 ﻿@using System.Text.Json
 @model ERP.Web.Utility.ViewModel.LeftSidebarViewModel
 
+<link href="~/css/ControllerSetting/controllerSettingCommon.css" rel="stylesheet" />
 
-<link href="~/css/controllersetting/treeviewdatamaintain.css" rel="stylesheet" />
 <div class="container mt-4">
+    <!-- 修改模組設定區 (可收合) -->
     <div class="card-section border rounded shadow-sm">
         <div class="card-header bg-light d-flex justify-content-between align-items-center"
              style="cursor:pointer" onclick="toggleSection('editSection')">
@@ -12,41 +13,11 @@
         </div>
 
         <div id="editSection" class="card-body">
-            <h3 class="mb-3">模組清單</h3>
-            <div id="moduleContainer" class="mt-3">
-                <div class="module-row">
-                    <div class="d-flex align-items-center gap-2">
-                        <select class="form-select module-select flex-grow-1" onchange="updateDesc(this)">
-                            <option value="">請選擇模組</option>
-                            @foreach (var AccessGrou in Model.AccessGroupList)
-                            {
-                                <option value="@AccessGrou.ID">@AccessGrou.GroupName</option>
-                            }
-                        </select>
-                    </div>
-                    <div class="module-desc text-secondary small mt-2 ms-1"></div>
-                </div>
-            </div>
-
-            <!-- 修改欄位 -->
-            <div class="mt-4">
-                <div class="mb-3 d-flex">
-                    <label for="groupName" class="form-label col-md-auto me-2 align-content-center">群組名稱</label>
-                    <input type="text" id="groupName" class="form-control col-md-4" placeholder="修改群組名稱">
-                </div>
-                <div class="mb-3 d-flex">
-                    <label for="groupDesc" class="form-label col-md-auto me-2 align-content-center">群組敘述</label>
-                    <input type="text" id="groupDesc" class="form-control col-md-11" placeholder="修改群組敘述">
-                </div>
-
-                <!-- ✅ 按鈕靠右區 -->
-                <div class="submit-wrapper">
-                    <button id="submitGroup" class="btn btn-secondary px-4">確認修改</button>
-                </div>
-            </div>
+            @Html.Partial("_ModuleEditPartial", Model)
         </div>
     </div>
 
+    <!-- Controller / Action Tree -->
     <div class="card-section">
         <h5 class="mb-3">Controller / Action 權限樹狀圖</h5>
         <div id="controllerTree">
@@ -55,90 +26,13 @@
     </div>
 </div>
 
-<script src="~/js/controllersetting/togglesection.js"></script>
-<script src="~/js/controllersetting/inittreeevents.js"></script>
+<script src="~/js/ControllerSetting/toggleSection.js"></script>
+<script src="~/js/ControllerSetting/initTreeEvents.js"></script>
+<script src="~/js/ControllerSetting/controllerSettingCommon.js"></script>
 <script>
-    // === 群組清單資料 ===
-    const groupList = @Html.Raw(JsonSerializer.Serialize(Model.AccessGroupList));
-
-    // === 更新加入模組按鈕顯示狀態 ===
-    function updateAddButtonState() {
-        const container = document.getElementById("moduleContainer");
-        const selects = container.querySelectorAll("select");
-        const selectedIds = [...selects].map(s => s.value).filter(v => v !== "");
-        const available = groupList.filter(g => !selectedIds.includes(g.ID.toString()));
-
-        const addBtn = container.querySelector(".add-btn");
-        addBtn.style.display = available.length === 0 ? "none" : "inline";
-    }
-
-    // === 顯示模組描述 ===
-    function updateDesc(selectEl) {
-        const selectedId = selectEl.value;
-        const row = selectEl.closest(".module-row");
-
-        const descEl = row.querySelector(".module-desc");
-        const inputName = document.getElementById("groupName");
-        const inputDesc = document.getElementById("groupDesc");
-        if (!selectedId) {
-            descEl.textContent = "";
-            inputName.value = "";
-            inputDesc.value = "";
-            saveModules();
-            return;
-        }
-
-        const selectedGroup = groupList.find(g => g.ID.toString() === selectedId);
-
-        if (selectedGroup) {
-            // 顯示在每個 module-row 的描述區塊
-            descEl.textContent = selectedGroup.GroupDesc || "";
-
-            // 把資料倒入外層輸入框
-            inputName.value = selectedGroup.GroupName || "";
-            inputDesc.value = selectedGroup.GroupDesc || "";
-        } else {
-            descEl.textContent = "";
-            inputName.value = "";
-            inputDesc.value = "";
-        }
-        saveModules()
-    }
-
+    // 初始化頁面
     document.addEventListener("DOMContentLoaded", function () {
-        const selectedIds = "@Model.CurrentNodeId".split(',').filter(id => id);
-        const container = document.getElementById("moduleContainer");
-        const selects = container.querySelectorAll("select");
-
-        if (selectedIds.length > 0) {
-            const selectEl = selects[0];
-            selectEl.value = selectedIds[0];
-            selectEl.dispatchEvent(new Event("change"));
-        }
+        const groupList = @Html.Raw(JsonSerializer.Serialize(Model.AccessGroupList));
+        initControllerSetting(groupList, true);
     });
-    // === AJAX 傳送目前所有模組 ===
-    function saveModules() {
-        const container = document.getElementById("moduleContainer");
-        const moduleIds = [...container.querySelectorAll('select')]
-            .map(s => s.value)
-            .filter(v => v !== "");
-
-        // 直接將模組 ID 陣列轉成 Query String，例如 ?ModuleIDs=id1,id2,id3
-        const query = encodeURIComponent(moduleIds.join(','));
-
-        $.ajax({
-            url: `/ControllerSetting/TreeView?ModuleIDs=${query}`,
-            type: 'GET',
-            success: function (result) {
-                $('#controllerTree').html(result);
-                initTreeEvents();
-            },
-            error: function (err) {
-                console.error("送出失敗：", err);
-                alert("送出失敗！");
-            }
-        });
-    }
-
 </script>
-
