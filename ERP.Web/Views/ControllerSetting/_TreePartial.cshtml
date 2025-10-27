@@ -34,7 +34,7 @@
 
                 @if (hasChildren)
                 {
-                    @Html.Partial("_TreePartial", n.Children)
+                    <partial name="~/Views/ControllerSetting/_TreePartial.cshtml" model="n.Children" />
                 }
             </li>
         }

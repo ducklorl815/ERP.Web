@@ -13,7 +13,7 @@
         </div>
 
         <div id="editSection" class="card-body">
-            @Html.Partial("_ModuleEditPartial", Model)
+            <partial name="~/Views/ControllerSetting/_ModuleEditPartial.cshtml" model="Model" />
         </div>
     </div>
 
@@ -21,7 +21,7 @@
     <div class="card-section">
         <h5 class="mb-3">Controller / Action 權限樹狀圖</h5>
         <div id="controllerTree">
-            @Html.Partial("_TreePartial", Model.List)
+            <partial name="~/Views/ControllerSetting/_TreePartial.cshtml" model="Model.List" />
         </div>
     </div>
 </div>

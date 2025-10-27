@@ -2,6 +2,7 @@
 
 <!-- 這裡是放置 _Customize Modal 的地方 -->
 <link href="~/css/chkboxstyle.css" rel="stylesheet" />
+<link href="~/css/exam.css" rel="stylesheet" />
 <div class="wrapper wrapper-content animated fadeIn">
     <div class="row">
         <div class="col-lg-12">
@@ -24,14 +25,14 @@
                                 <option value="@TestDate.Value">@TestDate.Text</option>
                             }
                         </select>
-                        <partial name="_Customize" model="Model">
+                        <partial name="~/Views/Exam/_Customize.cshtml" model="Model">
                     </div>
                     <div class="row">
                         <div class="col-lg-12">
                             <div class="ibox">
                                 <div id="partial" class="ibox-content ibox-list-content">
 
-                                    <partial name="_ReTest" model="Model">
+                                    <partial name="~/Views/Exam/_ReTest.cshtml" model="Model">
                                 </div>
                             </div>
                         </div>
@@ -42,9 +43,10 @@
     </div>
 </div>
 
+<script src="~/js/exam.shared.js"></script>
 <script>
     // 全域變數
-    var selectedWordIDs = [];
+    var selectedWordIDs = window.selectedWordIDs || [];
 
     // 事件委派綁定，放在 DOMContentLoaded 內，只需綁定一次
     document.addEventListener('DOMContentLoaded', function () {
@@ -72,11 +74,14 @@
 
                 // 🔸 存入以 KidID 為命名的 Cookie
                 const cookieName = `SelectedWordIDs_${kidID}`;
-                document.cookie = `${cookieName}=` + encodeURIComponent(JSON.stringify(selectedWordIDs)) + "; path=/";
+                ExamShared.setCookie(cookieName, JSON.stringify(selectedWordIDs));
 
                 console.log(`儲存 Cookie：${cookieName}，值為：`, selectedWordIDs);
             }
         });
+        // 初次載入時，根據目前 KidID 從 Cookie 還原選取狀態
+        const initKidId = document.getElementById('KidID')?.value;
+        ExamShared.loadSelectedIdsFromCookie(initKidId);
     });
 
 
@@ -95,6 +100,8 @@
                     $.each(data, function (i, item) {
                         $testDate.append($('<option>', { value: item.value, text: item.text }));
                     });
+                    // 同步載入該 Kid 的 Cookie 選取狀態
+                    ExamShared.loadSelectedIdsFromCookie(selectedKidId);
                 },
                 error: function () {
                     alert('載入日期失敗，請稍後再試。');
@@ -103,46 +110,20 @@
         } else {
             // 清空 TestDate
             $('#TestDate').empty().append($('<option>', { value: '', text: '請選擇' }));
+            // 清空本地選取狀態
+            ExamShared.loadSelectedIdsFromCookie(null);
         }
     });
 
 
     $(document).ready(function () {
-        $("#uploadForm").submit(function (e) {
-            e.preventDefault(); // 防止表單提交
-
-            var formData = new FormData();
-            var fileInput = $("#fileInput")[0].files[0];
-
-            if (!fileInput) {
-                $("#uploadStatus").text("請選擇 Excel 檔案");
-                return;
-            }
-
-            formData.append("file", fileInput);
-
-            $.ajax({
-                url: "@Url.Action("Upload", "Exam")",
-                type: "POST",
-                data: formData,
-                processData: false,
-                contentType: false,
-                success: function (response) {
-                    $("#uploadStatus").text("上傳成功！");
-                },
-                error: function () {
-                    $("#uploadStatus").text("上傳失敗，請重試");
-                }
-            });
-        });
-
         $(document).on("change", "#Class, #CorrectType, #KidID, #TestDate", function () {
             var ClassNameList = $("#Class").val() || [];
             var CorrectType = $("#CorrectType").val();
             var KidID = $("#KidID").val();
             var TestDate = $("#TestDate").val();
             $.ajax({
-                url: '@Url.Action("ReTest")',
+                url: '@Url.Action("ReTest", ViewContext.RouteData.Values["controller"]?.ToString())',
                 type: 'GET',
                 traditional: true, // 讓 jQuery 正確傳遞陣列
                 data: {
@@ -152,11 +133,7 @@
                     TestDate: TestDate
                 }
             }).done(function (result) {
-                if (result.TestDate) {
-                    $("#TestDate").val(result.TestDate);
-                }
                 $('#partial').html(result);
-
             });
         });
 
@@ -169,7 +146,7 @@
             var TestDate = $("#TestDate").val();
             return {
                 method: "get",
-                url: '@Url.Action("ReTest")',
+                url: '@Url.Action("ReTest", ViewContext.RouteData.Values["controller"]?.ToString())',
                 footable: true,
                 data: {
                     ClassName: ClassName,
@@ -186,7 +163,7 @@
     function CodeMainSave(e) {
         var WordID = $(e).data("wordid");
         var Correct = $(e).closest("tr").find(".correct-checkbox").prop("checked");
-        var TestDate = $(e).closest("tr").find("td[data-testdate]").data("testdate");;
+        var TestDate = $(e).closest("tr").find("td[data-testdate]").data("testdate");
         var KidID = $("#KidID").val();
 
         if (WordID) {
@@ -211,15 +188,7 @@
         }
     }
 
-    function getCookieValue(name) {
-        const match = document.cookie.split('; ').find(row => row.startsWith(name + '='));
-        if (!match) return null;
-        try {
-            return decodeURIComponent(match.split('=')[1]);
-        } catch {
-            return null;
-        }
-    }
+    // getCookie 與載入選取清單移至共用 JS（ExamShared）
 
     function openModal() {
         //$("input[name^='selectedQuestions']:checked").each(function () {
@@ -227,12 +196,14 @@
         //});
         var KidID = $("#KidID").val();
         var cookieName = `SelectedWordIDs_${KidID}`;
-        const selectedWordIDs = JSON.parse(getCookieValue(`${cookieName}`) || "[]");
-        console.log(selectedWordIDs)
+        const selectedIdsFromCookie = JSON.parse(ExamShared.getCookieValue(`${cookieName}`) || "[]");
+        selectedWordIDs = Array.isArray(selectedIdsFromCookie) ? selectedIdsFromCookie : [];
         // 顯示已選擇的題目數量
         $("#selectedWordCountValue").text(selectedWordIDs.length);
+        const $examForm = $("#examForm");
+        $examForm.find('input[name="selectedWordIDs"]').remove();
         selectedWordIDs.forEach(function (id) {
-            $("#examForm").append(`<input type="hidden" name="selectedWordIDs" value="${id}" />`);
+            $examForm.append(`<input type="hidden" name="selectedWordIDs" value="${id}" />`);
         });
 
         console.log(selectedWordIDs)

@@ -8,12 +8,12 @@
 @{
     var maxRow = 10;
     var maxCol = 10;
-    if (Model.SeatMap.Count() > 0)
+    if (Model.SeatMap != null && Model.SeatMap.Count() > 0)
     {
         maxRow = Model.SeatMap.Max(x => int.Parse(x.Row.ToString()));
         maxCol = Model.SeatMap.Max(x => int.Parse(x.Col.ToString()));
-        maxRow = (maxRow == null || maxRow < 10) ? 10 : maxRow;
-        maxCol = (maxCol == null || maxCol < 10) ? 10 : maxCol;
+        maxRow = maxRow < 10 ? 10 : maxRow;
+        maxCol = maxCol < 10 ? 10 : maxCol;
     }
 
     //var staticSeatMap = new List<dynamic> {
@@ -140,9 +140,10 @@
                                         @if (item.Border.Contains("Admin"))
                                         {
                                             <span>@letterSequence@j @item?.Border</span>
-                                            previousEmpNames[item?.TicketID] = previousEmpNames.ContainsKey(item?.TicketID)
-                                            ? previousEmpNames[item?.TicketID] + 1
-                                            : 1;
+                                            var key = item.TicketID ?? string.Empty;
+                                            previousEmpNames[key] = previousEmpNames.ContainsKey(key)
+                                                ? previousEmpNames[key] + 1
+                                                : 1;
                                         }
                                         else
                                         {

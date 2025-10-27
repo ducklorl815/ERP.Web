@@ -33,7 +33,7 @@
 
                 @if (hasChildren)
                 {
-                    @Html.Partial("_ErpTreePartial", n.Children)
+                    <partial name="~/Views/ControllerSetting/_ErpTreePartial.cshtml" model="n.Children" />
                 }
             </li>
         }

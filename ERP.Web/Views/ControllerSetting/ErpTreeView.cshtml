@@ -50,7 +50,7 @@
     <div class="card-section">
         <h5 class="mb-3">Controller / Action 權限樹狀圖</h5>
         <div id="controllerTree">
-            @Html.Partial("_ErpTreePartial", Model.List)
+            <partial name="~/Views/ControllerSetting/_ErpTreePartial.cshtml" model="Model.List" />
         </div>
     </div>
 
