@@ -1,5 +1,21 @@
-﻿namespace ERP.Web.Service.ViewModels.ControllerSetting
+﻿using ERP.Web.Models.Models.ControllerSetting;
+using ERP.Web.Utility.Paging;
+
+namespace ERP.Web.Service.ViewModels.ControllerSetting
 {
+    public class AccessGroupSearchListViewModel_result : AccessGroupSearchListViewModel_param
+    {
+        public List<AccessGroupModel> List { get; set; }
+    }
+    public class AccessGroupSearchListViewModel_param : PageViewModel
+    {
+        public AccessGroupKeyword Keyword { get; set; }
+    }
+    public class AccessGroupKeyword
+    {
+        public string GroupName { get; set; }
+        public string GroupDesc { get; set; }
+    }
     public class AccessGroupViewModel
     {
         public string ID { get; set; }

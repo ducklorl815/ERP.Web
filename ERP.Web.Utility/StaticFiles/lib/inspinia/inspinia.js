@@ -24,6 +24,53 @@ $(document).ready(function () {
     // MetisMenu
     var sideMenu = $('#side-menu').metisMenu();
 
+    // 保存選單展開/收合狀態到 localStorage
+    $('#side-menu').on('shown.metisMenu hidden.metisMenu', function (e) {
+        if (localStorageSupport()) {
+            var openMenus = [];
+            // 只找出有子選單且真正展開的選單項目（有 .in 的 ul）
+            $('#side-menu > li').each(function () {
+                var $this = $(this);
+                var $submenu = $this.children('ul');
+                // 檢查子選單是否展開（有 in class 且沒有 collapse class，或有 show class）
+                if ($submenu.length > 0 && ($submenu.hasClass('in') || $submenu.hasClass('show'))) {
+                    var menuText = $this.children('a').find('.nav-label').text().trim();
+                    if (menuText) {
+                        openMenus.push(menuText);
+                    }
+                }
+            });
+            // 儲存到 localStorage
+            localStorage.setItem('sidebar_menu_state', JSON.stringify(openMenus));
+        }
+    });
+
+    // 從 localStorage 恢復選單狀態
+    if (localStorageSupport()) {
+        var savedMenuState = localStorage.getItem('sidebar_menu_state');
+        if (savedMenuState) {
+            try {
+                var openMenus = JSON.parse(savedMenuState);
+                // 延遲執行以確保 metisMenu 已完全初始化
+                setTimeout(function () {
+                    openMenus.forEach(function (menuText) {
+                        $('#side-menu > li').each(function () {
+                            var $this = $(this);
+                            var currentMenuText = $this.children('a').find('.nav-label').text().trim();
+                            if (currentMenuText === menuText && !$this.hasClass('active')) {
+                                // 找到對應的選單項目並展開
+                                $this.addClass('active');
+                                $this.children('ul').addClass('in').removeClass('collapse');
+                            }
+                        });
+                    });
+                }, 100);
+            } catch (e) {
+                console.error('恢復選單狀態失敗:', e);
+            }
+        }
+    }
+
     // Collapse ibox function
     $('.collapse-link').on('click', function (e) {
         e.preventDefault();

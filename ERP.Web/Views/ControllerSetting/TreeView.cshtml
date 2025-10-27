@@ -77,12 +77,6 @@
         treeNodes.forEach(node => {
             node.classList.remove('collapsed');
             node.classList.add('expanded');
-            
-            const toggleIcon = node.querySelector('.toggle-icon');
-            if (toggleIcon) {
-                toggleIcon.classList.remove('fa-chevron-right');
-                toggleIcon.classList.add('fa-chevron-down');
-            }
         });
     }
 
@@ -92,12 +86,6 @@
         treeNodes.forEach(node => {
             node.classList.add('collapsed');
             node.classList.remove('expanded');
-            
-            const toggleIcon = node.querySelector('.toggle-icon');
-            if (toggleIcon) {
-                toggleIcon.classList.remove('fa-chevron-down');
-                toggleIcon.classList.add('fa-chevron-right');
-            }
         });
     }
 </script>

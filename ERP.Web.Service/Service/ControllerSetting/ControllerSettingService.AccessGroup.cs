@@ -1,5 +1,7 @@
 ﻿using ERP.Web.Models.Models.ControllerSetting;
+using ERP.Web.Models.Respository.ControllerSetting;
 using ERP.Web.Service.ViewModels.ControllerSetting;
+using ERP.Web.Utility.Paging;
 using ERP.Web.Utility.ViewModel;
 using Newtonsoft.Json;
 
@@ -7,6 +9,29 @@ namespace ERP.Web.Service.Service.ControllerSetting
 {
     public partial class ControllerSettingService
     {
+        /// <summary>   
+        /// 取得權限群組清單
+        /// </summary>
+        /// <param name="param"></param>
+        /// <returns></returns>
+        public async Task<AccessGroupSearchListViewModel_result> AccessGroupSearchList(AccessGroupSearchListViewModel_param param)
+        {
+            var result = new AccessGroupSearchListViewModel_result(){
+                Keyword = new AccessGroupKeyword(),
+            };
+            var AccessGroupMainKeyword = new ControllerSettingRepo.AccessGroupMainKeyword
+            {
+                GroupName = param?.Keyword?.GroupName,
+                GroupDesc = param?.Keyword?.GroupDesc,
+            };
+            var datacount = await _controllerSettingRepo.GetAccessGroupListCountAsync(AccessGroupMainKeyword);
+            var pager = new Paging(param.Page, param.PageSize, datacount);
+            result.Pager = pager;
+            result.List = await _controllerSettingRepo.GetAccessGroupSearchListAsync(pager, AccessGroupMainKeyword);
+            return result;
+        }
+
+
         /// <summary>
         /// 儲存新的模組
         /// </summary>
@@ -51,7 +76,24 @@ namespace ERP.Web.Service.Service.ControllerSetting
 
             return ChkUpdateAccess;
         }
+        /// <summary>
+        /// 刪除AccessGroup
+        /// </summary>
+        /// <param name="ID"></param>
+        /// <returns></returns>
+        public async Task<bool> DeleteAccessGroup(string ID)
+        {
+            bool DeleteAccessGroup = await _controllerSettingRepo.DeleteAccessGroup(ID);
+
+            return DeleteAccessGroup;
+        }
+        
         // 🔹 遞迴攤平 TreeNode 結構
+        /// <summary>
+        /// 遞迴攤平 TreeNode 結構
+        /// </summary>
+        /// <param name="nodes"></param>
+        /// <returns></returns>
         private async Task<List<NodeRecord>> FlattenNodes(List<TreeNodeModel> nodes)
         {
             var result = new List<NodeRecord>();
@@ -72,6 +114,13 @@ namespace ERP.Web.Service.Service.ControllerSetting
 
             return result;
         }
+        /// <summary>
+        /// 更新ErpMenuCheckStatus
+        /// </summary>
+        /// <param name="nodes"></param>
+        /// <param name="menuData"></param>
+        /// <param name="updatedNodeIds"></param>
+        /// <returns></returns>
         private async Task<List<ErpMenuData>> UpdateErpMenuCheckStatus(List<TreeNodeModel> nodes, List<ErpMenuData> menuData, HashSet<Guid> updatedNodeIds)
         {
             if (nodes == null || !nodes.Any() || menuData == null || !menuData.Any())
@@ -136,6 +185,11 @@ namespace ERP.Web.Service.Service.ControllerSetting
 
             return menuData;
         }
+        /// <summary>
+        /// 恢復Tree結構
+        /// </summary>
+        /// <param name="flatList"></param>
+        /// <returns></returns>
 
         private List<TreeNodeModel> RestoreTree(List<NodeRecord> flatList)
         {
@@ -162,5 +216,7 @@ namespace ERP.Web.Service.Service.ControllerSetting
 
             return roots;
         }
+
     }
+
 }

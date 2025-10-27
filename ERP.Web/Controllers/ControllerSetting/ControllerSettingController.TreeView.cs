@@ -3,8 +3,30 @@ using Microsoft.AspNetCore.Mvc;
 
 namespace ERP.Web.Controllers.ControllerSetting
 {
+
     public partial class ControllerSettingController : Controller
     {
+
+        /// <summary>
+        /// 查詢AccessGroup
+        /// </summary>
+        /// <param name="param"></param>
+        /// <returns></returns>
+        [HttpGet]
+        public async Task<IActionResult> AccessGroupSearchList(AccessGroupSearchListViewModel_param param)
+        {
+
+            var result = await _controllerSettingService.AccessGroupSearchList(param);
+            if (Request.IsAjaxRequest())
+                return PartialView("_AccessGroupSearchList", result.List);
+
+            return View(result);
+        }
+        /// <summary>
+        /// 樹狀結構
+        /// </summary>
+        /// <param name="ModuleIDs"></param>
+        /// <returns></returns>
         [HttpGet]
         public async Task<IActionResult> TreeView(string ModuleIDs)
         {
@@ -20,13 +42,22 @@ namespace ERP.Web.Controllers.ControllerSetting
 
             return View(result);
         }
-
-        public async Task<IActionResult> TreeDataMaintain(string ModuleID)
+        /// <summary>
+        /// 樹狀結構維護
+        /// </summary>
+        /// <param name="ID"></param>
+        /// <returns></returns>
+        public async Task<IActionResult> TreeDataMaintain(string ID)
         {
-            ModuleID = "171ec9c6-4ca1-49f8-b5bb-3ec3e1e9da5a".ToUpper();
-            var result = await _controllerSettingService.TreeDataMaintain(ModuleID);
+            //ModuleID = "171ec9c6-4ca1-49f8-b5bb-3ec3e1e9da5a".ToUpper();
+            var result = await _controllerSettingService.TreeDataMaintain(ID);
             return View("TreeViewDataMaintain", result);
         }
+        /// <summary>
+        /// 新增AccessGroup
+        /// </summary>
+        /// <param name="model"></param>
+        /// <returns></returns>
         [HttpPost]
         public async Task<IActionResult> SaveAccessGroup([FromBody] AccessGroupViewModel model)
         {
@@ -40,6 +71,11 @@ namespace ERP.Web.Controllers.ControllerSetting
                 success = SaveAccessGroup
             });
         }
+        /// <summary>
+        /// 更新AccessGroup
+        /// </summary>
+        /// <param name="model"></param>
+        /// <returns></returns>
         [HttpPost]
         public async Task<IActionResult> UpdateAccessGroup([FromBody] AccessGroupViewModel model)
         {
@@ -51,6 +87,22 @@ namespace ERP.Web.Controllers.ControllerSetting
             return Ok(new
             {
                 success = UpdateAccessGroup
+            });
+        }
+        /// <summary>
+        /// 刪除AccessGroup
+        /// </summary>
+        /// <param name="ID"></param>
+        /// <returns></returns>
+        [HttpPost]
+        public async Task<IActionResult> DeleteAccessGroup(string ID)
+        {
+
+            bool DeleteAccessGroup = await _controllerSettingService.DeleteAccessGroup(ID);
+
+            return Ok(new
+            {
+                success = DeleteAccessGroup
             });
         }
     }

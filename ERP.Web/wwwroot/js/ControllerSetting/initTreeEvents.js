@@ -55,23 +55,44 @@ function initTreeEvents() {
     // ========================================
 
     /**
-     * 設定所有展開/收合按鈕的點擊事件
-     * 
-     * 功能：
-     * - 點擊箭頭圖示時切換節點的展開/收合狀態
-     * - 阻止事件冒泡，避免觸發其他事件
-     * - 切換 CSS 類別來控制顯示/隱藏
+     * 採用事件委派處理展開/收合，確保動態載入內容也能生效
      */
-    tree.querySelectorAll(".toggle-icon").forEach(icon => {
-        icon.addEventListener("click", e => {
-            e.stopPropagation(); // 阻止事件冒泡
-            const li = icon.closest(".tree-node");
-            
-            // 切換展開/收合狀態
-            li.classList.toggle("collapsed");
-            li.classList.toggle("expanded");
-        });
-    });
+    // 移除舊的監聽器（避免重複綁定）
+    const oldHandler = tree._toggleHandler;
+    if (oldHandler) {
+        tree.removeEventListener("click", oldHandler);
+    }
+
+    // 定義新的處理器
+    const toggleHandler = function (e) {
+        // 忽略勾選框點擊
+        if (e.target.closest('.tree-checkbox')) return;
+
+        // 允許點擊箭頭、圖示或節點名稱進行展開/收合
+        const handle = e.target.closest('.toggle-icon, .node-icon, .node-name');
+        if (!handle || !tree.contains(handle)) return;
+        
+        console.log('Toggle clicked:', handle.className, e.target);
+        e.stopPropagation();
+
+        const li = handle.closest('.tree-node');
+        if (!li) return;
+
+        // 僅對有子清單的節點可收合
+        const hasChildren = !!li.querySelector(':scope > ul.tree-list');
+        if (!hasChildren) return;
+
+        // 切換展開/收合狀態
+        const willExpand = li.classList.contains('collapsed');
+        li.classList.toggle('collapsed');
+        li.classList.toggle('expanded');
+
+
+    };
+
+    // 綁定新的監聽器
+    tree.addEventListener("click", toggleHandler);
+    tree._toggleHandler = toggleHandler;
 
     /**
      * 初始化所有節點為收合狀態
@@ -81,7 +102,12 @@ function initTreeEvents() {
      * - 提供更好的使用者體驗，避免一次顯示太多內容
      */
     tree.querySelectorAll(".tree-node").forEach(li => {
-        if (li.querySelector("ul")) li.classList.add("collapsed");
+        // 僅對有子清單者設定預設為收合
+        const hasChildren = !!li.querySelector(":scope > ul.tree-list");
+        if (hasChildren && !li.classList.contains("expanded")) {
+            li.classList.add("collapsed");
+            li.classList.remove("expanded");
+        }
     });
 
     // ========================================

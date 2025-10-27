@@ -2,6 +2,7 @@
 using ERP.Web.Models.Models.ControllerSetting;
 using ERP.Web.Models.Models.Tools;
 using ERP.Web.Utility.Models;
+using ERP.Web.Utility.Paging;
 using ERP.Web.Utility.ViewModel;
 using Microsoft.Extensions.Options;
 using System.Data.SqlClient;
@@ -23,7 +24,10 @@ namespace ERP.Web.Models.Respository.ControllerSetting
             CreateUser = "C2C93ACC-74AF-4CD6-8D73-70FE1E981041";
             CreateDept = "35FE68C1-9F3F-458D-A832-D53A4B96C6EE";
         }
-
+        public async Task<string?> TreeViewSearchList()
+        {
+            throw new NotImplementedException();
+        }
         /// <summary>
         /// 新增Controller
         /// </summary>
@@ -688,6 +692,33 @@ namespace ERP.Web.Models.Respository.ControllerSetting
                 return false;
             }
         }
+
+        public async Task<bool> DeleteAccessGroup(string ID)
+        {
+            var sqlparam = new DynamicParameters();
+            sqlparam.Add("ID", ID);
+
+
+            var sql = $@"
+                        UPDATE Controller.dbo.ControllerAccessGroup
+                           SET 
+                               Enabled = 0
+                         WHERE ID = @ID
+                         AND Enabled = 1
+                         AND Deleted = 0
+                        ";
+
+            using var conn = new SqlConnection(_dBList.erp);
+            try
+            {
+                var result = await conn.ExecuteAsync(sql, sqlparam);
+                return result > 0;
+            }
+            catch (Exception)
+            {
+                return false;
+            }
+        }
         /// <summary>
         /// 撈取Json資料
         /// </summary>
@@ -743,13 +774,95 @@ namespace ERP.Web.Models.Respository.ControllerSetting
                           WHERE Enabled = 1 
                           AND Deleted = 0
                         ";
-
-
-
             using var conn = new SqlConnection(_dBList.erp);
             try
             {
                 var result = await conn.QueryAsync<AccessGroupUtilityModel>(sql);
+                return result.ToList();
+            }
+            catch (Exception)
+            {
+                return null;
+            }
+        }
+        public class AccessGroupMainKeyword
+        {
+            public string GroupName { get; set; }
+            public string GroupDesc { get; set; }
+        }
+        /// <summary>
+        /// 取得權限群組清單數量
+        /// </summary>
+        /// <param name="Keyword"></param>
+        /// <returns></returns>
+        public async Task<int> GetAccessGroupListCountAsync(AccessGroupMainKeyword Keyword)
+        {
+            var sqlparam = new DynamicParameters();
+
+
+            var sql = $@"
+                        SELECT COUNT(*)
+                        FROM Controller.dbo.ControllerAccessGroup
+                        WHERE Enabled = 1 AND Deleted = 0
+                        ";
+
+            if (!string.IsNullOrEmpty(Keyword.GroupName))
+            {
+                sqlparam.Add("GroupName", $"%{Keyword.GroupName}%");
+                sql += " AND GroupName LIKE @GroupName";
+            }
+            if (!string.IsNullOrEmpty(Keyword.GroupDesc))
+            {
+                sqlparam.Add("GroupDesc", $"%{Keyword.GroupDesc}%");
+                sql += " AND GroupDesc LIKE @GroupDesc";
+
+
+            }
+            using var conn = new SqlConnection(_dBList.erp);
+            try
+            {
+                var result = await conn.QueryFirstOrDefaultAsync<int>(sql, sqlparam);
+                return result;
+            }
+            catch (Exception)
+            {
+                return 0;
+            }
+        }
+        /// <summary>
+        /// 取得權限群組清單
+        /// </summary>
+        /// <param name="pager"></param>
+        /// <param name="Keyword"></param>
+        /// <returns></returns>
+        public async Task<List<AccessGroupModel>> GetAccessGroupSearchListAsync(Paging pager, AccessGroupMainKeyword Keyword)
+        {
+            var sqlparam = new DynamicParameters();
+
+            var sql = $@"
+                        SELECT ID
+                              ,GroupName
+                              ,GroupDesc
+                              ,NodeJson
+                        FROM Controller.dbo.ControllerAccessGroup
+                        WHERE Enabled = 1 AND Deleted = 0
+                        ";
+
+            if (!string.IsNullOrEmpty(Keyword.GroupName))
+            {
+                sqlparam.Add("GroupName", $"%{Keyword.GroupName}%");
+                sql += " AND GroupName LIKE @GroupName";
+            }
+            if (!string.IsNullOrEmpty(Keyword.GroupDesc))
+            {
+                sqlparam.Add("GroupDesc", $"%{Keyword.GroupDesc}%");
+                sql += " AND GroupDesc LIKE @GroupDesc";
+            }
+
+            using var conn = new SqlConnection(_dBList.erp);
+            try
+            {
+                var result = await conn.QueryAsync<AccessGroupModel>(sql, sqlparam);
                 return result.ToList();
             }
             catch (Exception)

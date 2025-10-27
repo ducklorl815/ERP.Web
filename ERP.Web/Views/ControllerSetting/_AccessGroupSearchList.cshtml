@@ -1,0 +1,35 @@
+@model ERP.Web.Service.ViewModels.ControllerSetting.AccessGroupSearchListViewModel_result
+@if (Model != null && Model.List != null && Model.List.Any())
+{
+    <table class="footable table table-stripped toggle-arrow-tiny">
+        <thead>
+            <tr>
+                <th data-sort-ignore="true">群組名稱</th>
+                <th data-sort-ignore="true">群組描述</th>
+                <th data-sort-ignore="true">操作</th>
+            </tr>
+        </thead>
+        <tbody>
+            @foreach (var item in Model.List)
+            {
+                <tr>
+                    <td>
+                        <a asp-action="TreeDataMaintain" asp-route-id="@item.ID">@item.GroupName</a>
+                    </td>
+                    <td>
+                        @item.GroupDesc
+                    </td>
+                    <td>
+                        <a class="label" onclick="DeleteAccessGroup(@item.ID)">刪除</a>
+                    </td>
+                </tr>
+            }
+        </tbody>
+    </table>
+}
+else
+{
+    <div class="text-center">
+        <h3>查無資料</h3>
+    </div>
+}
