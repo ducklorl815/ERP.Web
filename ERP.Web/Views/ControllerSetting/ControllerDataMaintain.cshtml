@@ -2,6 +2,7 @@
 
 <!-- Select2 CSS -->
 <link href="https://cdn.jsdelivr.net/npm/select2@4.1.0-rc.0/dist/css/select2.min.css" rel="stylesheet" />
+<!-- modal-xl 樣式已在 controllerSettingCommon.css 中定義 -->
 <link href="~/css/ControllerSetting/controllerSettingCommon.css" rel="stylesheet" />
 <div class="wrapper wrapper-content animated fadeIn">
     <div class="row">
@@ -111,8 +112,9 @@
                         @* 樣式光箱 *@
                         <!-- Modal -->
                         <div class="modal fade" id="IconClassPreview" tabindex="-1" role="dialog">
-                            <div class="modal-dialog modal-dialog-large" role="document">
-                                <div class="modal-content modal-content-large">
+                            <!-- modal-xl 樣式定義於 controllerSettingCommon.css -->
+                            <div class="modal-dialog modal-xl" role="document">
+                                <div class="modal-content">
                                     <div class="modal-header" style="border: 0;">
                                         <h5 class="modal-title">選擇 Icon</h5>
                                         <button type="button" class="btn-close" data-bs-dismiss="modal"></button>

@@ -1,8 +1,104 @@
-﻿/*環境*/
+﻿/* ========== 電影院整體環境 ========== */
+.cinema-hall {
+    background: linear-gradient(135deg, #1a1a1a 0%, #2d2d2d 100%);
+    border-radius: 12px;
+    border: 3px solid rgba(255, 255, 255, 0.1);
+    box-shadow: 
+        0 8px 32px rgba(0, 0, 0, 0.5),
+        inset 0 0 0 1px rgba(255, 255, 255, 0.05);
+}
+
+/* 螢幕容器 */
+.screen-container {
+    margin-bottom: 3rem;
+    perspective: 1000px;
+    position: relative;
+}
+
+/* 3D 螢幕效果 */
+.screen-3d {
+    background: linear-gradient(to bottom, 
+        rgba(240, 240, 240, 0.95) 0%,
+        rgba(220, 220, 220, 0.9) 40%,
+        rgba(180, 180, 180, 0.85) 100%);
+    height: 70px;
+    border-radius: 50% 50% 0 0 / 30% 30% 0 0;
+    box-shadow: 
+        0 -3px 15px rgba(255, 255, 255, 0.4),
+        0 8px 30px rgba(0, 0, 0, 0.6),
+        inset 0 -2px 10px rgba(0, 0, 0, 0.1);
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    transform: rotateX(-8deg);
+    position: relative;
+    max-width: 90%;
+    margin: 0 auto;
+}
+
+.screen-label {
+    font-size: 1.3rem;
+    font-weight: bold;
+    color: #2d2d2d;
+    text-transform: uppercase;
+    letter-spacing: 4px;
+    text-shadow: 0 1px 2px rgba(255, 255, 255, 0.3);
+}
+
+/* 螢幕光暈效果 */
+.screen-glow {
+    position: absolute;
+    top: 0;
+    left: 50%;
+    transform: translateX(-50%);
+    width: 95%;
+    height: 30px;
+    background: radial-gradient(ellipse at center, 
+        rgba(255, 255, 255, 0.1) 0%,
+        rgba(255, 255, 255, 0.05) 50%,
+        transparent 100%);
+    filter: blur(10px);
+}
+
+/* 場館標題區 */
+.venue-header {
+    text-align: center;
+    margin-bottom: 2rem;
+    padding-bottom: 1rem;
+    border-bottom: 1px solid rgba(255, 255, 255, 0.1);
+}
+
+.venue-title {
+    color: #fff;
+    font-size: 1.4rem;
+    font-weight: 600;
+    margin-bottom: 0.5rem;
+    text-shadow: 0 2px 4px rgba(0, 0, 0, 0.5);
+}
+
+.venue-subtitle {
+    color: #999;
+    font-size: 0.9rem;
+    letter-spacing: 2px;
+    text-transform: uppercase;
+    margin: 0;
+}
+
+/* 座位圖容器 */
 .seat-map {
     position: relative;
     width: 100%;
     margin: 0 auto;
+    padding: 2rem 1rem;
+    background: rgba(0, 0, 0, 0.3);
+    border-radius: 12px;
+    border: 2px solid rgba(255, 255, 255, 0.08);
+    box-shadow: inset 0 0 20px rgba(0, 0, 0, 0.5);
+}
+
+/* 座位行間距 */
+.seat-map > div {
+    margin-bottom: 6px;
 }
 
 /* 原本的 seat 樣式 */
@@ -16,48 +112,65 @@
     font-size: 12px;
     cursor: pointer;
     font-family: 思源黑體, 微軟正黑體, 蘋方體, 黑體, sans-serif, serif;
-    color: black;
+    color: #ddd; /* 在暗色背景下的淺色文字 */
     font-weight: 900;
-    /*padding-left: 10px;
-    padding-top: 10px;*/
-
-    border: 1px solid #585135 !important;
-    border-top-left-radius: 5px !important;
-    border-top-right-radius: 5px !important;
-    border-bottom-left-radius: 5px !important;
-    border-bottom-right-radius: 5px !important;
+    border: 2px solid rgba(255, 255, 255, 0.15);
+    border-radius: 6px;
+    transition: all 0.3s ease;
+    box-shadow: 0 2px 4px rgba(0, 0, 0, 0.3);
 }
 
-/*座位圖各種樣式*/
+/* 座位 hover 效果 */
+.seat:hover {
+    transform: scale(1.1) translateY(-2px);
+    box-shadow: 0 4px 12px rgba(255, 255, 255, 0.2);
+    z-index: 10;
+}
+
+/* ========== 座位狀態樣式（電影院風格） ========== */
+
+/* 使用中的座位 - 黃色高亮 */
 .IsUsing {
-    background-color: #fffd6e;
-    color: black !important;
+    background-color: #ffd54f !important;
+    color: #333 !important;
+    border-color: #ffca28 !important;
+    box-shadow: 0 0 8px rgba(255, 213, 79, 0.5);
 }
 
+.IsUsing:hover {
+    background-color: #ffca28 !important;
+    box-shadow: 0 0 12px rgba(255, 213, 79, 0.7);
+}
+
+/* 障礙物 - 深灰色 */
 .IsStuff {
-    background-color: #e5e4dd;
-    border: 1px solid rgba(0, 0, 0, 0.02);
-    font-weight: 900;
-    color: black !important;
-    /*font-size: 16px;*/
+    background-color: #424242 !important;
+    border: 2px solid #616161 !important;
+    color: #888 !important;
+    cursor: not-allowed;
 }
 
+.IsStuff:hover {
+    background-color: #525252 !important;
+}
+
+/* 走道 - 接近黑色，融入背景 */
 .IsRoad {
-    background-color: black; /*#e7e7e7*/
-    border: 1px solid rgba(0, 0, 0, 0.02);
-    font-weight: 900;
-    color: #262626 !important;
-    /*font-size: 16px;*/
-    border: 1px solid #262626 !important;
-    border-top-left-radius: 0px !important;
-    border-top-right-radius: 0px !important;
-    border-bottom-left-radius: 0px !important;
-    border-bottom-right-radius: 0px !important;
+    background-color: #2a2a2a !important;
+    border: 1px solid #3a3a3a !important;
+    color: #555 !important;
+    border-radius: 2px !important;
 }
 
+/* 空座位 - 半透明白框 */
 .unused {
-    background-color: transparent;
-    border: 1px solid #f9f9f9;
+    background-color: rgba(255, 255, 255, 0.05);
+    border: 2px solid rgba(255, 255, 255, 0.2);
+}
+
+.unused:hover {
+    background-color: rgba(255, 255, 255, 0.1);
+    border-color: rgba(255, 255, 255, 0.3);
 }
 
 
@@ -75,7 +188,7 @@
 .white {
     background-color: #ffffff;
 }
-/*箭頭樣式*/
+/* 行列號標籤樣式 */
 .solid {
     position: relative;
     width: 50px;
@@ -83,8 +196,41 @@
     display: flex;
     justify-content: center;
     align-items: center;
-    font-size: 20px;
+    font-size: 15px;
+    font-weight: 700;
     cursor: pointer;
+    color: #aaa; /* 在暗色背景下的淺灰色文字 */
+}
+
+.solid span {
+    color: #aaa;
+    font-weight: 700;
+    text-shadow: 0 1px 2px rgba(0, 0, 0, 0.5);
+}
+
+/* 列號標題行樣式 */
+.column-header {
+    padding-bottom: 1rem;
+    border-bottom: 2px solid rgba(255, 255, 255, 0.1);
+    margin-bottom: 1rem;
+}
+
+.column-header .solid {
+    color: #ffd54f;
+}
+
+.column-header .solid span {
+    color: #ffd54f;
+}
+
+/* 座位行樣式 */
+.seat-row-line {
+    transition: background 0.2s ease;
+    padding: 2px 0;
+}
+
+.seat-row-line:hover {
+    background: rgba(255, 255, 255, 0.02);
 }
 
 
@@ -374,6 +520,64 @@
 
 
 
+
+/* ========== 圖例說明區 ========== */
+.legend-container {
+    margin-top: 3rem;
+    padding-top: 2rem;
+    border-top: 1px solid rgba(255, 255, 255, 0.1);
+}
+
+.legend-title {
+    text-align: center;
+    color: #fff;
+    font-size: 1.1rem;
+    font-weight: 600;
+    margin-bottom: 1.5rem;
+}
+
+.legend-items {
+    display: flex;
+    justify-content: center;
+    gap: 2.5rem;
+    flex-wrap: wrap;
+}
+
+.legend-item {
+    display: flex;
+    align-items: center;
+    gap: 0.8rem;
+    color: #ccc;
+    font-size: 0.95rem;
+}
+
+.legend-icon {
+    width: 40px;
+    height: 40px;
+    border-radius: 6px;
+    box-shadow: 0 2px 4px rgba(0, 0, 0, 0.3);
+}
+
+.legend-icon.seat-available {
+    background-color: rgba(255, 255, 255, 0.05);
+    border: 2px solid rgba(255, 255, 255, 0.2);
+}
+
+.legend-icon.seat-occupied {
+    background-color: #ffd54f;
+    border: 2px solid #ffca28;
+}
+
+.legend-icon.seat-blocked {
+    background-color: #424242;
+    border: 2px solid #616161;
+}
+
+.legend-icon.seat-aisle {
+    background-color: #2a2a2a;
+    border: 1px solid #3a3a3a;
+    border-radius: 2px;
+}
 
 /* 縮放版面配置為 150% 的 seat 樣式 */
 /*.scaling-125 {

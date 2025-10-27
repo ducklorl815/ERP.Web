@@ -5,24 +5,27 @@
 <link href="~/css/vueslider.css" rel="stylesheet" />
 <!-- Font Awesome 6 (Free) -->
 <link href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.5.2/css/all.min.css" rel="stylesheet">
+
 @{
+    // ========== 座位圖初始設定 ==========
+    
+    // 計算座位圖的最大行列數（最小為 10）
     var maxRow = 10;
     var maxCol = 10;
+    
     if (Model.SeatMap.Count() > 0)
     {
         maxRow = Model.SeatMap.Max(x => int.Parse(x.Row.ToString()));
         maxCol = Model.SeatMap.Max(x => int.Parse(x.Col.ToString()));
-        maxRow = (maxRow == null || maxRow < 10) ? 10 : maxRow;
-        maxCol = (maxCol == null || maxCol < 10) ? 10 : maxCol;
+        maxRow = (maxRow < 10) ? 10 : maxRow;
+        maxCol = (maxCol < 10) ? 10 : maxCol;
     }
 
-    //var staticSeatMap = new List<dynamic> {
-    //    new { Row = 1, Col = 1, Colorcode = "#FFD700", Status = "using", BoxNumber = "台北", Location = "台北", TicketID = "T01A5AA00" ,Border ="TopBorder LeftBorder"},
-    //    new { Row = 2, Col = 2, Colorcode = "#90EE90", Status = "using", BoxNumber = "台北", Location = "台北", TicketID = "T02B50A24",Border ="DownBorder LeftBorder"},
-    //};
-
+    // 用於追蹤員工名稱出現次數（待實作功能）
     var previousEmpNames = new Dictionary<string, int>();
 }
+
+<!-- ========== 自訂樣式：座位與椅子icon ========== -->
 <style>
     .seat {
         position: relative;
@@ -63,12 +66,14 @@
         z-index: 9999
     }
 </style>
+
+<!-- ========== 工具列：模式選擇開關（Vue控制） ========== -->
 <div id="app" class="row">
     <div class="w-8 d-flex" style="align-items: center;">
         <label class="col-sm-8 col-form-label font-weight-bold text-sm-right p-1">新增障礙物</label>
         <div id="Stuff" class="col-sm-4 app p-1">
             <label>
-                <input id="IsStuff" type="checkbox" v-model="IsStuff" value="false" />
+                <input id="IsStuff" type="checkbox" v-model="IsStuff" />
                 <span class="slider"></span>
             </label>
         </div>
@@ -77,7 +82,7 @@
         <label class="col-sm-8 col-form-label font-weight-bold text-sm-right p-1">新增座位</label>
         <div id="Stuff" class="col-sm-4 app p-1">
             <label>
-                <input id="IsUsing" type="checkbox" v-model="IsUsing" value="false" />
+                <input id="IsUsing" type="checkbox" v-model="IsUsing" />
                 <span class="slider"></span>
             </label>
         </div>
@@ -86,107 +91,154 @@
         <label class="col-sm-8 col-form-label font-weight-bold text-sm-right p-1">新增走道</label>
         <div id="Stuff" class="col-sm-4 app p-1">
             <label>
-                <input id="IsRoad" type="checkbox" v-model="IsRoad" value="false" />
+                <input id="IsRoad" type="checkbox" v-model="IsRoad" />
                 <span class="slider"></span>
             </label>
         </div>
     </div>
 </div>
+
+<!-- ========== 座位圖主容器 ========== -->
 <div class="ibox">
-    <div class="ibox-content" style="background-color:black">
-        <div class="row justify-content-start">
-            <div class="d-flex align-items-center">
-                <div class="col-sm-6 px-0 py-1">
-                    <div>XXX</div>
-                </div>
-                <label class="col-sm-6 col-form-label font-weight-bold text-sm-left p-1">分公司</label>
+    <div class="ibox-content cinema-hall" style="background-color:#1a1a1a; padding: 2rem;">
+        
+        <!-- 螢幕區域 -->
+        <div class="screen-container">
+            <div class="screen-3d">
+                <div class="screen-label">螢幕 SCREEN</div>
             </div>
+            <div class="screen-glow"></div>
         </div>
 
+        <!-- 場館資訊 -->
+        <div class="venue-header">
+            <h4 class="venue-title">XXX 分公司</h4>
+            <p class="venue-subtitle">Cinema Seat Map</p>
+        </div>
+
+        <!-- 座位圖網格 -->
         <div class="seat-map mt-4">
-            @for (int i = 1; i <= maxRow + 1; i++)
+            @* 
+                迴圈說明：
+                - 第一行顯示列號（1, 2, 3...）
+                - 之後每行顯示：行號 + 座位 + 行號
+                - rowLabel：行號標籤（A, B, C...）
+            *@
+            
+            @* ========== 第一行：列號標題 (1, 2, 3...) ========== *@
+            <div class="d-flex align-items-center justify-content-center column-header">
+                <div class="solid"></div> @* 左側空白 *@
+                @for (int colIndex = 1; colIndex <= maxCol; colIndex++)
+                {
+                    <div class="solid">
+                        <span>@colIndex</span>
+                    </div>
+                }
+                <div class="solid"></div> @* 右側空白 *@
+            </div>
+
+            @* ========== 座位行 ========== *@
+            @for (int rowIndex = 2; rowIndex <= maxRow; rowIndex++)
             {
-                var letterSequence = await Helpers.GetLetterSequence(i);
-                <div class="d-flex align-items-center justify-content-center">
-                    @if (i == 1)
-                    {
-                        @for (int j = 1; j <= maxCol; j++)
-                        {
-                            <div class="solid" style="position: relative">
-                                <i class="fa-solid fa-sort-down fa-xl fa-unselected" data-status="unused" data-col="col_@(j)" style="position: absolute;visibility:hidden"></i>
-                                <span style="display: block;">@(j)</span>
-                            </div>
-                        }
-                    }
-                    else
-                    {
-                        <div class="solid">
-                            <span>@letterSequence</span>
-                            <i class="fa-solid fa-caret-right fa-xl fa-unselected" style="visibility:hidden" data-status="unused" data-row="row_@(i - 1)"></i>
-                        </div>
+                var rowLabel = await Helpers.GetLetterSequence(rowIndex);
+                
+                <div class="d-flex align-items-center justify-content-center seat-row-line">
+                    @* 左側行號 *@
+                    <div class="solid">
+                        <span>@rowLabel</span>
+                    </div>
 
-                        @for (int j = 1; j <= maxCol; j++)
-                        {
-                            var item = Model.SeatMap.FirstOrDefault(x => x.Row == i && x.Col == j);
-                            <div class="seat" style="background-color:@item?.Colorcode ;color:#676a6c;align-content:center"
-                                 data-status="@item?.Status"
-                                 data-Border="@item?.Border"
-                                 data-sign="@letterSequence@j"
-                                 data-TicketID="@item?.TicketID"
-                                 data-rowcol="row_@(i - 1)&col_@(j)">
-                                @if (item != null)
+                    @* 座位格 *@
+                    @for (int colIndex = 1; colIndex <= maxCol; colIndex++)
+                    {
+                        // 取得此位置的座位資料（rowIndex 直接對應資料庫的 Row）
+                        var seatData = Model.SeatMap.FirstOrDefault(x => x.Row == rowIndex && x.Col == colIndex);
+                        var seatLabel = $"{rowLabel}{colIndex}";
+                        var isAdmin = seatData?.Border?.Contains("Admin") ?? false;
+                        var isUsing = seatData?.Status == "IsUsing";
+                        var hasData = seatData != null;
+                        
+                        <div class="seat @(seatData?.Status)" 
+                             style="background-color:@seatData?.Colorcode;color:#676a6c;align-content:center"
+                             data-status="@(seatData?.Status ?? "")"
+                             data-border="@(seatData?.Border ?? "")"
+                             data-sign="@seatLabel"
+                             data-ticketid="@(seatData?.TicketID ?? "")"
+                             data-rowcol="row_@rowIndex&col_@colIndex">
+                            
+                            <div style="text-align: center;">
+                                @if (hasData)
                                 {
-                                    <div style="text-align: center;">
-                                        @if (item.Border.Contains("Admin"))
-                                        {
-                                            <span>@letterSequence@j @item?.Border</span>
-                                            previousEmpNames[item?.TicketID] = previousEmpNames.ContainsKey(item?.TicketID)
-                                            ? previousEmpNames[item?.TicketID] + 1
+                                    @if (isAdmin)
+                                    {
+                                        // 先執行 C# 程式碼（記錄員工名稱出現次數）
+                                        previousEmpNames[seatData.TicketID] = previousEmpNames.ContainsKey(seatData.TicketID)
+                                            ? previousEmpNames[seatData.TicketID] + 1
                                             : 1;
-                                        }
-                                        else
-                                        {
-                                            if (item.Status == "IsUsing")
-                                            {
-                                                <div class="seat @item?.Status">
-                                                    <div class="chair-icon"></div>
-                                                    <span class="SeatSign">@letterSequence@j</span>
-                                                </div>
-                                               <span class="TicketID" style="position: absolute; bottom: 2px; left: 4px; font-size: 6px; font-weight: bold;">
-                                                    A2508170001
-                                                </span>
-                                            }
-                                            else
-                                            {
-
-                                                <span class="TicketID" style="font-size:8px">@item.TicketID</span>
-                                                <span>@letterSequence@j</span>
-                                            }
-
-                                        }
-                                    </div>
+                                        
+                                        // 管理員座位顯示
+                                        <span>@seatLabel @seatData?.Border</span>
+                                    }
+                                    else if (isUsing)
+                                    {
+                                        @* 使用中座位：顯示椅子 icon *@
+                                        <div class="seat @seatData?.Status">
+                                            <div class="chair-icon"></div>
+                                            <span class="SeatSign">@seatLabel</span>
+                                        </div>
+                                        <span class="TicketID" style="position: absolute; bottom: 2px; left: 4px; font-size: 6px; font-weight: bold;">
+                                            A2508170001
+                                        </span>
+                                    }
+                                    else
+                                    {
+                                        @* 其他狀態座位 *@
+                                        <span class="TicketID" style="font-size:8px">@seatData.TicketID</span>
+                                        <span>@seatLabel</span>
+                                    }
                                 }
                                 else
                                 {
-                                    <div style="text-align: center;align-self:center">
-                                        <span>@letterSequence@j</span>
-                                    </div>
+                                    @* 空座位 *@
+                                    <span>@seatLabel</span>
                                 }
                             </div>
-                        }
-                        <div class="solid">
-                            <span>@letterSequence</span>
-                            <i class="fa-solid fa-caret-right fa-xl fa-unselected" style="visibility:hidden" data-status="unused" data-row="row_@(i - 1)"></i>
                         </div>
                     }
+                    
+                    @* 右側行號 *@
+                    <div class="solid">
+                        <span>@rowLabel</span>
+                    </div>
                 </div>
             }
+        </div>
+
+        <!-- 圖例說明 -->
+        <div class="legend-container">
+            <div class="legend-title">座位狀態說明</div>
+            <div class="legend-items">
+                <div class="legend-item">
+                    <div class="legend-icon seat-available"></div>
+                    <span>可選座位</span>
+                </div>
+                <div class="legend-item">
+                    <div class="legend-icon seat-occupied"></div>
+                    <span>已佔用</span>
+                </div>
+                <div class="legend-item">
+                    <div class="legend-icon seat-blocked"></div>
+                    <span>障礙物</span>
+                </div>
+                <div class="legend-item">
+                    <div class="legend-icon seat-aisle"></div>
+                    <span>走道</span>
+                </div>
+            </div>
         </div>
     </div>
 </div>
 <script src="https://cdn.jsdelivr.net/npm/vue/dist/vue.js"></script>
 <script src="~/js/seatmap/public.js"></script>
 <script src="~/js/seatmap/datamaintain.js"></script>
-<script>
 
-</script>

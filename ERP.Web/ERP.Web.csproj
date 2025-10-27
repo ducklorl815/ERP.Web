@@ -24,7 +24,8 @@
   </ItemGroup>
 
   <ItemGroup>
-    <PackageReference Include="EPPlus" Version="7.6.0" />
+    <!-- 使用完全支援 net6.0 的 EPPlus 版本，避免相依套件版本衝突 -->
+    <PackageReference Include="EPPlus" Version="6.2.16" />
   </ItemGroup>
 
   <ItemGroup>

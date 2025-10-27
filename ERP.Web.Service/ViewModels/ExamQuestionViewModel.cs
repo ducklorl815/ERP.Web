@@ -1,6 +1,6 @@
 ﻿using ERP.Web.Models.Models;
 using ERP.Web.Utility.Paging;
-using System.Web.Mvc;
+using Microsoft.AspNetCore.Mvc.Rendering; // ASP.NET Core 的 SelectListItem
 
 namespace ERP.Web.Service.ViewModels
 {

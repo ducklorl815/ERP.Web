@@ -74,17 +74,26 @@
 
 <script>
     function DeleteAccessGroup(ID) {
+        // 先確認是否要刪除
+        if (!confirm('確定要刪除此群組嗎？')) {
+            return;
+        }
+
         $.ajax({
-            url: '/ControllerSetting/DeleteAccessGroup/?ID=' + ID,
-            type: 'GET',
+            url: '/ControllerSetting/DeleteAccessGroup',
+            type: 'POST', 
+            data: { ID: ID }, 
             success: function (result) {
-                alert("刪除成功！");
-                // 移除畫面上對應的那一行
-                $('[data-id="' + ID + '"]').closest('tr').remove();
+                if (result.success) {
+                    alert("刪除成功！");
+                    location.reload();
+                } else {
+                    alert("刪除失敗！");
+                }
             },
             error: function (err) {
-                console.error("送出失敗：", err);
-                alert("送出失敗！");
+                console.error("刪除失敗：", err);
+                alert("刪除失敗！");
             }
         });
     }

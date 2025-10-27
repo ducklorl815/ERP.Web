@@ -184,6 +184,14 @@ select:disabled {
 }
 
 /* === Modal 共用樣式 === */
+
+/* Bootstrap modal-xl 樣式（本地 Bootstrap 版本不支援，需自行定義） */
+.modal-xl {
+    max-width: 90%;
+    width: 90%;
+}
+
+/* 舊版自訂樣式（保留以免影響其他頁面） */
 .modal-dialog-large {
     max-width: 90%;
     width: auto;

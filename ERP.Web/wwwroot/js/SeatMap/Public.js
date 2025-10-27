@@ -19,42 +19,45 @@ function loadSeatStatus() {
             seat.classList.add('IsRoad');
         }
 
-        const border = seat.dataset.border;
-        //邊線處理
-        if (border.includes('TopBorder')) {
-            seat.classList.add('TopBorder');
-        }
+        const border = seat.dataset.border || '';
+        
+        // 邊線處理（確保 border 存在且不為空）
+        if (border) {
+            if (border.includes('TopBorder')) {
+                seat.classList.add('TopBorder');
+            }
 
-        if (border.includes('RightBorder')) {
-            seat.classList.add('RightBorder');
-        }
+            if (border.includes('RightBorder')) {
+                seat.classList.add('RightBorder');
+            }
 
-        if (border.includes('DownBorder')) {
-            seat.classList.add('DownBorder');
-        }
+            if (border.includes('DownBorder')) {
+                seat.classList.add('DownBorder');
+            }
 
-        if (border.includes('LeftBorder')) {
-            seat.classList.add('LeftBorder');
-        }
+            if (border.includes('LeftBorder')) {
+                seat.classList.add('LeftBorder');
+            }
 
-        if (border.includes('TopBorder') && border.includes('RightBorder')) {
-            seat.classList.add('RightTopRadius');
-        }
+            if (border.includes('TopBorder') && border.includes('RightBorder')) {
+                seat.classList.add('RightTopRadius');
+            }
 
-        if (border.includes('TopBorder') && border.includes('LeftBorder')) {
-            seat.classList.add('LeftTopRadius');
-        }
+            if (border.includes('TopBorder') && border.includes('LeftBorder')) {
+                seat.classList.add('LeftTopRadius');
+            }
 
-        if (border.includes('DownBorder') && border.includes('RightBorder')) {
-            seat.classList.add('RightDownRadius');
-        }
+            if (border.includes('DownBorder') && border.includes('RightBorder')) {
+                seat.classList.add('RightDownRadius');
+            }
 
-        if (border.includes('DownBorder') && border.includes('LeftBorder')) {
-            seat.classList.add('LeftDownRadius');
-        }
+            if (border.includes('DownBorder') && border.includes('LeftBorder')) {
+                seat.classList.add('LeftDownRadius');
+            }
 
-        if (border.includes('Rotation')) {
-            seat.classList.add('Rotation');
+            if (border.includes('Rotation')) {
+                seat.classList.add('Rotation');
+            }
         }
 
     });
