@@ -26,8 +26,11 @@
                         <i class="node-icon @icon"></i>
                     }
                     <span class='node-text-group'>
-                        <span class="node-name">@n.DisplayName</span>
-                        <span class="node-desc">@n.ControllerDesc</span>
+                        <span class="node-name">
+                            @n.DisplayName
+                            <span class="node-desc">@n.ControllerDesc</span>
+                        </span>
+                        <span class="node-desc-inline">@n.Controller / @n.Action</span>
                     </span>
 
                 </div>
@@ -40,4 +43,3 @@
         }
     </ul>
 }
-

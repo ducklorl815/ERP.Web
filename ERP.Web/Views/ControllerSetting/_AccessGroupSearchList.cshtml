@@ -14,13 +14,20 @@
             {
                 <tr>
                     <td>
-                        <a asp-action="TreeDataMaintain" asp-route-id="@item.ID">@item.GroupName</a>
+                        @* 有編輯權限：顯示連結 *@
+                        <a permission-check="ControllerSetting.TreeDataMaintain" 
+                           asp-action="TreeDataMaintain" 
+                           asp-route-id="@item.ID">@item.GroupName</a>
                     </td>
                     <td>
                         @item.GroupDesc
                     </td>
                     <td>
-                        <a class="label" onclick="DeleteAccessGroup('@item.ID')">刪除</a>
+                        @* 刪除按鈕 - 需要 DeleteAccessGroup 權限 *@
+                        <a permission-check="ControllerSetting.DeleteAccessGroup" 
+                           class="label" 
+                           onclick="DeleteAccessGroup('@item.ID')"
+                           style="cursor:pointer;">刪除</a>
                     </td>
                 </tr>
             }

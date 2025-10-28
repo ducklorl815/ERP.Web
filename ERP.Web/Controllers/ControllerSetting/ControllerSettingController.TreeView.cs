@@ -23,7 +23,7 @@ namespace ERP.Web.Controllers.ControllerSetting
             return View(result);
         }
         /// <summary>
-        /// 樹狀結構
+        /// 權限群組樹狀圖
         /// </summary>
         /// <param name="ModuleIDs"></param>
         /// <returns></returns>

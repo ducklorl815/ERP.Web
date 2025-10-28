@@ -4,15 +4,21 @@ using ERP.Web.Models.Respository.Tools;
 using ERP.Web.Service.Service;
 using ERP.Web.Service.Service.ControllerSetting;
 using ERP.Web.Utility.Models;
+using ERP.Web.Utility.Services;
 using Microsoft.Extensions.FileProviders;
 
 var builder = WebApplication.CreateBuilder(args);
 
-// Razor �Y�ɽsĶ
+// Razor 即時編譯
 builder.Services.AddControllersWithViews().AddRazorRuntimeCompilation();
 
 // Add services to the container.
 builder.Services.AddControllersWithViews();
+
+// 權限服務（Singleton - 使用記憶體快取）
+builder.Services.AddMemoryCache();
+builder.Services.AddHttpContextAccessor();
+builder.Services.AddSingleton<IPermissionService, PermissionService>();
 
 builder.Services.AddSingleton<ControllerSettingService>();
 builder.Services.AddSingleton<HomeService>();

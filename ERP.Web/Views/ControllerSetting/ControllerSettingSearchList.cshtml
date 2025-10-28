@@ -11,7 +11,15 @@
                                 <div class="panel-heading">
                                     <h5 class="panel-title">
                                         <a data-toggle="collapse" data-parent="#accordion" href="#collapseThree" class="collapsed">搜尋條件 <i class="fa fa-hand-o-left"></i></a>
-                                        <a asp-action="ControllerCreate" asp-controller="ControllerSetting"><span class="float-right" style="cursor:pointer;"><i class="fa-solid fa-plus"></i> 新增Controller</span></a>
+                                        
+                                        @* 新增Controller按鈕 - 需要 ControllerCreate 權限 *@
+                                        <a permission-check="ControllerSetting.ControllerCreate" 
+                                           asp-action="ControllerCreate" 
+                                           asp-controller="ControllerSetting">
+                                            <span class="float-right" style="cursor:pointer;">
+                                                <i class="fa-solid fa-plus"></i> 新增Controller
+                                            </span>
+                                        </a>
                                     </h5>
                                 </div>
                                 <div id="collapseThree" class="panel-collapse collapse in (@Model.ControllerList !=null && @Model.ControllerList.Any()?" ":" show")">

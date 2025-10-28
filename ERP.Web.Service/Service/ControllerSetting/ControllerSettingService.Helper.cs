@@ -75,7 +75,7 @@ namespace ERP.Web.Service.Service.ControllerSetting
             return string.Join(" ", parts);
         }
         /// <summary>
-        /// 新增模組功能
+        /// 權限群組樹狀圖
         /// </summary>
         /// <param name="ModuleIDs"></param>
         /// <returns></returns>

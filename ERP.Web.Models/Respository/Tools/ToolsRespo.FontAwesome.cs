@@ -2,7 +2,7 @@
 using ERP.Web.Models.Models.ControllerSetting;
 using ERP.Web.Models.Models.Tools;
 using Microsoft.AspNetCore.Http;
-using System.Data.SqlClient;
+using Microsoft.Data.SqlClient;
 
 namespace ERP.Web.Models.Respository.Tools
 {

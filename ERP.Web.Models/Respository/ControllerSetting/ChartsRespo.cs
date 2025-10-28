@@ -2,7 +2,7 @@
 using ERP.Web.Models.Models;
 using ERP.Web.Utility.Models;
 using Microsoft.Extensions.Options;
-using System.Data.SqlClient;
+using Microsoft.Data.SqlClient;
 
 namespace ERP.Web.Models.Respository
 {

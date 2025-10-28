@@ -23,7 +23,10 @@
             {
                 <tr>
                     <td>
-                        <a asp-action="ActDataMaintain" asp-route-id="@item.ID">@item.Seq</a>
+                        @* 編輯連結 - 需要 ActDataMaintain 權限 *@
+                        <a permission-check="ControllerSetting.ActDataMaintain" 
+                           asp-action="ActDataMaintain" 
+                           asp-route-id="@item.ID">@item.Seq</a>
                     </td>
 
                     <td>
@@ -48,7 +51,10 @@
                     <td>
                         @if (@item.ParentSeq != 0)
                         {
-                            <a asp-action="ActDataMaintain" asp-route-id="@item.ParentControllerMainID">@item.ParentSeq</a>
+                            @* 父層級連結 - 需要 ActDataMaintain 權限 *@
+                            <a permission-check="ControllerSetting.ActDataMaintain" 
+                               asp-action="ActDataMaintain" 
+                               asp-route-id="@item.ParentControllerMainID">@item.ParentSeq</a>
                         }
                     </td>
                     <td>
@@ -65,7 +71,13 @@
                         }
                     </td>
                     <td class="text-center">
-                        <i data-id="@item.ID" class="fa-solid fa-xmark delBtn" onclick="DeleteController(@item.ID)" title="刪除" style="cursor:pointer;"></i>
+                        @* 刪除按鈕 - 需要 DeleteController 權限 *@
+                        <i permission-check="ControllerSetting.DeleteController" 
+                           data-id="@item.ID" 
+                           class="fa-solid fa-xmark delBtn" 
+                           onclick="DeleteController('@item.ID')" 
+                           title="刪除" 
+                           style="cursor:pointer;"></i>
                     </td>
                 </tr>
             }

@@ -7,6 +7,8 @@ using Microsoft.CodeAnalysis;
 using Microsoft.Extensions.Configuration;
 using Microsoft.Extensions.Logging;
 using Microsoft.Extensions.Options;
+using Newtonsoft.Json;
+using System.Xml.Linq;
 
 namespace ERP.Web.Utility.ViewComponents
 {
@@ -28,6 +30,36 @@ namespace ERP.Web.Utility.ViewComponents
             _logger = logger;
             _connStr = options.Value.erp;
         }
+        #region 為了Utility而做的功能
+        private class TreeNodeUtilityModel
+        {
+            public Guid ID { get; set; }      // 對應 JSON id
+            public string DisplayName { get; set; }  // 對應 JSON text
+            public List<TreeNodeUtilityModel> Children { get; set; } // 對應 JSON children
+        }
+        private class NodeRecordUtilityModel
+        {
+            public Guid ID { get; set; }
+            public string DisplayName { get; set; }
+            public Guid ParentControllerMainID { get; set; }
+        }
+        private async Task<List<string>> UtilityFlattenIDs(List<TreeNodeUtilityModel> nodes)
+        {
+            var result = new List<string>();
+
+            foreach (var node in nodes)
+            {
+                result.Add(node.ID.ToString());
+
+                if (node.Children != null && node.Children.Any())
+                {
+                    result.AddRange(await UtilityFlattenIDs(node.Children));
+                }
+            }
+
+            return result;
+        }
+        #endregion
 
         public async Task<IViewComponentResult> InvokeAsync()
         {
@@ -39,10 +71,19 @@ namespace ERP.Web.Utility.ViewComponents
 
             var userMenuKey = _configuration.GetSection("RedisSessionKey:UserMenu").Value;
 
+            string NodeJson = await _controllerUtilityRepo.GetBoundAccessGroupData(HttpContext.User.Identity.Name);
             IEnumerable<dynamic> menuData = null;
+            List<string> ControllerIDList = new List<string>(); 
             try
             {
-                menuData = await _controllerUtilityRepo.GetMenuDataAsync(HttpContext.User.Identity.Name);
+                if (!string.IsNullOrEmpty(NodeJson))
+                {
+
+                    List<TreeNodeUtilityModel> nodes = JsonConvert.DeserializeObject<List<TreeNodeUtilityModel>>(NodeJson);
+                    ControllerIDList = await UtilityFlattenIDs(nodes);
+                }
+
+                menuData = await _controllerUtilityRepo.GetMenuDataAsync(ControllerIDList);
             }
             catch (Exception)
             {

@@ -118,6 +118,25 @@
    - 使用 Dapper 的 Query 和 Execute 方法進行資料操作
    - 實作適當的 Repository 模式封裝 Dapper 操作
 
+1-1. **SQL Client 套件規範**
+   - **必須使用：** `Microsoft.Data.SqlClient` (5.1.x 或更高版本)
+   - **禁止使用：** `System.Data.SqlClient` (已棄用且有安全性弱點)
+   - **命名空間：** 所有新程式碼必須使用 `using Microsoft.Data.SqlClient;`
+   - **遷移指南：**
+     * 更新 .csproj 檔案中的套件參考
+     * 將所有 `using System.Data.SqlClient;` 改為 `using Microsoft.Data.SqlClient;`
+     * 在連線字串中添加 `TrustServerCertificate=True`（開發環境）
+     * API 使用方式保持不變（SqlConnection、SqlCommand、SqlDataReader 等）
+   - **連線字串設定：**
+     * 開發環境：必須添加 `TrustServerCertificate=True`
+     * 正式環境：使用正式 SSL 憑證，保持 `TrustServerCertificate=False`
+     * 範例：`Data Source=SERVER;Initial Catalog=DB;User ID=user;Password=pwd;TrustServerCertificate=True`
+   - **安全性考量：**
+     * `System.Data.SqlClient` 有已知的中度和高嚴重性弱點
+     * `Microsoft.Data.SqlClient` 是 Microsoft 官方推薦的現代化 SQL Server 資料提供者
+     * 提供更好的效能和持續的安全性更新
+     * 預設啟用更嚴格的 SSL/TLS 加密驗證
+
 2. **SQL 語法規範**
    - SQL 語法需要使用 SQL Server 2016 版本能夠執行的語法
    - 避免使用 SQL Server 2016 不支援的新功能
@@ -204,6 +223,29 @@
    - 使用參數化查詢防止 SQL 注入
    - 實作適當的 XSS 防護
 
+3. **套件安全性管理**
+   - **定期安全性審查：**
+     * 每月至少執行一次 `dotnet list package --vulnerable` 檢查
+     * 建立安全性弱點追蹤清單
+     * 優先修復 Critical 和 High 等級的弱點
+   - **已知高風險套件：**
+     * `System.Data.SqlClient` 4.8.1 及更早版本 - 有 RCE 和資訊洩露弱點
+     * `Newtonsoft.Json` 12.x 及更早版本 - 有 DoS 弱點
+     * 任何顯示在 GitHub Advisory Database 的套件
+   - **安全更新流程：**
+     1. 識別安全性弱點
+     2. 評估影響範圍和嚴重性
+     3. 測試套件更新的相容性
+     4. 更新程式碼（如需要）
+     5. 執行完整測試
+     6. 產生更新報告
+     7. 部署至測試環境驗證
+     8. 部署至正式環境
+   - **安全性資源：**
+     * GitHub Advisory Database: https://github.com/advisories
+     * NVD (National Vulnerability Database): https://nvd.nist.gov/
+     * Microsoft Security Response Center: https://msrc.microsoft.com/
+
 ## 效能規範
 
 ### 最佳化原則
@@ -273,6 +315,41 @@
    - 使用適當的套件版本
    - 定期更新套件
    - 記錄套件相依性
+   - 定期檢查並修復安全性弱點
+
+3. **套件安全性管理規範**
+   - 定期掃描專案中的 NuGet 套件安全性弱點
+   - 優先處理高嚴重性 (High) 和關鍵 (Critical) 的安全性問題
+   - 建立套件更新的審核流程，確保相容性
+   - 在更新套件後進行完整的功能測試
+   - 記錄每次安全性更新的詳細資訊，包括：
+     * 原始套件版本和新版本
+     * 修復的安全性弱點編號 (CVE/GHSA)
+     * 受影響的專案範圍
+     * 程式碼變更清單
+   - 產生套件安全性更新報告文件 (.md 格式)
+
+4. **推薦的核心套件版本**
+   - **資料存取層：**
+     * 使用 `Microsoft.Data.SqlClient` (5.1.x 或更高) 而非 `System.Data.SqlClient`
+     * 使用 `Dapper` (2.1.x 或更高) 作為 ORM
+   - **JSON 處理：**
+     * 使用 `Newtonsoft.Json` (13.0.x 或更高) 或考慮改用 `System.Text.Json`
+   - **ASP.NET Core：**
+     * 使用與專案目標框架相符的最新穩定版本
+     * 範例：.NET 6.0 專案使用 6.0.x 的最新修補版本
+   - **避免使用的過時套件：**
+     * `System.Data.SqlClient` - 已知安全性弱點，改用 `Microsoft.Data.SqlClient`
+     * `Microsoft.AspNet.*` - 舊版 ASP.NET MVC 套件，不適用於 ASP.NET Core
+     * 任何標示為 deprecated 或有已知安全弱點的套件
+
+5. **套件更新最佳實踐**
+   - 在更新套件前先備份或建立分支
+   - 優先更新 patch 版本（如 1.2.3 → 1.2.4）
+   - 謹慎更新 minor 版本（如 1.2.x → 1.3.x），需進行完整測試
+   - 更新 major 版本（如 1.x → 2.x）需要詳細評估影響並規劃遷移
+   - 使用 `dotnet list package --vulnerable` 指令定期檢查弱點
+   - 使用 `dotnet list package --outdated` 指令檢查過時套件
 
 ### Utility 專案與資源管理規範
 1. **Utility 專案優先原則**
@@ -326,6 +403,22 @@
 
 ---
 
-*最後更新：2025年9月26日*
-*版本：1.5*
+## 更新歷史
+
+### 版本 1.6 (2025年10月28日)
+- 新增「套件安全性管理規範」章節
+- 新增「推薦的核心套件版本」指南
+- 新增「套件更新最佳實踐」規範
+- 新增「SQL Client 套件規範」，強制使用 Microsoft.Data.SqlClient
+- 詳細說明 System.Data.SqlClient 遷移至 Microsoft.Data.SqlClient 的流程
+- 強化套件安全性檢查和更新流程
+
+### 版本 1.5 (2025年9月26日)
+- 初始版本建立
+
+---
+
+*最後更新：2025年10月28日*
+*版本：1.6*
+
 

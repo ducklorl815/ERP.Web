@@ -11,7 +11,15 @@
                                 <div class="panel-heading">
                                     <h5 class="panel-title">
                                         <a data-toggle="collapse" data-parent="#accordion" href="#collapseThree" class="collapsed">搜尋條件 <i class="fa fa-hand-o-left"></i></a>
-                                        <a asp-action="TreeView" asp-controller="ControllerSetting"><span class="float-right" style="cursor:pointer;"><i class="fa-solid fa-plus"></i> 新增群組</span></a>
+                                        
+                                        @* 使用權限檢查 TagHelper - 沒有權限時自動隱藏 *@
+                                        <a permission-check="ControllerSetting.TreeView"
+                                           asp-action="TreeView" 
+                                           asp-controller="ControllerSetting">
+                                            <span class="float-right" style="cursor:pointer;">
+                                                <i class="fa-solid fa-plus"></i> 新增群組
+                                            </span>
+                                        </a>
                                     </h5>
                                 </div>
                                 <div id="collapseThree" class="panel-collapse collapse in (@Model.List !=null && @Model.List.Any()?" ":" show")">
