@@ -1,0 +1,20 @@
+/* Exam 共用樣式：統一表格排列與輸入框視覺 */
+
+.exam-table tr {
+    font-size: 14px;
+}
+
+.exam-table th,
+.exam-table td {
+    vertical-align: middle !important;
+}
+
+.exam-table input.form-control.borderless {
+    border: none;
+    box-shadow: none;
+    background-color: transparent;
+    padding-left: 0;
+    padding-right: 0;
+}
+
+

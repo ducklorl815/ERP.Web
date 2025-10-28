@@ -1,0 +1,45 @@
+@{
+    ViewData["Title"] = "上傳考題 Excel";
+}
+
+<h2 class="mb-3">檔案上傳區</h2>
+<form id="uploadForm" enctype="multipart/form-data">
+    <button class="btn btn-primary btn-sm" type="submit">上傳 Excel</button>
+    <input type="file" id="fileInput" name="file" accept=".xlsx, .xls" />
+    <span id="uploadStatus" class="ms-2"></span>
+    <a class="btn btn-link" href="@Url.Action("NewTest","ExamMath")">前往數學考卷</a>
+    <a class="btn btn-link" href="@Url.Action("NewTest","ExamEnglish")">前往英文考卷</a>
+    <a class="btn btn-link" href="@Url.Action("ReTest","ExamMath")">前往數學複測</a>
+    <a class="btn btn-link" href="@Url.Action("ReTest","ExamEnglish")">前往英文複測</a>
+    <hr />
+</form>
+
+<script>
+    $(document).ready(function () {
+        $("#uploadForm").on("submit", function (e) {
+            e.preventDefault();
+            var formData = new FormData();
+            var fileInput = $("#fileInput")[0].files[0];
+            if (!fileInput) {
+                $("#uploadStatus").text("請選擇 Excel 檔案");
+                return;
+            }
+            formData.append("file", fileInput);
+            $.ajax({
+                url: "@Url.Action("Upload", "ExamUpload")",
+                type: "POST",
+                data: formData,
+                processData: false,
+                contentType: false,
+                success: function () {
+                    $("#uploadStatus").text("上傳成功！");
+                },
+                error: function () {
+                    $("#uploadStatus").text("上傳失敗，請重試");
+                }
+            });
+        });
+    });
+</script>
+
+

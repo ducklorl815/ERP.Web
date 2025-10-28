@@ -13,7 +13,7 @@
         </div>
 
         <div id="createSection" class="card-body compact-body">
-            @Html.Partial("_ModuleFormPartial", Model)
+            <partial name="~/Views/ControllerSetting/_ModuleFormPartial.cshtml" model="Model" />
         </div>
     </div>
 
@@ -32,7 +32,7 @@
         </h5>
 
         <div id="controllerTree">
-            @Html.Partial("_TreePartial", Model.List)
+            <partial name="~/Views/ControllerSetting/_TreePartial.cshtml" model="Model.List" />
         </div>
     </div>
 </div>

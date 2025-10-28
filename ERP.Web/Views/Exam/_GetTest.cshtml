@@ -1,6 +1,6 @@
 ﻿<h2 class="mb-3">請填寫考試資訊</h2>
 
-<form method="get" action="@Url.Action("Test", "Exam")">
+<form method="get" action="@Url.Action("Test", ViewContext.RouteData.Values["controller"]?.ToString())">
     <div>
         <div class="row align-items-end gy-3 gx-4 col-12">
 
