@@ -25,6 +25,7 @@ namespace ERP.Web.Service.Service
             {
                 ClassNameList = param.ClassNameList,
                 CorrectType = param.CorrectType,
+                TestType = param.TestType, // 加入 TestType 篩選
             };
 
             var datacount = await _examRepo.GetNewTestCountAsync(ExamKeyword);
@@ -49,6 +50,7 @@ namespace ERP.Web.Service.Service
                 ClassNameList = param.ClassNameList,
                 CorrectType = param.CorrectType,
                 KidID = param.KidID,
+                TestType = param.TestType, // 加入 TestType 篩選
             };
             if (param.TestDate != null)
                 ExamKeyword.TestDate = DateTime.Parse(param.TestDate);
@@ -63,6 +65,12 @@ namespace ERP.Web.Service.Service
             var kidListTask = await _examRepo.GetKidListAsync();
             var testDateListTask = await _examRepo.GetTestDateList(param.KidID);
             var ExamList = await _examRepo.GetExamListAsync();
+
+            // 根據 TestType 篩選課程清單
+            if (!string.IsNullOrEmpty(param.TestType))
+            {
+                ExamList = ExamList.Where(x => x.TestType.Equals(param.TestType, StringComparison.OrdinalIgnoreCase)).ToList();
+            }
 
             #region todo 製作排序
             // Step 1: 動態取得主題群組（同樣邏輯）
@@ -445,6 +453,12 @@ namespace ERP.Web.Service.Service
             var kidListTask = _examRepo.GetKidListAsync();
             var testDateListTask = _examRepo.GetTestDateList(param.KidID);
             List<ExamListModel> ExamList = await _examRepo.GetExamListAsync();
+
+            // 根據 TestType 篩選課程清單
+            if (!string.IsNullOrEmpty(param.TestType))
+            {
+                ExamList = ExamList.Where(x => x.TestType.Equals(param.TestType, StringComparison.OrdinalIgnoreCase)).ToList();
+            }
 
             #region todo 製作排序
             // Step 1: 動態取得主題群組（同樣邏輯）

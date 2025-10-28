@@ -35,6 +35,8 @@
         public string CorrectType { get; set; }
         public string KidID { get; set; }
         public DateTime TestDate { get; set; }
+        /// <summary>考試類型：English, Math</summary>
+        public string TestType { get; set; }
     }
     public class ExamMainModel
     {

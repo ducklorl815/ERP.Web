@@ -262,6 +262,11 @@ namespace ERP.Web.Models.Respository
                 sqlparam.Add("TestDate", param.TestDate);
                 sql += $" AND CONVERT(DATE, kti.TestDate) = @TestDate";
             }
+            if (!string.IsNullOrEmpty(param.TestType))
+            {
+                sqlparam.Add("TestType", param.TestType);
+                sql += $" AND les.TestType = @TestType";
+            }
             #endregion
 
             using var conn = new SqlConnection(_dBList.erp);
@@ -285,6 +290,7 @@ namespace ERP.Web.Models.Respository
 			            FROM KidsWorld.dbo.Vocabulary w
 			            JOIN KidsWorld.dbo.Lession les ON les.ID = w.LessionID
 						LEFT JOIN KidsWorld.dbo.VocabularyIndex wi ON wi.WordID = w.ID
+                        WHERE 1 = 1
                         ";
 
             #region 關鍵字搜尋
@@ -297,6 +303,11 @@ namespace ERP.Web.Models.Respository
             {
                 sqlparam.Add("KidID", param.KidID);
                 sql += $" AND km.ID = @KidID";
+            }
+            if (!string.IsNullOrEmpty(param.TestType))
+            {
+                sqlparam.Add("TestType", param.TestType);
+                sql += $" AND les.TestType = @TestType";
             }
             //if (!string.IsNullOrEmpty(param.CorrectType))
             //{
@@ -372,6 +383,11 @@ namespace ERP.Web.Models.Respository
             {
                 sqlparam.Add("TestDate", param.TestDate);
                 sql += $" AND CONVERT(DATE, kti.TestDate) = @TestDate";
+            }
+            if (!string.IsNullOrEmpty(param.TestType))
+            {
+                sqlparam.Add("TestType", param.TestType);
+                sql += $" AND les.TestType = @TestType";
             }
             #endregion
             sql += " ORDER BY TestDate desc,RowNum ";
@@ -457,6 +473,11 @@ namespace ERP.Web.Models.Respository
             {
                 sqlparam.Add("KidID", param.KidID);
                 sql += $" AND km.ID = @KidID";
+            }
+            if (!string.IsNullOrEmpty(param.TestType))
+            {
+                sqlparam.Add("TestType", param.TestType);
+                sql += $" AND les.TestType = @TestType";
             }
             //if (!string.IsNullOrEmpty(param.CorrectType))
             //{
