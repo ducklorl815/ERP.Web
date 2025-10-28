@@ -143,7 +143,7 @@ namespace ERP.Web.Models.Respository.ControllerSetting
                       FROM Controller.dbo.ControllerMain cm
                       LEFT JOIN Controller.dbo.ControllerStationMain stat ON stat.ID = cm.StationMainID
                       LEFT JOIN Controller.dbo.ControllerMain cm2 ON cm2.ID = cm.ParentControllerMainID
-					  ORDER BY StationMainID, ParentSeq ,IsMenu desc
+					  ORDER BY StationMainID,cm.Controller, ParentSeq ,IsMenu desc
                         ";
 
             using var conn = new SqlConnection(_dBList.erp);

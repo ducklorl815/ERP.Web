@@ -139,7 +139,9 @@
 .expanded > .node-content > .toggle-icon {
     transform: rotate(90deg);
 }
-
+.node-icon{
+    font-size: 16px;
+}
 .tree-checkbox {
     width: 16px;
     height: 16px;
@@ -154,7 +156,7 @@
 
 .node-name {
     font-weight: 600;
-    font-size: 14px;
+    font-size: 16px;
 }
 
 .node-desc {

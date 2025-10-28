@@ -30,9 +30,11 @@
                             @n.DisplayName
                             <span class="node-desc">@n.ControllerDesc</span>
                         </span>
-                        <span class="node-desc-inline">@n.Controller / @n.Action</span>
+                        @if(!string.IsNullOrEmpty(n.Controller) && !string.IsNullOrEmpty(n.Action))
+                        {
+                                <span class="node-desc-inline">@n.Controller / @n.Action</span>
+                        }
                     </span>
-
                 </div>
 
                 @if (hasChildren)
