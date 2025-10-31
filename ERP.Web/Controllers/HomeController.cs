@@ -22,6 +22,25 @@ namespace ERP.Web.Controllers
 
         public async Task<IActionResult> Index()
         {
+            // 從 Session 取得登入使用者資料
+            var userAccount = HttpContext.Session.GetString("UserAccount");
+            var userName = HttpContext.Session.GetString("UserName");
+            var userEmpID = HttpContext.Session.GetString("UserEmpID");
+            var loginTime = HttpContext.Session.GetString("LoginTime");
+
+            // 傳遞給 View 使用
+            ViewData["UserAccount"] = userAccount ?? "未登入";
+            ViewData["UserName"] = userName ?? "訪客";
+            ViewData["UserEmpID"] = userEmpID ?? "N/A";
+            ViewData["LoginTime"] = loginTime ?? "N/A";
+
+            // 檢查是否已登入（可選）
+            if (string.IsNullOrEmpty(userAccount))
+            {
+                // 未登入，可以選擇導向登入頁面
+                // return RedirectToAction("Login", "Account");
+            }
+
             bool update = await _homeService.InsertDailyData();
             return View();
         }
