@@ -1,0 +1,170 @@
+﻿<!DOCTYPE html>
+<html>
+<head>
+    <partial name="_gtm" />
+    <meta charset="utf-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+    <title>@ViewData["Title"]</title>
+    <meta http-equiv="X-UA-Compatible" content="IE=edge">
+
+    <environment names="Development,Staging,Production">
+        <link rel="stylesheet" href="~/StaticFiles/lib/bootstrap/dist/css/bootstrap.min.css" />
+        <link rel="stylesheet" href="~/StaticFiles/lib/font-awesome/css/font-awesome.min.css" />
+        <link rel="stylesheet" href="~/StaticFiles/css/animate.css" />
+        <link rel="stylesheet" href="~/StaticFiles/lib/sweetalert/dist/sweetalert.css" />
+        <link rel="stylesheet" href="~/StaticFiles/lib/sweetalert2/dist/sweetalert2.css" />
+        <link rel="stylesheet" href="~/StaticFiles/css/style.css" />
+    </environment>
+    <style>
+        .nav-link {
+            padding: 15px;
+        }
+
+        .dropdown-item {
+            padding: 0px;
+        }
+
+        .nav-item {
+            padding-left: 5px;
+        }
+
+        .navbar .dropdown-toggle, .navbar .dropdown-menu a {
+            cursor: pointer;
+        }
+
+        .navbar .dropdown-item.active, .navbar .dropdown-item:active {
+            color: #0091DA;
+            text-decoration: none;
+            background-color: inherit;
+        }
+
+        .navbar .dropdown-item:focus, .navbar .dropdown-item:hover {
+            color: #0091DA;
+            text-decoration: none;
+            background-color: #f8f9fa;
+        }
+
+        .navbar-dark .navbar-nav .show > .nav-link {
+            color: #0091DA;
+        }
+
+        .navbar-dark .navbar-nav .nav-link {
+            color: #676a6c;
+            font-weight: bold;
+        }
+
+        @@media (min-width: 767px) {
+            .navbar .dropdown-toggle:not(.nav-link)::after {
+                display: inline-block;
+                width: 0;
+                height: 0;
+                margin-left: .5em;
+                vertical-align: 0;
+                border-bottom: .3em solid transparent;
+                border-top: .3em solid transparent;
+                border-left: .3em solid;
+            }
+        }
+
+        .navbar-dark .navbar-nav .nav-link:hover {
+            color: #0091DA;
+        }
+
+        .navbar-dark .navbar-nav .nav-link:focus {
+            color: #676a6c;
+        }
+    </style>
+
+    <!-- Add local styles, mostly for plugins css file -->
+    @if (IsSectionDefined("Styles"))
+    {@RenderSection("Styles", required: false)}
+
+    <link rel="stylesheet" href="~/StaticFiles/css/site.css?v=0.0.2" />
+
+
+</head>
+<body class="top-navigation">
+    <partial name="_gtmNoScript" />
+
+    <!-- Wrapper-->
+    <!-- PageClass give you ability to specify custom style for specific view based on action -->
+    <div id="wrapper" class="">
+
+        <!-- Page wraper -->
+        <div id="page-wrapper" class="gray-bg @ViewBag.SpecialClass">
+
+            <!-- Top Navbar -->
+            @await Component.InvokeAsync("TopNavbar2")
+            @*<partial name="_TopNavbar2" />*@
+
+            <!-- Main view  -->
+            @RenderBody()
+
+            <!-- Footer -->
+            <partial name="_Footer" />
+
+        </div>
+        <!-- End page wrapper-->
+
+    </div>
+    <!-- End wrapper-->
+
+    <environment names="Development,Staging,Production">
+        <script src="~/StaticFiles/lib/jquery/dist/jquery.min.js"></script>
+        <script src="~/StaticFiles/lib/Popper/popper.min.js"></script>
+        <script src="~/StaticFiles/lib/bootstrap/dist/js/bootstrap.min.js"></script>
+        <script src="~/StaticFiles/lib/metisMenu/dist/jquery.metisMenu.js"></script>
+        <script src="~/StaticFiles/lib/pace/pace.min.js"></script>
+        <script src="~/StaticFiles/lib/slimScroll/jquery.slimscroll.min.js"></script>
+        <script src="~/staticfiles/lib/sweetalert2/dist/sweetalert2.min.js"></script>
+        @*<script src="~/StaticFiles/lib/sweetalert/dist/sweetalert.min.js"></script>*@
+        <script src="~/StaticFiles/js/script.min.js"></script>
+        <script src="~/StaticFiles/lib/typehead/bootstrap3-typeahead.min.js"></script>
+        <script src="~/StaticFiles/lib/toastr/toastr.min.js"></script>
+        <script src="~/StaticFiles/lib/jquery-ui/jquery-ui.min.js"></script>
+        <script src="~/StaticFiles/lib/jquery-blockui/jquery.blockUI.min.js"></script>
+        <script src="~/StaticFiles/js/site.js?v=0.0.0"></script>
+    </environment>
+    <script>
+
+        $(document).ready(function () {
+            $('.navbar .dropdown-item').on('click', function (e) {
+                var href = $(this).find("a").attr("href");
+                if (href != undefined) {
+                    window.open(href, $(this).find("a").attr('target'));
+                    $(".navbar").find('li.dropdown').removeClass('show open');
+                    $(".navbar").find('ul.dropdown-menu').removeClass('show open');
+                    e.preventDefault();
+                    e.stopPropagation();
+                    return;
+                }
+
+                var $el = $(this).children('.dropdown-toggle');
+                var $parent = $el.offsetParent(".dropdown-menu");
+                $(this).parent("li").toggleClass('open');
+                if (!$parent.parent().hasClass('navbar-nav')) {
+                    if ($parent.hasClass('show')) {
+                        $parent.removeClass('show');
+                        $el.next().removeClass('show');
+                        $el.next().css({ "top": -999, "left": -999 });
+                    } else {
+                        $parent.parent().find('.show').removeClass('show');
+                        $parent.addClass('show');
+                        $el.next().addClass('show');
+                        $el.next().css({ "top": $el[0].offsetTop, "left": $parent.outerWidth() - 4 });
+                    }
+                    e.preventDefault();
+                    e.stopPropagation();
+                }
+            });
+
+            $('.navbar .dropdown').on('hidden.bs.dropdown', function () {
+                $(this).find('li.dropdown').removeClass('show open');
+                $(this).find('ul.dropdown-menu').removeClass('show open');
+            });
+        });
+    </script>
+
+    @RenderSection("scripts", required: false)
+</body>
+</html>
