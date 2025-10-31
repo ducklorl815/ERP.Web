@@ -80,16 +80,17 @@ namespace ERP.Web.Controllers.Account
         {
             try
             {
-                // 這裡可以加入額外驗證（例如檢查帳號是否仍然有效）
-                // 目前簡化處理：直接使用記錄的帳號進行登入
+                // 從 Service 層取得使用者資料（會檢查帳號是否有效）
+                var userData = await _accountLoginService.GetUserDataByAccountAsync(account);
 
-                // 取得使用者資料（實際應用中可能需要從資料庫查詢）
-                // TODO: 實作從資料庫取得使用者資料的邏輯
-                var empName = "自動登入使用者"; // 應從資料庫取得
-                var empID = "AUTO"; // 應從資料庫取得
+                if (userData == null || !userData.IsSuccess)
+                {
+                    // 帳號無效或已停用
+                    return null;
+                }
 
                 // 初始化使用者資料和權限
-                await InitializeUserSessionAsync(account, empName, empID);
+                await InitializeUserSessionAsync(userData.Account, userData.EmpName, userData.EmpID);
 
                 // 導向目標頁面
                 return RedirectToTargetPage(returnUrl);
