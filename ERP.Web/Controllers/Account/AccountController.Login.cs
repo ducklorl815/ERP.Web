@@ -1,5 +1,4 @@
 ﻿using ERP.Web.Service.ViewModels.Account;
-using Microsoft.AspNetCore.Authentication;
 using Microsoft.AspNetCore.Mvc;
 
 namespace ERP.Web.Controllers.Account

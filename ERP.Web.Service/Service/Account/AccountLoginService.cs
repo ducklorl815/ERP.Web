@@ -12,9 +12,12 @@ namespace LifeTech.ERP.Web.Service.Service
     {
         private readonly AccountLoginRepo _accountLoginRepo;
 
-        public AccountLoginService(IConfiguration configuration)
+        public AccountLoginService(
+            IConfiguration configuration,
+            AccountLoginRepo accountLoginRepo
+            )
         {
-            _accountLoginRepo = new AccountLoginRepo(configuration);
+            _accountLoginRepo = accountLoginRepo;
         }
 
         /// <summary>
@@ -107,7 +110,7 @@ namespace LifeTech.ERP.Web.Service.Service
         /// </summary>
         /// <param name="account">帳號</param>
         /// <returns>使用者資料</returns>
-        public async Task<AccountLoginViewModel_result?> GetUserDataByAccountAsync(string account)
+        public async Task<AccountLoginViewModel_result> GetUserDataByAccountAsync(string account)
         {
             try
             {
