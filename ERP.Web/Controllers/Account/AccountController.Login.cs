@@ -39,8 +39,11 @@ namespace ERP.Web.Controllers.Account
         {
             try
             {
+                // 取得用戶端 IP 位址
+                var ipAddress = GetClientIPAddress();
+
                 // 執行登入驗證
-                var result = await _accountLoginService.LoginAsync(model.Account, model.Password, model.AutoLogin);
+                var result = await _accountLoginService.LoginAsync(model.Account, model.Password, model.AutoLogin, ipAddress);
 
                 // 登入失敗處理
                 if (!result.IsSuccess)
@@ -157,6 +160,55 @@ namespace ERP.Web.Controllers.Account
                 return Redirect(returnUrl);
             }
             return RedirectToAction("Index", "Home");
+        }
+
+        /// <summary>
+        /// 取得客戶端 IP 位址
+        /// 支援透過 Proxy 或 Load Balancer 的情況
+        /// </summary>
+        private string GetClientIPAddress()
+        {
+            try
+            {
+                // 1. 檢查 X-Forwarded-For Header（當使用 Proxy 或 Load Balancer 時）
+                var forwardedFor = HttpContext.Request.Headers["X-Forwarded-For"].FirstOrDefault();
+                if (!string.IsNullOrEmpty(forwardedFor))
+                {
+                    // X-Forwarded-For 可能包含多個 IP，取第一個（真實客戶端 IP）
+                    var ips = forwardedFor.Split(',');
+                    if (ips.Length > 0)
+                    {
+                        return ips[0].Trim();
+                    }
+                }
+
+                // 2. 檢查 X-Real-IP Header（某些 Nginx 配置使用）
+                var realIP = HttpContext.Request.Headers["X-Real-IP"].FirstOrDefault();
+                if (!string.IsNullOrEmpty(realIP))
+                {
+                    return realIP.Trim();
+                }
+
+                // 3. 使用 RemoteIpAddress（直接連接時）
+                var remoteIP = HttpContext.Connection.RemoteIpAddress;
+                if (remoteIP != null)
+                {
+                    // 如果是 IPv6 的 localhost，轉換為 IPv4
+                    if (remoteIP.ToString() == "::1")
+                    {
+                        return "127.0.0.1";
+                    }
+                    return remoteIP.ToString();
+                }
+
+                // 4. 無法取得 IP，回傳預設值
+                return "Unknown";
+            }
+            catch (Exception ex)
+            {
+                Console.WriteLine($"取得客戶端 IP 時發生錯誤: {ex.Message}");
+                return "Unknown";
+            }
         }
 
         #endregion

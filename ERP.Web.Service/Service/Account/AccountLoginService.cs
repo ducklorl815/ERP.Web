@@ -26,8 +26,9 @@ namespace LifeTech.ERP.Web.Service.Service
         /// <param name="account">帳號</param>
         /// <param name="password">密碼</param>
         /// <param name="autoLogin">是否自動登入（此參數不影響驗證，只是傳遞給前端使用）</param>
+        /// <param name="ipAddress">IP 位址</param>
         /// <returns>登入結果</returns>
-        public async Task<AccountLoginViewModel_result> LoginAsync(string account, string password, bool autoLogin)
+        public async Task<AccountLoginViewModel_result> LoginAsync(string account, string password, bool autoLogin, string ipAddress)
         {
             try
             {
@@ -41,22 +42,36 @@ namespace LifeTech.ERP.Web.Service.Service
                     };
                 }
 
-                // 2. 呼叫 Repository 驗證帳號密碼
+                // 2. 檢查登入失敗次數（24小時內超過5次則鎖定）
+                var failedCount = await _accountLoginRepo.GetFailedLoginCountAsync(account);
+                if (failedCount >= 5)
+                {
+                    // 記錄失敗嘗試
+                    await _accountLoginRepo.LogFailedLoginAsync(account, "超過失敗次數限制", ipAddress);
+
+                    return new AccountLoginViewModel_result
+                    {
+                        IsSuccess = false,
+                        Msg = "登入失敗次數過多，帳號已被暫時鎖定，請稍後再試或聯絡系統管理員"
+                    };
+                }
+
+                // 3. 呼叫 Repository 驗證帳號密碼
                 bool isValid = await _accountLoginRepo.ValidateUserAsync(account, password);
 
                 if (!isValid)
                 {
                     // 記錄登入失敗
-                    await _accountLoginRepo.LogFailedLoginAsync(account, "帳號或密碼錯誤");
+                    await _accountLoginRepo.LogFailedLoginAsync(account, "帳號或密碼錯誤", ipAddress);
 
                     return new AccountLoginViewModel_result
                     {
                         IsSuccess = false,
-                        Msg = "帳號或密碼錯誤，請重新輸入"
+                        Msg = $"帳號或密碼錯誤，請重新輸入（剩餘 {5 - failedCount - 1} 次嘗試機會）"
                     };
                 }
 
-                // 3. 驗證成功，取得使用者完整資料
+                // 4. 驗證成功，取得使用者完整資料
                 var userData = await _accountLoginRepo.GetUserDataAsync(account);
 
                 if (userData == null)
@@ -68,7 +83,7 @@ namespace LifeTech.ERP.Web.Service.Service
                     };
                 }
 
-                // 4. 檢查帳號是否啟用
+                // 5. 檢查帳號是否啟用
                 if (!userData.IsActive)
                 {
                     return new AccountLoginViewModel_result
@@ -78,10 +93,13 @@ namespace LifeTech.ERP.Web.Service.Service
                     };
                 }
 
-                // 5. 更新最後登入時間
+                // 6. 登入成功 - 清除失敗記錄
+                await _accountLoginRepo.ClearFailedLoginAsync(account);
+
+                // 7. 更新最後登入時間
                 await _accountLoginRepo.UpdateLastLoginTimeAsync(account);
 
-                // 6. 組裝回傳資料
+                // 8. 組裝回傳資料
                 return new AccountLoginViewModel_result
                 {
                     IsSuccess = true,
@@ -109,8 +127,8 @@ namespace LifeTech.ERP.Web.Service.Service
         /// 根據帳號取得使用者資料（用於自動登入）
         /// </summary>
         /// <param name="account">帳號</param>
-        /// <returns>使用者資料</returns>
-        public async Task<AccountLoginViewModel_result> GetUserDataByAccountAsync(string account)
+        /// <returns>使用者資料，若帳號無效或已停用則回傳 null</returns>
+        public async Task<AccountLoginViewModel_result?> GetUserDataByAccountAsync(string account)
         {
             try
             {

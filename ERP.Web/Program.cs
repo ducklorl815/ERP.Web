@@ -1,4 +1,5 @@
 using ERP.Web.Models.Respository;
+using ERP.Web.Models.Respository.Account;
 using ERP.Web.Models.Respository.ControllerSetting;
 using ERP.Web.Models.Respository.Tools;
 using ERP.Web.Service.Service;
@@ -33,6 +34,7 @@ builder.Services.AddSingleton<IPermissionService, PermissionService>();
 
 // 帳號登入服務（Scoped - 每個 HTTP 請求一個實例）
 builder.Services.AddScoped<AccountLoginService>();
+builder.Services.AddScoped<AccountLoginRepo>();
 
 // 其他服務
 builder.Services.AddSingleton<ControllerSettingService>();
