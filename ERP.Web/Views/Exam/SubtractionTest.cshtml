@@ -1,0 +1,152 @@
+@model ERP.Web.Service.ViewModels.ExamDataViewModel_result
+
+<link href="~/css/chkboxstyle.css" rel="stylesheet" />
+
+<div class="container mt-4">
+    <h2>📝 減法運算測驗</h2>
+    <hr />
+
+    <div class="row">
+        <div class="col-md-12">
+            <form id="generateSubtractionForm" method="post" action="@Url.Action("GenerateSubtractionQuestions", "ExamMath")" target="_blank">
+                <input type="hidden" name="KidID" id="KidIDInput" />
+                
+                <div class="card mb-3">
+                    <div class="card-header bg-warning text-dark">
+                        <h5 class="mb-0">⚙️ 題目設定</h5>
+                    </div>
+                    <div class="card-body">
+                        <div class="row">
+                            <!-- 學生選擇 -->
+                            <div class="col-md-6 mb-3">
+                                <label for="KidID" class="form-label">選擇學生</label>
+                                <select id="KidID" name="KidID" class="form-select" required>
+                                    <option value="">請選擇</option>
+                                    @if (Model?.KidList != null)
+                                    {
+                                        @foreach (var kid in Model.KidList)
+                                        {
+                                            <option value="@kid.Value">@kid.Text</option>
+                                        }
+                                    }
+                                </select>
+                            </div>
+
+                            <!-- 題數 -->
+                            <div class="col-md-6 mb-3">
+                                <label for="questionCount" class="form-label">題數</label>
+                                <input type="number" class="form-control" id="questionCount" name="questionCount" value="15" min="5" max="100" step="5" required />
+                                <small class="form-text text-muted">預設：15題（建議5的倍數：5、10、15、20...）</small>
+                            </div>
+
+                            <!-- 數字位數 -->
+                            <div class="col-md-4 mb-3">
+                                <label for="digitCount" class="form-label">數字位數</label>
+                                <input type="number" class="form-control" id="digitCount" name="digitCount" value="3" min="1" max="6" required />
+                                <small class="form-text text-muted">預設：3位數</small>
+                            </div>
+
+                            <!-- 減數數量 -->
+                            <div class="col-md-4 mb-3">
+                                <label for="numberCount" class="form-label">減數數量</label>
+                                <input type="number" class="form-control" id="numberCount" name="numberCount" value="3" min="2" max="10" required />
+                                <small class="form-text text-muted">預設：3個減數</small>
+                            </div>
+
+                            <!-- 結果位數限制 -->
+                            <div class="col-md-4 mb-3">
+                                <label for="resultDigitCount" class="form-label">結果位數限制</label>
+                                <input type="number" class="form-control" id="resultDigitCount" name="resultDigitCount" value="3" min="1" max="10" required />
+                                <small class="form-text text-muted">預設：3位數</small>
+                            </div>
+
+                            <!-- 是否允許負數 -->
+                            <div class="col-md-12 mb-3">
+                                <div class="form-check">
+                                    <input class="form-check-input" type="checkbox" id="allowNegative" name="allowNegative" value="true" />
+                                    <label class="form-check-label" for="allowNegative">
+                                        允許結果為負數
+                                    </label>
+                                    <small class="form-text text-muted d-block">勾選後，減法運算結果可以是負數</small>
+                                </div>
+                            </div>
+                        </div>
+
+                        <div class="row">
+                            <div class="col-md-12">
+                                <button type="button" class="btn btn-warning btn-lg" onclick="submitSubtractionForm()">
+                                    🎲 產生減法題目
+                                </button>
+                                <button type="button" class="btn btn-secondary btn-lg ms-2" onclick="location.reload()">
+                                    🔄 重新設定
+                                </button>
+                            </div>
+                        </div>
+                    </div>
+                </div>
+            </form>
+        </div>
+    </div>
+
+</div>
+
+<script>
+    function submitSubtractionForm() {
+        var KidID = $("#KidID").val();
+
+        if (!KidID || KidID.trim() === "") {
+            alert("請先選擇學生！");
+            $("#KidID").focus();
+            return;
+        }
+
+        // 驗證數值
+        var questionCount = parseInt($("#questionCount").val());
+        var digitCount = parseInt($("#digitCount").val());
+        var numberCount = parseInt($("#numberCount").val());
+        var resultDigitCount = parseInt($("#resultDigitCount").val());
+
+        if (questionCount < 1 || questionCount > 100) {
+            alert("題數必須在 1-100 之間！");
+            return;
+        }
+
+        if (digitCount < 1 || digitCount > 6) {
+            alert("數字位數必須在 1-6 之間！");
+            return;
+        }
+
+        if (numberCount < 2 || numberCount > 10) {
+            alert("減數數量必須在 2-10 之間！");
+            return;
+        }
+
+        if (resultDigitCount < 1 || resultDigitCount > 10) {
+            alert("結果位數必須在 1-10 之間！");
+            return;
+        }
+
+        // 更新 hidden 欄位
+        $("#KidIDInput").val(KidID);
+
+        // 提交表單
+        $("#generateSubtractionForm").submit();
+    }
+</script>
+
+<style>
+    .card-header {
+        font-weight: bold;
+    }
+    
+    .form-label {
+        font-weight: 600;
+        color: #333;
+    }
+    
+    .btn-lg {
+        padding: 10px 30px;
+        font-size: 1.1rem;
+    }
+</style>
+

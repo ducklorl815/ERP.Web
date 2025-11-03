@@ -1,0 +1,141 @@
+@model ERP.Web.Service.ViewModels.ExamDataViewModel_result
+
+<link href="~/css/chkboxstyle.css" rel="stylesheet" />
+
+<div class="container mt-4">
+    <h2>📝 乘法運算測驗</h2>
+    <hr />
+
+    <div class="row">
+        <div class="col-md-12">
+            <form id="generateMultiplicationForm" method="post" action="@Url.Action("GenerateMultiplicationQuestions", "ExamMath")" target="_blank">
+                <input type="hidden" name="KidID" id="KidIDInput" />
+                
+                <div class="card mb-3">
+                    <div class="card-header bg-info text-white">
+                        <h5 class="mb-0">⚙️ 題目設定</h5>
+                    </div>
+                    <div class="card-body">
+                        <div class="row">
+                            <!-- 學生選擇 -->
+                            <div class="col-md-6 mb-3">
+                                <label for="KidID" class="form-label">選擇學生</label>
+                                <select id="KidID" name="KidID" class="form-select" required>
+                                    <option value="">請選擇</option>
+                                    @if (Model?.KidList != null)
+                                    {
+                                        @foreach (var kid in Model.KidList)
+                                        {
+                                            <option value="@kid.Value">@kid.Text</option>
+                                        }
+                                    }
+                                </select>
+                            </div>
+
+                            <!-- 題數 -->
+                            <div class="col-md-6 mb-3">
+                                <label for="questionCount" class="form-label">題數</label>
+                                <input type="number" class="form-control" id="questionCount" name="questionCount" value="15" min="5" max="100" step="5" required />
+                                <small class="form-text text-muted">預設：15題（建議5的倍數：5、10、15、20...）</small>
+                            </div>
+
+                            <!-- 被乘數位數 -->
+                            <div class="col-md-4 mb-3">
+                                <label for="multiplicandDigits" class="form-label">被乘數位數</label>
+                                <input type="number" class="form-control" id="multiplicandDigits" name="multiplicandDigits" value="2" min="1" max="6" required />
+                                <small class="form-text text-muted">預設：2位數</small>
+                            </div>
+
+                            <!-- 乘數位數 -->
+                            <div class="col-md-4 mb-3">
+                                <label for="multiplierDigits" class="form-label">乘數位數</label>
+                                <input type="number" class="form-control" id="multiplierDigits" name="multiplierDigits" value="2" min="1" max="6" required />
+                                <small class="form-text text-muted">預設：2位數</small>
+                            </div>
+
+                            <!-- 結果位數限制 -->
+                            <div class="col-md-4 mb-3">
+                                <label for="resultDigitCount" class="form-label">結果位數限制</label>
+                                <input type="number" class="form-control" id="resultDigitCount" name="resultDigitCount" value="4" min="2" max="12" required />
+                                <small class="form-text text-muted">預設：4位數（最低2位數）</small>
+                            </div>
+                        </div>
+
+                        <div class="row">
+                            <div class="col-md-12">
+                                <button type="button" class="btn btn-info btn-lg" onclick="submitMultiplicationForm()">
+                                    🎲 產生乘法題目
+                                </button>
+                                <button type="button" class="btn btn-secondary btn-lg ms-2" onclick="location.reload()">
+                                    🔄 重新設定
+                                </button>
+                            </div>
+                        </div>
+                    </div>
+                </div>
+            </form>
+        </div>
+    </div>
+
+</div>
+
+<script>
+    function submitMultiplicationForm() {
+        var KidID = $("#KidID").val();
+
+        if (!KidID || KidID.trim() === "") {
+            alert("請先選擇學生！");
+            $("#KidID").focus();
+            return;
+        }
+
+        // 驗證數值
+        var questionCount = parseInt($("#questionCount").val());
+        var multiplicandDigits = parseInt($("#multiplicandDigits").val());
+        var multiplierDigits = parseInt($("#multiplierDigits").val());
+        var resultDigitCount = parseInt($("#resultDigitCount").val());
+
+        if (questionCount < 1 || questionCount > 100) {
+            alert("題數必須在 1-100 之間！");
+            return;
+        }
+
+        if (multiplicandDigits < 1 || multiplicandDigits > 6) {
+            alert("被乘數位數必須在 1-6 之間！");
+            return;
+        }
+
+        if (multiplierDigits < 1 || multiplierDigits > 6) {
+            alert("乘數位數必須在 1-6 之間！");
+            return;
+        }
+
+        if (resultDigitCount < 2 || resultDigitCount > 12) {
+            alert("結果位數必須在 2-12 之間！");
+            return;
+        }
+
+        // 更新 hidden 欄位
+        $("#KidIDInput").val(KidID);
+
+        // 提交表單
+        $("#generateMultiplicationForm").submit();
+    }
+</script>
+
+<style>
+    .card-header {
+        font-weight: bold;
+    }
+    
+    .form-label {
+        font-weight: 600;
+        color: #333;
+    }
+    
+    .btn-lg {
+        padding: 10px 30px;
+        font-size: 1.1rem;
+    }
+</style>
+

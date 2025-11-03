@@ -1,0 +1,212 @@
+@model ERP.Web.Service.ViewModels.ExamSearchListViewModel_result
+
+<!-- 四則運算測驗表單區域 -->
+<div id="arithmeticTestFormArea" class="mt-4" style="display: none;">
+    <div class="card shadow">
+        <div class="card-header text-white" id="testFormHeader">
+            <h4 class="mb-0"><span id="testTypeIcon"></span> <span id="testTypeTitle"></span></h4>
+        </div>
+        <div class="card-body">
+            
+            <!-- 加法表單 -->
+            <div id="additionForm" class="test-form" style="display: none;">
+                <form method="post" action="@Url.Action("GenerateAdditionQuestions", ViewContext.RouteData.Values["controller"]?.ToString())" target="_blank">
+                    <input type="hidden" name="KidID" class="kid-select" />
+                    <div class="row">
+                        <div class="col-md-6 mb-3">
+                            <label class="form-label">題數</label>
+                            <input type="number" name="questionCount" class="form-control" value="15" min="5" max="100" required />
+                            <small class="text-muted">建議5的倍數</small>
+                        </div>
+                        <div class="col-md-4 mb-3">
+                            <label class="form-label">數字位數</label>
+                            <input type="number" name="digitCount" class="form-control" value="3" min="1" max="6" required />
+                        </div>
+                        <div class="col-md-4 mb-3">
+                            <label class="form-label">加數數量</label>
+                            <input type="number" name="numberCount" class="form-control" value="3" min="2" max="10" required />
+                        </div>
+                        <div class="col-md-4 mb-3">
+                            <label class="form-label">結果位數限制</label>
+                            <input type="number" name="resultDigitCount" class="form-control" value="4" min="1" max="10" required />
+                        </div>
+                    </div>
+                    <button type="submit" class="btn btn-primary btn-lg">🎲 產生加法題目</button>
+                </form>
+            </div>
+
+            <!-- 減法表單 -->
+            <div id="subtractionForm" class="test-form" style="display: none;">
+                <form method="post" action="@Url.Action("GenerateSubtractionQuestions", ViewContext.RouteData.Values["controller"]?.ToString())" target="_blank">
+                    <input type="hidden" name="KidID" class="kid-select" />
+                    <div class="row">
+                        <div class="col-md-6 mb-3">
+                            <label class="form-label">題數</label>
+                            <input type="number" name="questionCount" class="form-control" value="15" min="5" max="100" required />
+                            <small class="text-muted">建議5的倍數</small>
+                        </div>
+                        <div class="col-md-4 mb-3">
+                            <label class="form-label">數字位數</label>
+                            <input type="number" name="digitCount" class="form-control" value="3" min="1" max="6" required />
+                        </div>
+                        <div class="col-md-4 mb-3">
+                            <label class="form-label">減數數量</label>
+                            <input type="number" name="numberCount" class="form-control" value="3" min="2" max="10" required />
+                        </div>
+                        <div class="col-md-4 mb-3">
+                            <label class="form-label">結果位數限制</label>
+                            <input type="number" name="resultDigitCount" class="form-control" value="3" min="1" max="10" required />
+                        </div>
+                        <div class="col-md-12 mb-3">
+                            <div class="form-check">
+                                <input class="form-check-input" type="checkbox" name="allowNegative" value="true" id="allowNegative" />
+                                <label class="form-check-label" for="allowNegative">
+                                    允許結果為負數
+                                </label>
+                            </div>
+                        </div>
+                    </div>
+                    <button type="submit" class="btn btn-success btn-lg">🎲 產生減法題目</button>
+                </form>
+            </div>
+
+            <!-- 乘法表單 -->
+            <div id="multiplicationForm" class="test-form" style="display: none;">
+                <form method="post" action="@Url.Action("GenerateMultiplicationQuestions", ViewContext.RouteData.Values["controller"]?.ToString())" target="_blank">
+                    <input type="hidden" name="KidID" class="kid-select" />
+                    <div class="row">
+                        <div class="col-md-6 mb-3">
+                            <label class="form-label">題數</label>
+                            <input type="number" name="questionCount" class="form-control" value="15" min="5" max="100" required />
+                            <small class="text-muted">建議5的倍數</small>
+                        </div>
+                        <div class="col-md-4 mb-3">
+                            <label class="form-label">被乘數位數</label>
+                            <input type="number" name="multiplicandDigits" class="form-control" value="3" min="1" max="6" required />
+                        </div>
+                        <div class="col-md-4 mb-3">
+                            <label class="form-label">乘數位數</label>
+                            <input type="number" name="multiplierDigits" class="form-control" value="2" min="1" max="4" required />
+                        </div>
+                        <div class="col-md-4 mb-3">
+                            <label class="form-label">結果位數限制</label>
+                            <input type="number" name="resultDigitCount" class="form-control" value="5" min="1" max="10" required />
+                        </div>
+                    </div>
+                    <button type="submit" class="btn btn-warning btn-lg">🎲 產生乘法題目</button>
+                </form>
+            </div>
+
+            <!-- 除法表單 -->
+            <div id="divisionForm" class="test-form" style="display: none;">
+                <form method="post" action="@Url.Action("GenerateDivisionQuestions", ViewContext.RouteData.Values["controller"]?.ToString())" target="_blank">
+                    <input type="hidden" name="KidID" class="kid-select" />
+                    <div class="row">
+                        <div class="col-md-6 mb-3">
+                            <label class="form-label">總題數</label>
+                            <input type="text" id="divisionTotalQuestions" class="form-control" readonly style="background-color: #e9ecef; font-weight: bold;" value="15" />
+                            <small class="text-muted">整除 + 有餘數</small>
+                        </div>
+                        <div class="col-md-4 mb-3">
+                            <label class="form-label">被除數位數</label>
+                            <input type="number" name="dividendDigits" class="form-control" value="3" min="1" max="6" required />
+                        </div>
+                        <div class="col-md-4 mb-3">
+                            <label class="form-label">除數位數</label>
+                            <input type="number" name="divisorDigits" class="form-control" value="1" min="1" max="4" required />
+                        </div>
+                        <div class="col-md-6 mb-3">
+                            <label class="form-label">🟢 整除題數</label>
+                            <input type="number" name="exactCount" id="exactCount" class="form-control division-count" value="8" min="0" max="100" required />
+                        </div>
+                        <div class="col-md-6 mb-3">
+                            <label class="form-label">🔴 有餘數題數</label>
+                            <input type="number" name="remainderCount" id="remainderCount" class="form-control division-count" value="7" min="0" max="100" required />
+                        </div>
+                    </div>
+                    <button type="submit" class="btn btn-info btn-lg">🎲 產生除法題目</button>
+                </form>
+            </div>
+
+        </div>
+    </div>
+</div>
+
+<script>
+    // 除法總題數計算
+    $(document).on("input change", ".division-count", function() {
+        var exactCount = parseInt($("#exactCount").val()) || 0;
+        var remainderCount = parseInt($("#remainderCount").val()) || 0;
+        $("#divisionTotalQuestions").val(exactCount + remainderCount);
+    });
+
+    // 顯示指定的測驗表單
+    window.showArithmeticTest = function(testType) {
+        // 隱藏所有表單
+        $(".test-form").hide();
+        
+        // 顯示測驗表單區域
+        $("#arithmeticTestFormArea").slideDown();
+        
+        // 根據類型顯示對應表單和設定標題
+        var config = {
+            'addition': {
+                form: '#additionForm',
+                title: '加法運算測驗',
+                icon: '➕',
+                headerClass: 'bg-primary'
+            },
+            'subtraction': {
+                form: '#subtractionForm',
+                title: '減法運算測驗',
+                icon: '➖',
+                headerClass: 'bg-success'
+            },
+            'multiplication': {
+                form: '#multiplicationForm',
+                title: '乘法運算測驗',
+                icon: '✖️',
+                headerClass: 'bg-warning text-dark'
+            },
+            'division': {
+                form: '#divisionForm',
+                title: '除法運算測驗',
+                icon: '➗',
+                headerClass: 'bg-info'
+            }
+        };
+        
+        var testConfig = config[testType];
+        if (testConfig) {
+            $(testConfig.form).show();
+            $("#testTypeTitle").text(testConfig.title);
+            $("#testTypeIcon").text(testConfig.icon);
+            
+            // 更新 header 樣式
+            $("#testFormHeader").removeClass('bg-primary bg-success bg-warning bg-info text-dark').addClass(testConfig.headerClass);
+            
+            // 滾動到表單區域
+            $('html, body').animate({
+                scrollTop: $("#arithmeticTestFormArea").offset().top - 20
+            }, 500);
+        }
+    };
+</script>
+
+<style>
+    .form-label {
+        font-weight: 600;
+        color: #333;
+        margin-bottom: 0.5rem;
+    }
+    
+    .btn-lg {
+        padding: 10px 30px;
+        font-size: 1.1rem;
+    }
+    
+    #arithmeticTestFormArea {
+        transition: opacity 0.3s ease-in, transform 0.3s ease-in;
+    }
+</style>
+

@@ -1,0 +1,96 @@
+@model ERP.Web.Service.ViewModels.ExamSearchListViewModel_result
+
+<!-- 測驗平台跳板區 -->
+<div class="row mb-4">
+    <!-- 四則運算平台 -->
+    <div class="col-md-6 mb-3">
+        <div class="card shadow-sm">
+            <div class="card-header bg-primary text-white">
+                <h5 class="mb-0"><i class="fa fa-calculator"></i> 四則運算測驗平台</h5>
+            </div>
+            <div class="card-body">
+                <div class="row g-2">
+                    <div class="col-md-6">
+                        <button type="button" class="btn btn-primary w-100" onclick="showArithmeticTest('addition')">
+                            <i class="fa fa-plus"></i> 加法測驗
+                        </button>
+                    </div>
+                    <div class="col-md-6">
+                        <button type="button" class="btn btn-success w-100" onclick="showArithmeticTest('subtraction')">
+                            <i class="fa fa-minus"></i> 減法測驗
+                        </button>
+                    </div>
+                    <div class="col-md-6">
+                        <button type="button" class="btn btn-warning w-100" onclick="showArithmeticTest('multiplication')">
+                            <i class="fa fa-times"></i> 乘法測驗
+                        </button>
+                    </div>
+                    <div class="col-md-6">
+                        <button type="button" class="btn btn-info w-100" onclick="showArithmeticTest('division')">
+                            <i class="fa fa-divide"></i> 除法測驗
+                        </button>
+                    </div>
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <!-- 珠心算平台 -->
+    <div class="col-md-6 mb-3">
+        <div class="card shadow-sm">
+            <div class="card-header bg-success text-white">
+                <h5 class="mb-0"><i class="fa fa-brain"></i> 珠心算測驗平台</h5>
+            </div>
+            <div class="card-body">
+                <div class="alert alert-info mb-3 py-2">
+                    <small><i class="fa fa-info-circle"></i> 點擊下方按鈕自定義位數和數量</small>
+                </div>
+                
+                <div class="row g-2">
+                    <div class="col-12">
+                        <button type="button" class="btn btn-success w-100 btn-lg" onclick="showMentalMathTest()">
+                            <i class="fa fa-calculator"></i> 珠心算測驗設定
+                        </button>
+                    </div>
+                </div>
+
+                <div class="mt-3">
+                    <small class="text-muted">
+                        💡 可自訂：位數（1-4位）、加減數數量、題數等
+                    </small>
+                </div>
+
+                <!-- 舊版級數按鈕（保留但隱藏，如需要可以取消註解）-->
+                <!--
+                <hr class="my-3" />
+                <div class="text-center mb-2">
+                    <small class="text-muted">快速產生（舊版級數）：</small>
+                </div>
+                <form id="generateForm" method="post" action="@Url.Action("GenerateQuestions", ViewContext.RouteData.Values["controller"]?.ToString())">
+                    <input type="hidden" name="level" id="levelInput" />
+                    <input type="hidden" name="KidID" id="KidIDInput" />
+                </form>
+                <input type="hidden" id="KidID" name="KidID" />
+                <div class="row g-2">
+                    <div class="col-4">
+                        <button class="btn btn-outline-success btn-sm w-100" onclick="submitGenerateForm(10)">
+                            10級
+                        </button>
+                    </div>
+                    <div class="col-4">
+                        <button class="btn btn-outline-success btn-sm w-100" onclick="submitGenerateForm(9)">
+                            9級
+                        </button>
+                    </div>
+                    <div class="col-4">
+                        <button class="btn btn-outline-success btn-sm w-100" onclick="submitGenerateForm(8)">
+                            8級
+                        </button>
+                    </div>
+                </div>
+                -->
+            </div>
+        </div>
+    </div>
+</div>
+

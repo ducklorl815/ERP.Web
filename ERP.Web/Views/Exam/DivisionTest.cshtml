@@ -1,0 +1,176 @@
+@model ERP.Web.Service.ViewModels.ExamDataViewModel_result
+
+<link href="~/css/chkboxstyle.css" rel="stylesheet" />
+<script src="https://code.jquery.com/jquery-3.6.0.min.js"></script>
+
+<div class="container mt-4">
+    <h2>📝 除法運算測驗</h2>
+    <hr />
+
+    <div class="row">
+        <div class="col-md-12">
+            <form id="generateDivisionForm" method="post" action="@Url.Action("GenerateDivisionQuestions", "ExamMath")" target="_blank">
+                <input type="hidden" name="KidID" id="KidIDInput" />
+                
+                <div class="card mb-3">
+                    <div class="card-header bg-danger text-white">
+                        <h5 class="mb-0">⚙️ 題目設定</h5>
+                    </div>
+                    <div class="card-body">
+                        <div class="row">
+                            <!-- 學生選擇 -->
+                            <div class="col-md-6 mb-3">
+                                <label for="KidID" class="form-label">選擇學生</label>
+                                <select id="KidID" name="KidID" class="form-select" required>
+                                    <option value="">請選擇</option>
+                                    @if (Model?.KidList != null)
+                                    {
+                                        @foreach (var kid in Model.KidList)
+                                        {
+                                            <option value="@kid.Value">@kid.Text</option>
+                                        }
+                                    }
+                                </select>
+                            </div>
+
+                            <!-- 被除數位數 -->
+                            <div class="col-md-4 mb-3">
+                                <label for="dividendDigits" class="form-label">被除數位數</label>
+                                <input type="number" class="form-control" id="dividendDigits" name="dividendDigits" value="3" min="1" max="6" required />
+                                <small class="form-text text-muted">預設：3位數</small>
+                            </div>
+
+                            <!-- 除數位數 -->
+                            <div class="col-md-4 mb-3">
+                                <label for="divisorDigits" class="form-label">除數位數</label>
+                                <input type="number" class="form-control" id="divisorDigits" name="divisorDigits" value="1" min="1" max="4" required />
+                                <small class="form-text text-muted">預設：1位數</small>
+                            </div>
+
+                            <!-- 總題數顯示 -->
+                            <div class="col-md-4 mb-3">
+                                <label class="form-label">總題數</label>
+                                <input type="text" class="form-control" id="totalQuestions" readonly style="background-color: #e9ecef; font-weight: bold;" value="15" />
+                                <small class="form-text text-muted">整除題數 + 有餘數題數</small>
+                            </div>
+
+                            <!-- 整除題數 -->
+                            <div class="col-md-6 mb-3">
+                                <label for="exactCount" class="form-label">🟢 整除題數（無餘數）</label>
+                                <input type="number" class="form-control" id="exactCount" name="exactCount" value="8" min="0" max="100" required />
+                                <small class="form-text text-muted">可被整除的題目數量</small>
+                            </div>
+
+                            <!-- 有餘數題數 -->
+                            <div class="col-md-6 mb-3">
+                                <label for="remainderCount" class="form-label">🔴 有餘數題數</label>
+                                <input type="number" class="form-control" id="remainderCount" name="remainderCount" value="7" min="0" max="100" required />
+                                <small class="form-text text-muted">有餘數的題目數量</small>
+                            </div>
+                        </div>
+
+                        <div class="row">
+                            <div class="col-md-12">
+                                <button type="button" class="btn btn-danger btn-lg" onclick="submitDivisionForm()">
+                                    🎲 產生除法題目
+                                </button>
+                                <button type="button" class="btn btn-secondary btn-lg ms-2" onclick="location.reload()">
+                                    🔄 重新設定
+                                </button>
+                            </div>
+                        </div>
+                    </div>
+                </div>
+            </form>
+        </div>
+    </div>
+
+</div>
+
+<script>
+    // 自動計算總題數
+    function updateTotalQuestions() {
+        var exactCount = parseInt($("#exactCount").val()) || 0;
+        var remainderCount = parseInt($("#remainderCount").val()) || 0;
+        var total = exactCount + remainderCount;
+        $("#totalQuestions").val(total);
+    }
+
+    $(document).ready(function() {
+        // 監聽整除和餘數欄位的變化
+        $("#exactCount, #remainderCount").on("input change", updateTotalQuestions);
+        
+        // 初始化總題數
+        updateTotalQuestions();
+    });
+
+    function submitDivisionForm() {
+        var KidID = $("#KidID").val();
+
+        if (!KidID || KidID.trim() === "") {
+            alert("請先選擇學生！");
+            $("#KidID").focus();
+            return;
+        }
+
+        // 驗證數值
+        var dividendDigits = parseInt($("#dividendDigits").val());
+        var divisorDigits = parseInt($("#divisorDigits").val());
+        var exactCount = parseInt($("#exactCount").val()) || 0;
+        var remainderCount = parseInt($("#remainderCount").val()) || 0;
+        var totalQuestions = exactCount + remainderCount;
+
+        if (dividendDigits < 1 || dividendDigits > 6) {
+            alert("被除數位數必須在 1-6 之間！");
+            return;
+        }
+
+        if (divisorDigits < 1 || divisorDigits > 4) {
+            alert("除數位數必須在 1-4 之間！");
+            return;
+        }
+
+        if (divisorDigits >= dividendDigits) {
+            alert("除數位數不能大於或等於被除數位數！");
+            return;
+        }
+
+        if (totalQuestions < 1 || totalQuestions > 100) {
+            alert("總題數必須在 1-100 之間！\n(整除題數 + 有餘數題數 = " + totalQuestions + ")");
+            return;
+        }
+
+        if (exactCount < 0 || remainderCount < 0) {
+            alert("整除題數和有餘數題數都不能為負數！");
+            return;
+        }
+
+        if (exactCount === 0 && remainderCount === 0) {
+            alert("至少要有1題（整除或有餘數）！");
+            return;
+        }
+
+        // 更新 hidden 欄位
+        $("#KidIDInput").val(KidID);
+
+        // 提交表單
+        $("#generateDivisionForm").submit();
+    }
+</script>
+
+<style>
+    .card-header {
+        font-weight: bold;
+    }
+    
+    .form-label {
+        font-weight: 600;
+        color: #333;
+    }
+    
+    .btn-lg {
+        padding: 10px 30px;
+        font-size: 1.1rem;
+    }
+</style>
+

@@ -1,0 +1,138 @@
+@model ERP.Web.Service.ViewModels.ExamSearchListViewModel_result
+
+<!-- 珠心算測驗表單區域 -->
+<div id="mentalMathTestFormArea" class="mt-4" style="display: none;">
+    <div class="card shadow">
+        <div class="card-header bg-success text-white">
+            <h4 class="mb-0">🧮 珠心算測驗</h4>
+        </div>
+        <div class="card-body">
+            <form method="post" action="@Url.Action("GenerateMentalMathQuestions", ViewContext.RouteData.Values["controller"]?.ToString())" target="_blank">
+                <input type="hidden" name="KidID" id="mentalMathKidID" />
+                
+                <div class="alert alert-info mb-3">
+                    <i class="fa fa-info-circle"></i> 珠心算測驗：連續加減混合運算，訓練快速心算能力
+                </div>
+
+                <div class="row">
+                    <div class="col-md-6 mb-3">
+                        <label class="form-label">題數</label>
+                        <input type="number" name="questionCount" class="form-control" value="30" min="5" max="100" required />
+                        <small class="text-muted">建議：30題</small>
+                    </div>
+
+                    <div class="col-md-6 mb-3">
+                        <label class="form-label">數字位數</label>
+                        <select name="digitCount" class="form-select" required>
+                            <option value="1" selected>1位數（1-9）</option>
+                            <option value="2">2位數（10-99）</option>
+                            <option value="3">3位數（100-999）</option>
+                            <option value="4">4位數（1000-9999）</option>
+                        </select>
+                        <small class="text-muted">數字的位數大小</small>
+                    </div>
+
+                    <div class="col-md-6 mb-3">
+                        <label class="form-label">加減數數量</label>
+                        <input type="number" name="numberCount" class="form-control" value="6" min="2" max="15" required />
+                        <small class="text-muted">每題包含幾個數字進行加減</small>
+                    </div>
+
+                    <div class="col-md-6 mb-3">
+                        <label class="form-label">&nbsp;</label>
+                        <div class="form-check">
+                            <input class="form-check-input" type="checkbox" name="allowNegativeResult" value="true" id="allowNegativeResult" />
+                            <label class="form-check-label" for="allowNegativeResult">
+                                允許結果為負數
+                            </label>
+                        </div>
+                        <small class="text-muted">勾選後答案可能為負數</small>
+                    </div>
+                </div>
+
+                <div class="row">
+                    <div class="col-12">
+                        <h6 class="text-muted mb-2">推薦設定：</h6>
+                        <div class="btn-group mb-3" role="group">
+                            <button type="button" class="btn btn-outline-success" onclick="setMentalMathPreset(1, 6, 30)">
+                                初級：1位數×6
+                            </button>
+                            <button type="button" class="btn btn-outline-success" onclick="setMentalMathPreset(1, 10, 30)">
+                                進階：1位數×10
+                            </button>
+                            <button type="button" class="btn btn-outline-success" onclick="setMentalMathPreset(2, 6, 30)">
+                                中級：2位數×6
+                            </button>
+                            <button type="button" class="btn btn-outline-success" onclick="setMentalMathPreset(3, 4, 30)">
+                                高級：3位數×4
+                            </button>
+                            <button type="button" class="btn btn-outline-success" onclick="setMentalMathPreset(4, 3, 30)">
+                                專家：4位數×3
+                            </button>
+                        </div>
+                    </div>
+                </div>
+
+                <button type="submit" class="btn btn-success btn-lg">
+                    🎲 產生珠心算題目
+                </button>
+            </form>
+        </div>
+    </div>
+</div>
+
+<script>
+    // 顯示珠心算表單
+    window.showMentalMathTest = function() {
+        // 檢查是否已選擇學生
+        var selectedKidID = $("#globalKidID").val();
+        if (!selectedKidID) {
+            alert("請先在上方選擇學生！");
+            $("#globalKidID").focus();
+            return;
+        }
+        
+        // 同步學生ID
+        $("#mentalMathKidID").val(selectedKidID);
+        
+        // 隱藏四則運算表單
+        $("#arithmeticTestFormArea").hide();
+        
+        // 顯示珠心算表單
+        $("#mentalMathTestFormArea").slideDown();
+        
+        // 滾動到表單區域
+        $('html, body').animate({
+            scrollTop: $("#mentalMathTestFormArea").offset().top - 20
+        }, 500);
+    };
+
+    // 設定珠心算預設值
+    window.setMentalMathPreset = function(digitCount, numberCount, questionCount) {
+        $('select[name="digitCount"]').val(digitCount);
+        $('input[name="numberCount"]').val(numberCount);
+        $('input[name="questionCount"]').val(questionCount);
+    };
+</script>
+
+<style>
+    .form-label {
+        font-weight: 600;
+        color: #333;
+        margin-bottom: 0.5rem;
+    }
+    
+    .btn-lg {
+        padding: 10px 30px;
+        font-size: 1.1rem;
+    }
+    
+    #mentalMathTestFormArea {
+        transition: opacity 0.3s ease-in, transform 0.3s ease-in;
+    }
+    
+    .btn-group .btn {
+        font-size: 0.9rem;
+    }
+</style>
+

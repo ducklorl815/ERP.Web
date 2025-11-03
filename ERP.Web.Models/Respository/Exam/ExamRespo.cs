@@ -5,7 +5,7 @@ using ERP.Web.Utility.Paging;
 using Microsoft.Extensions.Options;
 using Microsoft.Data.SqlClient;
 
-namespace ERP.Web.Models.Respository
+namespace ERP.Web.Models.Respository.Exam
 {
     public class ExamRespo
     {

@@ -1,4 +1,4 @@
-using ERP.Web.Service.Service;
+using ERP.Web.Service.Service.Exam;
 using Microsoft.AspNetCore.Mvc;
 
 namespace ERP.Web.Controllers

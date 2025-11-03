@@ -62,6 +62,7 @@ namespace ERP.Web.Service.ViewModels
         public ScoreTable scoreTable { get; set; }
         public List<Vocabulary> VocabularyList { get; set; }
         public string Title { get; set; }
+        public List<SelectListItem> KidList { get; set; }
     }
 
     public class ScoreTable

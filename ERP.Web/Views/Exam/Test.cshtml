@@ -91,17 +91,46 @@
 </style>
 @Html.Raw(@"
     <style>
+        /* 5題一行（20% 寬度） */
+        .col-md-2-4 {
+            flex: 0 0 auto !important;
+            width: 20% !important;
+            max-width: 20% !important;
+        }
+        
         @media print {
             .page-break {
                 display: block !important;
                 page-break-after: always;
                 break-after: page;
             }
-        }
-        @media (min-width: 768px) {
+            
+            /* 列印時確保版面正確 */
+            .container {
+                width: 100% !important;
+                max-width: 100% !important;
+            }
+            
+            .row {
+                display: flex !important;
+                flex-wrap: wrap !important;
+            }
+            
             .col-md-2-4 {
-                flex: 0 0 auto;
-                width: 20%;
+                flex: 0 0 auto !important;
+                width: 20% !important;
+                max-width: 20% !important;
+                page-break-inside: avoid !important;
+            }
+            
+            .question-box {
+                page-break-inside: avoid !important;
+                min-height: 280px !important;
+            }
+            
+            @page {
+                margin: 1cm;
+                size: A4 portrait;
             }
         }
     </style>
@@ -201,50 +230,71 @@
     @{
         int itemsPerPage = 10;
         int totalPages = (int)Math.Ceiling((double)mentalMath.Count / itemsPerPage);
+        
+        // 格式化標題：珠心算_位數_數量_日期
+        var today = DateTime.Now.ToString("yyyyMMdd");
+        var mentalMathTitle = $"珠心算測驗_{today}";
+        if (!string.IsNullOrEmpty(Model.Title))
+        {
+            mentalMathTitle = Model.Title.Replace("珠心算_", "珠心算測驗_").Replace($"_{today}", $"_{today}");
+        }
     }
 
     @if (mentalMath.Any())
     {
-
-
+        <!-- 題目卷 -->
         @for (int page = 0; page < totalPages; page++)
         {
-            <div class="page-break">
+            <div class="@(page > 0 ? "page-break" : "")">
                 @if (page == 0)
                 {
-                    <div style="display: flex; justify-content: space-between;">
+                    <div style="display: flex; justify-content: space-between; margin-bottom: 20px;">
                         <label class="exam-title">
-                            @Model.Title 數學試卷 心算測驗 (填入答案) 每題 @Model.scoreTable.MentalMathScore 分
+                            @mentalMathTitle (填入答案)
                         </label>
                         <label class="exam-section mt-4">
                             姓名:______________________________
                         </label>
                     </div>
                 }
-                <div class="container">
+                else
+                {
+                    <div style="margin-bottom: 20px;">
+                        <label class="exam-title">珠心算測驗 - 第 @(page + 1) 頁</label>
+                    </div>
+                }
+                <div class="container" style="width: 100%; max-width: 100%;">
                     <div class="row">
                         @for (int i = page * itemsPerPage; i < Math.Min((page + 1) * itemsPerPage, mentalMath.Count); i++)
                         {
-                            var numbers = Regex.Matches(mentalMath[i].Question, @"-?\d+")
-                            .Cast<Match>()
-                            .Select(m => m.Value)
-                            .ToList();
+                            // 解析題目：提取所有數字（包括負數）
+                            // 例如: "75 + 91 + (-70) + 48 + (-52) + 84" 會解析成 [75, 91, -70, 48, -52, 84]
+                            var numbers = Regex.Matches(mentalMath[i].Question, @"\(?\-?\d+\)?")
+                                .Cast<Match>()
+                                .Select(m => {
+                                    var val = m.Value.Replace("(", "").Replace(")", "").Trim();
+                                    return int.Parse(val);
+                                })
+                                .ToList();
 
-                            <div class="col-12 col-md-2-4 mb-4 text-center">
+                            <div class="col-md-2-4 mb-4 text-center">
                                 <div class="question-number mb-1 text-start fw-bold" style="font-size:20px">
                                     @(i + 1).
                                 </div>
-                                <div class="question-box border rounded p-2">
-                                    <table class="mental-math-table mx-auto">
+                                <div class="question-box border rounded p-2" style="min-height: 280px; height: auto;">
+                                    <table class="mental-math-table mx-auto" style="width: 100%;">
                                         <tbody>
-                                            @foreach (var n in numbers)
+                                            @foreach (var number in numbers)
                                             {
-                                                <tr><td>@n</td></tr>
+                                                // 珠心算：正數不顯示 +，負數顯示 -
+                                                <tr><td style="font-size:24px; font-weight:bold; text-align:center;">@number</td></tr>
                                             }
                                         </tbody>
                                     </table>
                                     <div class="divider"></div>
-                                    <input type="text" class="border-0 text-center w-100 p-3" style="font-size:24px" />
+                                    <div style="text-align:center; padding: 15px; font-size: 20px; min-height: 50px;">
+                                        <!-- 答題區，沒有 = 號 -->
+                                    </div>
                                 </div>
                             </div>
                         }
@@ -258,32 +308,46 @@
             <div class="page-break">
                 @if (page == 0)
                 {
-                    <div class="exam-section">心算測驗答案</div>
+                    <div class="exam-section" style="margin-bottom: 20px;">心算測驗答案</div>
                 }
-                <div class="container">
+                else
+                {
+                    <div style="margin-bottom: 20px;">
+                        <label class="exam-title">心算測驗答案 - 第 @(page + 1) 頁</label>
+                    </div>
+                }
+                <div class="container" style="width: 100%; max-width: 100%;">
                     <div class="row">
                         @for (int i = page * itemsPerPage; i < Math.Min((page + 1) * itemsPerPage, mentalMath.Count); i++)
                         {
-                            var numbers = Regex.Matches(mentalMath[i].Question, @"-?\d+")
-                            .Cast<Match>()
-                            .Select(m => m.Value)
-                            .ToList();
+                            // 解析題目：提取所有數字（包括負數）
+                            // 例如: "75 + 91 + (-70) + 48 + (-52) + 84" 會解析成 [75, 91, -70, 48, -52, 84]
+                            var numbers = Regex.Matches(mentalMath[i].Question, @"\(?\-?\d+\)?")
+                                .Cast<Match>()
+                                .Select(m => {
+                                    var val = m.Value.Replace("(", "").Replace(")", "").Trim();
+                                    return int.Parse(val);
+                                })
+                                .ToList();
 
-                            <div class="col-12 col-md-2-4 mb-4 text-center">
+                            <div class="col-md-2-4 mb-4 text-center">
                                 <div class="question-number mb-1 text-start fw-bold" style="font-size:24px">
                                     @(i + 1).
                                 </div>
-                                <div class="question-box border rounded p-2">
-                                    <table class="mental-math-table mx-auto">
+                                <div class="question-box border rounded p-2" style="min-height: 280px; height: auto;">
+                                    <table class="mental-math-table mx-auto" style="width: 100%;">
                                         <tbody>
-                                            @foreach (var n in numbers)
+                                            @foreach (var number in numbers)
                                             {
-                                                <tr><td>@n</td></tr>
+                                                // 珠心算：正數不顯示 +，負數顯示 -
+                                                <tr><td style="font-size:24px; font-weight:bold; text-align:center;">@number</td></tr>
                                             }
                                         </tbody>
                                     </table>
                                     <div class="divider"></div>
-                                    <input type="text" class="border-0 text-center w-100 p-3" style="font-size:24px" value="@mentalMath[i].Answer" />
+                                    <div style="text-align:center; padding: 15px; font-size: 24px; min-height: 50px; background-color: #e8f5e9; border-radius: 5px;">
+                                        <strong style="color: #2e7d32;">@mentalMath[i].Answer</strong>
+                                    </div>
                                 </div>
                             </div>
                         }

@@ -1,166 +1,66 @@
 ﻿@model ERP.Web.Service.ViewModels.ExamSearchListViewModel_result
 
 <link href="~/css/chkboxstyle.css" rel="stylesheet" />
-<!-- 上傳移至獨立頁面 -->
-<div class="mb-2">
-    <a class="btn btn-secondary btn-sm" href="@Url.Action("Index","ExamUpload")">前往上傳 Excel</a>
-</div>
-<div>
-    <form id="generateForm" method="post" action="@Url.Action("GenerateQuestions", ViewContext.RouteData.Values["controller"]?.ToString())">
-        <input type="hidden" name="level" id="levelInput" />
-        <input type="hidden" name="KidID" id="KidIDInput" />
-    </form>
 
-    <button onclick="submitGenerateForm(10)">產生 10 級題目</button>
-    <button onclick="submitGenerateForm(9)">產生 9 級題目</button>
+<!-- 頁面標題 -->
+<div class="mb-4">
+    <h2 class="text-primary">
+        <i class="fa fa-graduation-cap"></i> 測驗平台
+    </h2>
+    <p class="text-muted">選擇四則運算測驗或珠心算測驗開始練習</p>
 </div>
 
-<!-- 取得考卷 -->
-<div>
-    <partial name="~/Views/Exam/_GetTest.cshtml" model="Model">
+<!-- 全局學生選擇 -->
+<div class="card mb-4 shadow-sm">
+    <div class="card-body">
+        <div class="row align-items-center">
+            <div class="col-md-3">
+                <label class="form-label fw-bold mb-0">
+                    <i class="fa fa-user text-primary"></i> 選擇學生
+                </label>
+            </div>
+            <div class="col-md-6">
+                <select id="globalKidID" class="form-select form-select-lg">
+                    <option value="">請選擇學生</option>
+                    @if(Model?.KidList != null)
+                    {
+                        @foreach (var kid in Model.KidList)
+                        {
+                            <option value="@kid.Value">@kid.Text</option>
+                        } 
+                    }
+                </select>
+            </div>
+            <div class="col-md-3">
+                <small class="text-muted">
+                    <i class="fa fa-info-circle"></i> 選擇後自動套用到下方測驗
+                </small>
+            </div>
+        </div>
+    </div>
 </div>
 
+<!-- 測驗平台選擇區 -->
+<partial name="~/Views/Exam/_MathTestPlatform.cshtml" model="Model" />
 
-<!-- 字庫區 -->
-<div class="col-4">
-    <label for="SelectNewClassNameList" class="form-label">選擇考卷：</label>
-    <select id="SelectNewClassNameList" name="NewClassNameList" class="form-select">
-        @if (Model.ClassNameList != null)
-        {
-            <option value="">請選擇</option>
-            @foreach (var className in Model.ClassNameList)
-            {
-                <option value="@className">@className</option>
-            }
-        }
-    </select>
-</div>
+<!-- 四則運算測驗表單區（動態顯示） -->
+<partial name="~/Views/Exam/_ArithmeticTestForm.cshtml" model="Model" />
 
-<div id="partialContainer" class="ibox-content ibox-list-content">
-    <partial name="~/Views/Exam/_NewTest.cshtml" model="Model">
-</div>
+<!-- 珠心算測驗表單區（動態顯示） -->
+<partial name="~/Views/Exam/_MentalMathTestForm.cshtml" model="Model" />
 
-<script src="~/StaticFiles/lib/select2/dist/js/select2.min.js"></script>
 <script src="~/js/exam.shared.js"></script>
 <script>
-    $(function () {
-        var $select2ClassList = $('#Select2ClassNameList');
-        if ($select2ClassList.length) {
-            $select2ClassList.select2({
-                placeholder: '選擇考卷',
-                allowClear: true,
-                closeOnSelect: false,
-                width: '100%'
-            });
-        }
-
-        var $selectNewClassList = $('#SelectNewClassNameList');
-        if ($selectNewClassList.length) {
-            $selectNewClassList.select2({
-                placeholder: '選擇考卷',
-                allowClear: true,
-                closeOnSelect: false,
-                width: '100%'
-            });
-        }
-    });
-
-    $(document).ready(function () {
-        // 上傳改為獨立頁面，移除本頁的上傳事件處理
-
-        var debouncedReloadNewTest = ExamShared.debounce(function () {
-            var ClassNameList = $("#SelectNewClassNameList").val() || [];
-            var KidID = $("#KidID").val();
-            $.ajax({
-                url: '@Url.Action("NewTest", ViewContext.RouteData.Values["controller"]?.ToString())',
-                type: 'GET',
-                traditional: true, // 讓 jQuery 正確傳遞陣列
-                data: {
-                    ClassNameList: ClassNameList,
-                    KidID: KidID
-                }
-            }).done(function (result) {
-                $('#partialContainer').html(result);
-            });
-        }, 200);
-
-        $(document).on("change", "#SelectNewClassNameList , #KidID", debouncedReloadNewTest);
-
-
-
-        var callback = function () {
-            var ClassName = $("#Class").val();
-            var CorrectType = $("#CorrectType").val();
-            var KidID = $("#KidID").val();
-            return {
-                method: "get",
-                url: '@Url.Action("NewTest", ViewContext.RouteData.Values["controller"]?.ToString())',
-                footable: true,
-                data: {
-                    ClassName: ClassName,
-                    CorrectType: CorrectType,
-                    KidID: KidID
-                }
-            };
-        };
-        PageTurning(callback);
-
-    });
-
-    function CodeMainSave(e) {
-        const $row = $(e).closest("tr");
-        const wordID = $(e).data("wordid");
-        const isFocus = $row.find(".focus-checkbox").prop("checked");
-        const question = $row.find(".question").val();
-        const answer = $row.find(".answer").val();
-        const kidID = $("#KidID").val();
-
-        if (!wordID) {
-            alert("請輸入考券名稱！");
-            return;
-        }
-
-        if (!kidID) {
-            alert("請選擇學生！");
-            return;
-        }
-
-        if (!question || !answer) {
-            alert("欄位資訊不可空白！");
-            return;
-        }
-        $.ajax({
-            url: '@Url.Action("UpdateNewTestWord", "Exam")',
-            type: 'POST',
-            data: {
-                WordID: wordID,
-                KidID: kidID,
-                Focus: isFocus,
-                Question: question,
-                Answer: answer
-            },
-            success: function () {
-                alert("資料已成功提交！");
-            },
-            error: function () {
-                alert("提交失敗，請再試一次！");
-            }
+    // 全局學生選擇變更時，同步到所有表單
+    $(document).ready(function() {
+        $("#globalKidID").on("change", function() {
+            var selectedKidID = $(this).val();
+            // 同步到珠心算表單（舊版）
+            $("#KidID").val(selectedKidID);
+            // 同步到珠心算表單（新版）
+            $("#mentalMathKidID").val(selectedKidID);
+            // 同步到四則運算表單
+            $(".kid-select").val(selectedKidID);
         });
-    }
-
-
-
-    function submitGenerateForm(level) {
-        var KidID = $("#KidID").val();
-
-        if (!KidID) {
-            alert("請先輸入 KidID！");
-            return;
-        }
-        // 寫入 hidden 欄位
-        $("#levelInput").val(level);
-        $("#KidIDInput").val(KidID);
-
-        $("#generateForm").submit();
-    }
+    });
 </script>
