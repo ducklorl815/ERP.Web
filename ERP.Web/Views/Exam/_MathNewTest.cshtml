@@ -1,0 +1,39 @@
+﻿
+<partial name="~/Views/Shared/_Page.cshtml" model="@Model.Pager" />
+<table id="formData" class="footable table table-stripped toggle-arrow-tiny">
+    <thead class="table-light">
+        <tr class="text-center">
+            <th class="col-2">課程</th>
+            <th class="col-1">類別</th>
+            <th class="col-3">問題</th>
+            <th class="col-4">答案</th>
+            <th class="col-1">專注</th>
+            <th class="col-1">功能</th>
+        </tr>
+    </thead>
+    <tbody>
+        @if (Model.ExamDataList != null)
+        {
+            @foreach (var item in Model.ExamDataList)
+            {
+                <tr class="text-center">
+                    <td class="align-middle">@item.ClassName</td>
+                    <td class="align-middle">@item.CategoryType</td>
+                    <td><input type="text" class="form-control question" value="@item.Question" /></td>
+                    <td><input type="text" class="form-control answer" value="@item.Answer" /></td>
+                    <td class="align-middle text-center">
+                        <div class="d-flex justify-content-center align-items-center">
+                            <input type="checkbox" class="form-check-input checkbox-light focus-checkbox" @(item.Focus == 1 ? "checked" : "") />
+                        </div>
+                    </td>
+
+                    <td class="align-middle text-center">
+                        <button class="btn btn-primary btn-sm" data-wordid="@item.WordID" onclick="CodeMainSave(this)">修正</button>
+                    </td>
+                </tr>
+            }
+        }
+    </tbody>
+</table>
+
+<partial name="~/Views/Shared/_Page.cshtml" model="@Model.Pager" />

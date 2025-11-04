@@ -1,0 +1,58 @@
+﻿@model ERP.Web.Service.ViewModels.ExamSearchListViewModel_result
+
+<partial name="~/Views/Shared/_Page.cshtml" model="@Model.Pager" />
+
+
+<table class="table table-bordered table-hover exam-table">
+    <thead class="table-light">
+        <tr class="text-center">
+            <th class="col-auto">選擇</th>
+            <th class="col-auto">排序</th>
+            <th class="col-2">課程</th>
+            <th class="col-3">問題</th>
+            <th class="col-3">答案</th>
+            <th class="col-auto">答錯</th>
+            <th class="col-auto">時間</th>
+            <th class="col-auto"><button class="btn btn-primary btn-sm" onclick="openModal()">修正</button></th>
+        </tr>
+    </thead>
+    <tbody>
+        @foreach (var item in Model.ExamDataList)
+        {
+            <tr class="text-center align-middle">
+                <td class="text-center align-middle">
+                    <input type="checkbox" class="form-check-input checkbox-light" name="selectedQuestions[@item.WordID]" value="@item.WordID" />
+                </td>
+                <td class="align-middle">@item.RowNum</td>
+                <td class="align-middle">@item.ClassName</td>
+                <td><input type="text" class="form-control borderless" value="@item.Question" /></td>
+                <td><input type="text" class="form-control borderless" value="@item.Answer" /></td>
+                <td class="text-center align-middle">
+                    <input type="checkbox" class="form-check-input checkbox-light correct-checkbox" @(item.Correct == 1 ? "checked" : "") />
+                </td>
+                <td class="text-center align-middle" data-testdate="@item.TestDate">@item.TestDate.ToString("yyyy/MM/dd")</td>
+                <td class="text-center align-middle">
+                    <button class="btn btn-primary btn-sm" data-wordid="@item.WordID" onclick="CodeMainSave(this)">修正</button>
+                </td>
+            </tr>
+        }
+    </tbody>
+</table>
+
+<partial name="~/Views/Shared/_Page.cshtml" model="@Model.Pager" />
+
+<script>
+    if (typeof onPartialReTestLoaded === "function") {
+        onPartialReTestLoaded();
+    }
+
+    function onPartialReTestLoaded() {
+        // 遍歷所有 checkbox
+        document.querySelectorAll('input[type="checkbox"][name^="selectedQuestions["]').forEach(function (checkbox) {
+            const wordId = checkbox.value;
+            if (selectedWordIDs.includes(wordId)) {
+                checkbox.checked = true;
+            }
+        });
+    }
+</script>

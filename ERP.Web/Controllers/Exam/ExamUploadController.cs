@@ -1,7 +1,7 @@
 using ERP.Web.Service.Service.Exam;
 using Microsoft.AspNetCore.Mvc;
 
-namespace ERP.Web.Controllers
+namespace ERP.Web.Controllers.Exam
 {
     public class ExamUploadController : Controller
     {

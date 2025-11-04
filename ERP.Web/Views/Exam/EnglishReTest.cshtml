@@ -1,0 +1,245 @@
+﻿@model ERP.Web.Service.ViewModels.ExamSearchListViewModel_result
+
+<!-- 這裡是放置 _Customize Modal 的地方 -->
+<link href="~/css/chkboxstyle.css" rel="stylesheet" />
+<link href="~/css/exam.css" rel="stylesheet" />
+<div class="wrapper wrapper-content animated fadeIn">
+    <div class="row">
+        <div class="col-lg-12">
+            <div class="ibox">
+                <div class="ibox-content">
+                    <div>
+                        <label for="KidID" class="mt-3">選擇學生：</label>
+                        <select id="KidID" name="KidID" class="form-select">
+                            <option value="">請選擇</option>
+                            @foreach (var kid in Model.KidList)
+                            {
+                                <option value="@kid.Value">@kid.Text</option>
+                            }
+                        </select>
+                        <label for="TestDate" class="mt-3">選擇日期：</label>
+                        <select id="TestDate" name="TestDate" class="form-select">
+                            <option value="">請選擇</option>
+                            @foreach (var TestDate in Model.TestDateList)
+                            {
+                                <option value="@TestDate.Value">@TestDate.Text</option>
+                            }
+                        </select>
+                        <partial name="~/Views/Exam/_Customize.cshtml" model="Model">
+                    </div>
+                    <div class="row">
+                        <div class="col-lg-12">
+                            <div class="ibox">
+                                <div id="partial" class="ibox-content ibox-list-content">
+
+                                    <partial name="~/Views/Exam/_EnglishReTest.cshtml" model="Model">
+                                </div>
+                            </div>
+                        </div>
+                    </div>
+                </div>
+            </div>
+        </div>
+    </div>
+</div>
+
+<script src="~/js/exam.shared.js"></script>
+<script>
+    // 全域變數
+    var selectedWordIDs = window.selectedWordIDs || [];
+
+    // 事件委派綁定，放在 DOMContentLoaded 內，只需綁定一次
+    document.addEventListener('DOMContentLoaded', function () {
+        document.body.addEventListener('change', function (event) {
+            const el = event.target;
+
+            if (el.matches && el.matches("input[type='checkbox'][name^='selectedQuestions']")) {
+                const wordID = el.value;
+
+                // 🔸 取得當前選擇的 KidID
+                const kidID = document.getElementById('KidID')?.value;
+                if (!kidID) {
+                    console.warn('尚未選擇 KidID，無法儲存 Cookie');
+                    return;
+                }
+
+                // 🔸 維護 selectedWordIDs 陣列（記得你要定義這個在外部）
+                if (el.checked) {
+                    if (!selectedWordIDs.includes(wordID)) {
+                        selectedWordIDs.push(wordID);
+                    }
+                } else {
+                    selectedWordIDs = selectedWordIDs.filter(id => id !== wordID);
+                }
+
+                // 🔸 存入以 KidID 為命名的 Cookie
+                const cookieName = `SelectedWordIDs_${kidID}`;
+                ExamShared.setCookie(cookieName, JSON.stringify(selectedWordIDs));
+
+                console.log(`儲存 Cookie：${cookieName}，值為：`, selectedWordIDs);
+            }
+        });
+        // 初次載入時，根據目前 KidID 從 Cookie 還原選取狀態
+        const initKidId = document.getElementById('KidID')?.value;
+        ExamShared.loadSelectedIdsFromCookie(initKidId);
+    });
+
+
+    $('#KidID').on('change', function () {
+        var selectedKidId = $(this).val();
+
+        if (selectedKidId !== "") {
+            $.ajax({
+                type: 'POST',
+                url: '/Exam/GetTestDates', // 換成你的實際 Controller 路徑
+                data: { KidID: selectedKidId },
+                success: function (data) {
+                    var $testDate = $('#TestDate');
+                    $testDate.empty();
+                    $testDate.append($('<option>', { value: '', text: '請選擇' }));
+                    $.each(data, function (i, item) {
+                        $testDate.append($('<option>', { value: item.value, text: item.text }));
+                    });
+                    // 同步載入該 Kid 的 Cookie 選取狀態
+                    ExamShared.loadSelectedIdsFromCookie(selectedKidId);
+                },
+                error: function () {
+                    alert('載入日期失敗，請稍後再試。');
+                }
+            });
+        } else {
+            // 清空 TestDate
+            $('#TestDate').empty().append($('<option>', { value: '', text: '請選擇' }));
+            // 清空本地選取狀態
+            ExamShared.loadSelectedIdsFromCookie(null);
+        }
+    });
+
+
+    $(document).ready(function () {
+        $(document).on("change", "#Class, #CorrectType, #KidID, #TestDate", function () {
+            var ClassNameList = $("#Class").val() || [];
+            var CorrectType = $("#CorrectType").val();
+            var KidID = $("#KidID").val();
+            var TestDate = $("#TestDate").val();
+            $.ajax({
+                url: '@Url.Action("ReTest", ViewContext.RouteData.Values["controller"]?.ToString())',
+                type: 'GET',
+                traditional: true, // 讓 jQuery 正確傳遞陣列
+                data: {
+                    ClassNameList: ClassNameList,
+                    CorrectType: CorrectType,
+                    KidID: KidID,
+                    TestDate: TestDate
+                }
+            }).done(function (result) {
+                $('#partial').html(result);
+            });
+        });
+
+
+
+        var callback = function () {
+            var ClassName = $("#Class").val();
+            var CorrectType = $("#CorrectType").val();
+            var KidID = $("#KidID").val();
+            var TestDate = $("#TestDate").val();
+            return {
+                method: "get",
+                url: '@Url.Action("ReTest", ViewContext.RouteData.Values["controller"]?.ToString())',
+                footable: true,
+                data: {
+                    ClassName: ClassName,
+                    CorrectType: CorrectType,
+                    KidID: KidID,
+                    TestDate: TestDate
+                }
+            };
+        };
+        PageTurning(callback);
+
+    });
+
+    function CodeMainSave(e) {
+        var WordID = $(e).data("wordid");
+        var Correct = $(e).closest("tr").find(".correct-checkbox").prop("checked");
+        var TestDate = $(e).closest("tr").find("td[data-testdate]").data("testdate");
+        var KidID = $("#KidID").val();
+
+        if (WordID) {
+            $.ajax({
+                url: '@Url.Action("UpdateExamWord", "Exam")',  // 更改為您的提交動作
+                type: 'POST',
+                data: {
+                    WordID: WordID,
+                    KidID: KidID,
+                    TestDate: TestDate,
+                    Correct: Correct
+                },
+                success: function (response) {
+                    alert("資料已成功提交！");
+                },
+                error: function (xhr, status, error) {
+                    alert("提交失敗，請再試一次！");
+                }
+            });
+        } else {
+            alert("請輸入考券名稱！");
+        }
+    }
+
+    // getCookie 與載入選取清單移至共用 JS（ExamShared）
+
+    function openModal() {
+        //$("input[name^='selectedQuestions']:checked").each(function () {
+        //    selectedWordIDs.push($(this).val());
+        //});
+        var KidID = $("#KidID").val();
+        var cookieName = `SelectedWordIDs_${KidID}`;
+        const selectedIdsFromCookie = JSON.parse(ExamShared.getCookieValue(`${cookieName}`) || "[]");
+        selectedWordIDs = Array.isArray(selectedIdsFromCookie) ? selectedIdsFromCookie : [];
+        // 顯示已選擇的題目數量
+        $("#selectedWordCountValue").text(selectedWordIDs.length);
+        const $examForm = $("#examForm");
+        $examForm.find('input[name="selectedWordIDs"]').remove();
+        selectedWordIDs.forEach(function (id) {
+            $examForm.append(`<input type="hidden" name="selectedWordIDs" value="${id}" />`);
+        });
+
+        console.log(selectedWordIDs)
+        // 設定條件選單的值
+        var testType = $("#TestType").val();
+        $("#modalTestType").val(testType).change();
+
+        var kidID = $("#KidID").val();
+        $("#modalKidID").val(kidID).change();
+
+        // 開啟 Modal
+        var modal = new bootstrap.Modal(document.getElementById('examModal'));
+        modal.show();
+    }
+
+
+    function closeModal() {
+        var modal = bootstrap.Modal.getInstance(document.getElementById('examModal'));
+        if (modal) modal.hide();
+    }
+
+
+    function submitExamData() {
+        // 驗證欄位
+        var KidID = $("#modalKidID").val();
+        var TestType = $("#modalTestType").val();
+        var ClassName = $("#modalClass").val();
+
+        if (!KidID || !TestType || !ClassName) {
+            alert("請確保所有欄位均已填寫！");
+            return;
+        }
+
+        $("#examForm").submit();
+    }
+
+
+
+</script>

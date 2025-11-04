@@ -28,8 +28,8 @@ namespace ERP.Web.Controllers.Exam
         {
             param.TestType = TestType;
             var result = await _examService.GetNewTestAsync(param);
-            if (Request.IsAjaxRequest()) return PartialView("~/Views/Exam/_NewTest.cshtml", result);
-            return View("~/Views/Exam/NewTest.cshtml", result);
+            if (Request.IsAjaxRequest()) return PartialView("~/Views/Exam/_MathNewTest.cshtml", result);
+            return View("~/Views/Exam/MathNewTest.cshtml", result);
         }
 
         /// <summary>
@@ -39,8 +39,8 @@ namespace ERP.Web.Controllers.Exam
         {
             param.TestType = TestType;
             var result = await _examService.GetReTestAsync(param);
-            if (Request.IsAjaxRequest()) return PartialView("~/Views/Exam/_ReTest.cshtml", result);
-            return View("~/Views/Exam/ReTest.cshtml", result);
+            if (Request.IsAjaxRequest()) return PartialView("~/Views/Exam/_MathReTest.cshtml", result);
+            return View("~/Views/Exam/MathReTest.cshtml", result);
         }
 
         /// <summary>
