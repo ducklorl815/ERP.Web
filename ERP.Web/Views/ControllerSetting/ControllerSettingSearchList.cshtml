@@ -20,6 +20,14 @@
                                                 <i class="fa-solid fa-plus"></i> 新增Controller
                                             </span>
                                         </a>
+                                        
+                                        <a permission-check="ControllerSetting.ControllerCreate" 
+                                           asp-action="StationDataMaintain" 
+                                           asp-controller="ControllerSetting">
+                                            <span class="float-right" style="cursor:pointer;">
+                                                <i class="fa-solid fa-plus"></i> 新增Station
+                                            </span>
+                                        </a>
                                     </h5>
                                 </div>
                                 <div id="collapseThree" class="panel-collapse collapse in (@Model.ControllerList !=null && @Model.ControllerList.Any()?" ":" show")">

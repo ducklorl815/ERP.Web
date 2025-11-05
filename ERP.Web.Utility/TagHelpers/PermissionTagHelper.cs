@@ -95,22 +95,22 @@ namespace ERP.Web.Utility.TagHelpers
             // 檢查權限
             var hasPermission = await _permissionService.HasPermissionAsync(userName, controller, action);
 
-            if (!hasPermission)
-            {
-                output.Attributes.SetAttribute("disabled", "disabled");
-                output.Attributes.SetAttribute("style", "display:none;");
-                if (RemoveElement)
-                {
-                    // 完全移除元素
-                    SuppressOutput(output);
-                }
-                else
-                {
-                    // 保留元素但禁用
-                    output.Attributes.SetAttribute("disabled", "disabled");
-                    output.Attributes.SetAttribute("style", "display:none;");
-                }
-            }
+            // if (!hasPermission)
+            // {
+            //     output.Attributes.SetAttribute("disabled", "disabled");
+            //     output.Attributes.SetAttribute("style", "display:none;");
+            //     if (RemoveElement)
+            //     {
+            //         // 完全移除元素
+            //         SuppressOutput(output);
+            //     }
+            //     else
+            //     {
+            //         // 保留元素但禁用
+            //         output.Attributes.SetAttribute("disabled", "disabled");
+            //         output.Attributes.SetAttribute("style", "display:none;");
+            //     }
+            // }
         }
 
         /// <summary>
