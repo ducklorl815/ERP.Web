@@ -205,6 +205,7 @@ function initTreeEvents() {
      * - checked = false, indeterminate = false: 未勾選
      */
     function updateParentState(li) {
+        console.log(li)
         const parentLi = li.parentElement.closest(".tree-node");
         if (!parentLi) return;
 
@@ -225,8 +226,7 @@ function initTreeEvents() {
             parentChk.indeterminate = false;
         } else if (noneChecked) {
             // 全部子節點都未勾選 → 父節點未勾選
-            parentChk.checked = false;
-            parentChk.indeterminate = false;
+            parentChk.indeterminate = true;
         } else if (anyChecked) {
             // 部分子節點勾選 → 父節點半勾選
             parentChk.checked = false;

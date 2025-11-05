@@ -31,45 +31,71 @@
     }
 
     .exam-title {
-        font-size: 14px;
+        font-size: 18px;
         margin-top: 8px;
         margin-bottom: 8px;
         font-weight: bold;
+        padding: 20px 20px 20px 20px;
     }
 
     .exam-section {
-        font-size: 14px;
+        font-size: 18px;
         margin-top: 8px;
         margin-bottom: 8px;
         font-weight: bold;
+                padding: 20px 20px 20px 20px;
     }
 
-    .arithmetic-table {
-        width: 100%;
-        border-collapse: collapse;
-    }
-
-    .arithmetic-table td {
-        text-align: right;
-        padding: 2px 10px;
-        font-size: 24px;
+    /* 水平排列的題目格式 */
+    .arithmetic-question {
+        font-size: 20px;
         font-family: 'Courier New', Courier, monospace;
+        text-align: center;
+        margin-bottom: 8px;
+        font-weight: bold;
+        padding: 5px 0;
     }
 
-    .divider {
-        height: 2px;
-        background-color: #000;
-        margin-top: 5px;
-        margin-bottom: 5px;
+    /* 運算空間 - 比例分配，讓15題均勻佔滿A4 */
+    .answer-area {
+        min-height: calc((100vh - 250px) / 3); /* 3行分配，扣除題目和間距 */
+        border: 2px dashed #ccc;
+        border-radius: 5px;
+        background: #f9f9f9;
+        margin-top: 8px;
+        flex: 1; /* 自動填滿剩餘空間 */
     }
 
-    /* 5題一行（20% 寬度） - 螢幕和列印都適用 */
+    /* 3題一行（33.33% 寬度） - 螢幕和列印都適用 */
     .col-2-4 {
         flex: 0 0 auto !important;
-        width: 20% !important;
-        max-width: 20% !important;
-        padding-left: 8px;
-        padding-right: 8px;
+        width: 33.33% !important;
+        max-width: 33.33% !important;
+        padding-left: 12px;
+        padding-right: 12px;
+    }
+    
+    /* 題目容器 - 簡潔無樣式 */
+    .question-container {
+        width: 100%;
+        margin-bottom: 20px;
+    }
+    
+    /* 題目行 - 題號和題目在同一行 */
+    /* 調整 margin-bottom 可以控制題目行和運算空間之間的間距 */
+    .question-line {
+        font-size: 20px;
+        font-family: 'Courier New', Courier, monospace;
+        margin-bottom: 15px; /* 調整此值可改變題目行和運算空間的間距 */
+        line-height: 1.5;
+    }
+    
+    /* 運算空間 - 無樣式留白 */
+    /* 調整 min-height 可以控制運算空間的最小高度 */
+    .answer-space {
+        min-height: 100px; /* 調整此值可改變運算空間的高度 */
+        width: 100%;
+        flex: 1; /* 自動填滿剩餘空間 */
     }
 
     .container {
@@ -88,12 +114,20 @@
         margin-right: -8px;
     }
 
-    /* 題目框樣式 - 增加高度讓15題撐滿頁面 */
+    /* 題目框樣式 - 6題均勻分配（3題一行，2行） */
+    /* 調整此處的計算公式可以控制每個題目框的高度占比 */
     .question-box {
-        min-height: 180px;
+        /* 說明：
+           - 100vh = 視窗總高度
+           - 200px = 扣除標題、姓名欄位等固定空間
+           - / 2 = 因為是2行，所以除以2
+           - 調整 200px 可以改變固定空間的扣除值
+           - 調整 / 2 可以改變行數分配（例如改為 / 3 就是3行分配）
+        */
+        min-height: calc((100vh - 200px) / 2); /* 調整此值可改變題目框的高度占比 */
         display: flex;
         flex-direction: column;
-        justify-content: space-between;
+        justify-content: flex-start;
     }
 
     .mb-4 {
@@ -122,27 +156,40 @@
             }
             .col-2-4 {
                 flex: 0 0 auto !important;
-                width: 20% !important;
-                max-width: 20% !important;
-                padding-left: 5px !important;
-                padding-right: 5px !important;
+                width: 33.33% !important;
+                max-width: 33.33% !important;
+                padding-left: 8px !important;
+                padding-right: 8px !important;
                 margin-bottom: 1.8rem !important;  /* 行間距 */
             }
-            /* 列印時題目框 */
+            /* 列印時題目框 - 6題均勻分配A4空間（3題一行，2行） */
+            /* 調整此處的 mm 值可以控制列印時每個題目框的高度占比 */
             .question-box {
-                min-height: 160px !important;
-                padding: 10px !important;
+                /* 說明：
+                   - A4 紙張高度約 297mm，扣除邊距後約 277mm
+                   - 2行分配，每題約 110mm
+                   - 調整此值可改變題目框的高度（例如：改為 100mm 會更小，改為 120mm 會更大）
+                */
+                min-height: 60mm !important; /* 調整此值可改變列印時題目框的高度占比 */
+                display: flex !important;
+                flex-direction: column !important;
             }
-            /* 列印時表格字體和間距 */
-            .arithmetic-table td {
-                padding: 2px 10px !important;
-                font-size: 24px !important;
-                line-height: 1.4 !important;
+            /* 列印時題目行 */
+            .question-line {
+                font-size: 18px !important;
+                margin-bottom: 10px !important; /* 調整此值可改變題目行和運算空間的間距 */
+                line-height: 0.25 !important;
             }
-            /* 列印時輸入框 */
-            .border-0 {
-                padding: 12px !important;
-                margin-top: 8px !important;
+            /* 列印時運算空間 - 無樣式留白 */
+            /* 調整此處的 mm 值可以控制列印時運算空間的高度占比 */
+            .answer-space {
+                /* 說明：
+                   - 運算空間約 90mm，確保6題能完整顯示在一頁
+                   - 調整此值可改變運算空間的高度（例如：改為 80mm 會更小，改為 100mm 會更大）
+                   - 題目框高度 (110mm) + 運算空間高度 (90mm) = 約 200mm，確保不會超出頁面
+                */
+                min-height: 70mm !important; /* 調整此值可改變列印時運算空間的高度占比 */
+                flex: 1 !important; /* 自動填滿剩餘空間 */
             }
             /* 列印時除法題目樣式 */
             .division-question {
@@ -173,34 +220,42 @@
 <body>
 <form>
     @{
-        int itemsPerPage = 15; // 3行 × 5題 = 15題一頁（剛好撐滿）
+        /* ============================================
+           調整每頁題數 - 修改此處即可
+           ============================================
+           說明：
+           - itemsPerPage = 每頁顯示的題數
+           - 目前設定：6題一頁（3題一行 × 2行）
+           - 可調整為：9題（3題一行 × 3行）、12題（3題一行 × 4行）等
+           - 注意：調整後需要同時調整 CSS 中的行數分配
+             （例如：6題 = / 2，9題 = / 3，12題 = / 4）
+        ============================================ */
+        int itemsPerPage = 9; // ← 調整此數值即可改變每頁題數（例如：改為 9 就是每頁9題）
         int totalQuestions = Model.VocabularyList?.Count ?? 0;
         int totalPages = (int)Math.Ceiling((double)totalQuestions / itemsPerPage);
     }
 
     @if (totalQuestions > 0)
     {
+        // 將標題格式化為：運算類型_數學試卷_日期（在迴圈外定義，所有頁面共用）
+        var today = DateTime.Now.ToString("yyyyMMdd");
+        var titleParts = Model.Title?.Split('-') ?? new string[] { "" };
+        var operationType = titleParts[0]?.Trim() ?? "測驗";
+        var formattedTitle = $"{operationType}_數學試卷_{today}";
+        
         <!-- 題目卷 -->
         @for (int page = 0; page < totalPages; page++)
         {
             <div class="@(page > 0 ? "page-break" : "")">
-                @if (page == 0)
-                {
-                    // 將標題格式化為：運算類型_數學試卷_日期
-                    var today = DateTime.Now.ToString("yyyyMMdd");
-                    var titleParts = Model.Title?.Split('-') ?? new string[] { "" };
-                    var operationType = titleParts[0]?.Trim() ?? "測驗";
-                    var formattedTitle = $"{operationType}_數學試卷_{today}";
-                    
-                    <div style="display: flex; justify-content: space-between;">
-                        <label class="exam-title">
-                            @formattedTitle
-                        </label>
-                        <label class="exam-section mt-4">
-                            姓名:______________________________
-                        </label>
-                    </div>
-                }
+                <!-- 每一頁都顯示標題和姓名欄位 -->
+                <div style="display: flex; justify-content: space-between;">
+                    <label class="exam-title">
+                        @formattedTitle
+                    </label>
+                    <label class="exam-section mt-4">
+                        姓名:______________________________
+                    </label>
+                </div>
                 <div class="container">
                     <div class="row">
                         @for (int i = page * itemsPerPage; i < Math.Min((page + 1) * itemsPerPage, totalQuestions); i++)
@@ -208,36 +263,81 @@
                             var question = Model.VocabularyList?[i];
                             if (question == null) continue;
                             bool isDivision = question.CategoryType == "Division";
-                            var lines = question.Question?.Split('\n') ?? new string[] { "" };
+                            
+                            // 將多行格式轉換為單行格式：712+854+155=
+                            var questionText = "";
+                            if (!isDivision && !string.IsNullOrEmpty(question.Question))
+                            {
+                                var questionLines = question.Question.Split('\n');
+                                var parts = new List<string>();
+                                
+                                foreach (var line in questionLines)
+                                {
+                                    var trimmedLine = line.Trim();
+                                    if (string.IsNullOrEmpty(trimmedLine)) continue;
+                                    
+                                    // 處理第一行（沒有運算符號）
+                                    if (parts.Count == 0)
+                                    {
+                                        parts.Add(trimmedLine);
+                                    }
+                                    else
+                                    {
+                                        // 處理有運算符號的行
+                                        if (trimmedLine.StartsWith("+"))
+                                        {
+                                            parts.Add("+" + trimmedLine.Substring(1).Trim());
+                                        }
+                                        else if (trimmedLine.StartsWith("-"))
+                                        {
+                                            parts.Add("-" + trimmedLine.Substring(1).Trim());
+                                        }
+                                        else if (trimmedLine.StartsWith("*"))
+                                        {
+                                            parts.Add("×" + trimmedLine.Substring(1).Trim());
+                                        }
+                                        else if (trimmedLine.StartsWith("/"))
+                                        {
+                                            parts.Add("÷" + trimmedLine.Substring(1).Trim());
+                                        }
+                                        else
+                                        {
+                                            // 如果沒有運算符號，假設是加法
+                                            parts.Add("+" + trimmedLine);
+                                        }
+                                    }
+                                }
+                                
+                                questionText = string.Join("", parts);
+                                
+                                // 確保最後有等號
+                                if (!string.IsNullOrEmpty(questionText) && !questionText.EndsWith("="))
+                                {
+                                    questionText += "=";
+                                }
+                            }
 
-                            <div class="col-2-4 mb-4 text-center">
-                                <div class="question-number mb-1 text-start fw-bold" style="font-size:20px">
-                                    @(i + 1).
-                                </div>
-                                <div class="question-box border rounded p-2">
+                            <div class="col-2-4 mb-4">
+                                <div class="question-container">
                                     @if (isDivision)
                                     {
-                                        <!-- 除法：題目在同一行，大面積答題區 -->
-                                        <div class="division-question" style="font-size:20px; font-family: 'Courier New', monospace; margin-bottom: 8px; text-align: center; font-weight: bold;">
-                                            @question.Question
+                                        <!-- 除法：題號和題目在同一行 -->
+                                        <div class="question-line">
+                                            @(i + 1). @question.Question
                                         </div>
-                                        <div class="division-answer-area" style="min-height: 135px; border: 2px dashed #ccc; border-radius: 5px; background: #f9f9f9;">
+                                        <div class="answer-space">
                                             <!-- 空白區域讓學生運算 -->
                                         </div>
                                     }
                                     else
                                     {
-                                        <!-- 加減乘：垂直排列 -->
-                                        <table class="arithmetic-table mx-auto">
-                                            <tbody>
-                                                @foreach (var line in lines)
-                                                {
-                                                    <tr><td>@line</td></tr>
-                                                }
-                                            </tbody>
-                                        </table>
-                                        <div class="divider"></div>
-                                        <input type="text" class="border-0 text-center w-100 p-3" style="font-size:24px" />
+                                        <!-- 加減乘：題號和題目在同一行 -->
+                                        <div class="question-line">
+                                            @(i + 1). @questionText
+                                        </div>
+                                        <div class="answer-space">
+                                            <!-- 空白區域讓學生運算 -->
+                                        </div>
                                     }
                                 </div>
                             </div>
@@ -251,10 +351,8 @@
         @for (int page = 0; page < totalPages; page++)
         {
             <div class="page-break">
-                @if (page == 0)
-                {
-                    <div class="exam-section">數學試卷答案</div>
-                }
+                <!-- 每一頁都顯示答案標題 -->
+                <div class="exam-section">數學試卷答案</div>
                 <div class="container">
                     <div class="row">
                         @for (int i = page * itemsPerPage; i < Math.Min((page + 1) * itemsPerPage, totalQuestions); i++)
@@ -262,36 +360,81 @@
                             var question = Model.VocabularyList?[i];
                             if (question == null) continue;
                             bool isDivision = question.CategoryType == "Division";
-                            var lines = question.Question?.Split('\n') ?? new string[] { "" };
+                            
+                            // 將多行格式轉換為單行格式：712+854+155=
+                            var questionText = "";
+                            if (!isDivision && !string.IsNullOrEmpty(question.Question))
+                            {
+                                var questionLines = question.Question.Split('\n');
+                                var parts = new List<string>();
+                                
+                                foreach (var line in questionLines)
+                                {
+                                    var trimmedLine = line.Trim();
+                                    if (string.IsNullOrEmpty(trimmedLine)) continue;
+                                    
+                                    // 處理第一行（沒有運算符號）
+                                    if (parts.Count == 0)
+                                    {
+                                        parts.Add(trimmedLine);
+                                    }
+                                    else
+                                    {
+                                        // 處理有運算符號的行
+                                        if (trimmedLine.StartsWith("+"))
+                                        {
+                                            parts.Add("+" + trimmedLine.Substring(1).Trim());
+                                        }
+                                        else if (trimmedLine.StartsWith("-"))
+                                        {
+                                            parts.Add("-" + trimmedLine.Substring(1).Trim());
+                                        }
+                                        else if (trimmedLine.StartsWith("*"))
+                                        {
+                                            parts.Add("×" + trimmedLine.Substring(1).Trim());
+                                        }
+                                        else if (trimmedLine.StartsWith("/"))
+                                        {
+                                            parts.Add("÷" + trimmedLine.Substring(1).Trim());
+                                        }
+                                        else
+                                        {
+                                            // 如果沒有運算符號，假設是加法
+                                            parts.Add("+" + trimmedLine);
+                                        }
+                                    }
+                                }
+                                
+                                questionText = string.Join("", parts);
+                                
+                                // 確保最後有等號
+                                if (!string.IsNullOrEmpty(questionText) && !questionText.EndsWith("="))
+                                {
+                                    questionText += "=";
+                                }
+                            }
 
-                            <div class="col-2-4 mb-4 text-center">
-                                <div class="question-number mb-1 text-start fw-bold" style="font-size:24px">
-                                    @(i + 1).
-                                </div>
-                                <div class="question-box border rounded p-2">
+                            <div class="col-2-4 mb-4">
+                                <div class="question-container">
                                     @if (isDivision)
                                     {
-                                        <!-- 除法答案卷：題目在同一行，答案大字顯示 -->
-                                        <div class="division-question" style="font-size:20px; font-family: 'Courier New', monospace; margin-bottom: 8px; text-align: center; font-weight: bold;">
-                                            @question.Question
+                                        <!-- 除法答案卷：題號和題目在同一行 -->
+                                        <div class="question-line">
+                                            @(i + 1). @question.Question
                                         </div>
-                                        <div class="division-answer-display" style="min-height: 135px; font-size:28px; font-weight: bold; color: #2e7d32; text-align: center; padding: 40px 10px; background: #e8f5e9; border: 2px solid #4caf50; border-radius: 5px; display: flex; align-items: center; justify-content: center;">
+                                        <div class="answer-space" style="font-size: 24px; font-weight: bold; color: #2e7d32; display: flex; align-items: center; justify-content: center;">
                                             @question.Answer
                                         </div>
                                     }
                                     else
                                     {
-                                        <!-- 加減乘答案卷：垂直排列 -->
-                                        <table class="arithmetic-table mx-auto">
-                                            <tbody>
-                                                @foreach (var line in lines)
-                                                {
-                                                    <tr><td>@line</td></tr>
-                                                }
-                                            </tbody>
-                                        </table>
-                                        <div class="divider"></div>
-                                        <input type="text" class="border-0 text-center w-100 p-3" style="font-size:24px" value="@question.Answer" readonly />
+                                        <!-- 加減乘答案卷：題號和題目在同一行 -->
+                                        <div class="question-line">
+                                            @(i + 1). @questionText
+                                        </div>
+                                        <div class="answer-space" style="font-size: 24px; font-weight: bold; color: #2e7d32; display: flex; align-items: center; justify-content: center;">
+                                            @question.Answer
+                                        </div>
                                     }
                                 </div>
                             </div>
