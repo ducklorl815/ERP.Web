@@ -3,6 +3,7 @@ using ERP.Web.Models.Respository.Account;
 using ERP.Web.Models.Respository.ControllerSetting;
 using ERP.Web.Models.Respository.Exam;
 using ERP.Web.Models.Respository.Tools;
+using ERP.Web.Options;
 using ERP.Web.Service.Service;
 using ERP.Web.Service.Service.ControllerSetting;
 using ERP.Web.Service.Service.Exam;
@@ -10,6 +11,7 @@ using ERP.Web.Utility.Models;
 using ERP.Web.Utility.Services;
 using LifeTech.ERP.Web.Service.Service;
 using Microsoft.Extensions.FileProviders;
+using ERP.Web.Services.Slack;
 
 var builder = WebApplication.CreateBuilder(args);
 
@@ -54,6 +56,9 @@ builder.Services.AddSingleton<ExamRespo>();
 builder.Services.AddSingleton<ToolsRespo>();
 
 builder.Services.Configure<DBList>(builder.Configuration.GetSection("ConnectionStrings"));
+builder.Services.Configure<SlackOptions>(builder.Configuration.GetSection("Slack"));
+
+builder.Services.AddHttpClient<ISlackService, SlackService>();
 
 var app = builder.Build();
 
