@@ -226,7 +226,8 @@ function initTreeEvents() {
             parentChk.indeterminate = false;
         } else if (noneChecked) {
             // 全部子節點都未勾選 → 父節點未勾選
-            parentChk.indeterminate = true;
+            parentChk.checked = false;
+            parentChk.indeterminate = false;
         } else if (anyChecked) {
             // 部分子節點勾選 → 父節點半勾選
             parentChk.checked = false;

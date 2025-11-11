@@ -253,7 +253,6 @@ namespace ERP.Web.Service.Service.Exam
             {
                 string ClassName = param.ClassNameList[i];
 
-                // 若需要紀錄第一筆的 ClassName 跟 Num，可這樣做（可選）
                 if (i == 0)
                 {
                     FirstClassName = ClassName;
@@ -261,8 +260,20 @@ namespace ERP.Web.Service.Service.Exam
 
                 var NewVocabulary = await _examRepo.GetExamDataAsync(ClassName);
 
+                // 新增這段：讓 Question / Answer 有機會對調
+                var random = new Random();
+                foreach (var item in NewVocabulary)
+                {
+                    // 假設 item.Question / item.Answer 是字串屬性
+                    if (random.Next(0, 2) == 1) // 50% 機率對調
+                    {
+                        (item.Question, item.Answer) = (item.Answer, item.Question);
+                    }
+                }
+
                 listVocabulary.AddRange(NewVocabulary);
             }
+
 
             // 依 ClassNum 降序排列（最新的在前）
             var groupedByClass = listVocabulary
