@@ -1,6 +1,6 @@
 using System.ComponentModel.DataAnnotations;
 
-namespace ERP.Web.Options
+namespace ERP.Web.Service.Service.Slack
 {
     /// <summary>
     /// Slack OAuth 與 Bot 設定。

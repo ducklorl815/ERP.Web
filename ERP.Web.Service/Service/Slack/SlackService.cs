@@ -1,16 +1,14 @@
-using System;
-using System.Collections.Generic;
+using ERP.Web.Models.Models.Slack;
+using Microsoft.AspNetCore.WebUtilities;
+using Microsoft.Extensions.Caching.Memory;
+using Microsoft.Extensions.Logging;
+using Microsoft.Extensions.Options;
 using System.Net.Http.Headers;
+using System.Security.Cryptography;
 using System.Text;
 using System.Text.Json;
-using ERP.Web.Options;
-using ERP.Web.Services.Slack.Models;
-using Microsoft.Extensions.Options;
-using Microsoft.AspNetCore.WebUtilities;
-using System.Security.Cryptography;
-using System.Linq;
 
-namespace ERP.Web.Services.Slack
+namespace ERP.Web.Service.Service.Slack
 {
     public class SlackService : ISlackService
     {
@@ -19,14 +17,21 @@ namespace ERP.Web.Services.Slack
         private readonly HttpClient _httpClient;
         private readonly SlackOptions _options;
         private readonly ILogger<SlackService> _logger;
-        private readonly Dictionary<string, (SlackUserInfoResponse Response, DateTimeOffset CachedAt)> _userCache = new(StringComparer.OrdinalIgnoreCase);
-        private readonly TimeSpan _userCacheDuration = TimeSpan.FromMinutes(10);
+        private readonly IMemoryCache _memoryCache;
+        private readonly TimeSpan _userCacheDuration = TimeSpan.FromHours(24); // 使用者資訊緩存 24 小時
 
-        public SlackService(HttpClient httpClient, IOptions<SlackOptions> options, ILogger<SlackService> logger)
+        // 緩存鍵常數
+        private const string UserInfoCacheKeyPrefix = "Slack:UserInfo:";
+        private const string ChannelsCacheKey = "Slack:Channels";
+        private const string ChannelsCountCacheKey = "Slack:ChannelsCount";
+        private const string UsersListCacheKey = "Slack:UsersList"; // 使用者清單緩存鍵
+
+        public SlackService(HttpClient httpClient, IOptions<SlackOptions> options, ILogger<SlackService> logger, IMemoryCache memoryCache)
         {
             _httpClient = httpClient ?? throw new ArgumentNullException(nameof(httpClient));
             _options = options?.Value ?? throw new ArgumentNullException(nameof(options));
             _logger = logger ?? throw new ArgumentNullException(nameof(logger));
+            _memoryCache = memoryCache ?? throw new ArgumentNullException(nameof(memoryCache));
 
             if (_httpClient.BaseAddress == null)
             {
@@ -235,6 +240,68 @@ namespace ERP.Web.Services.Slack
             }
         }
 
+        public async Task<int?> GetUserConversationsCountAsync(string token, string types = "private_channel,im", CancellationToken cancellationToken = default)
+        {
+            if (string.IsNullOrWhiteSpace(token))
+            {
+                throw new ArgumentException("Slack token 不可為空白。", nameof(token));
+            }
+
+            // 計算總數量（需要遍歷所有頁面）
+            // 使用較大的 limit 減少 API 呼叫次數
+            var query = new Dictionary<string, string?>
+            {
+                ["types"] = types,
+                ["exclude_archived"] = "true",
+                ["limit"] = "1000" // 使用較大的 limit 減少 API 呼叫次數
+            };
+
+            int totalCount = 0;
+            string? cursor = null;
+
+            do
+            {
+                if (!string.IsNullOrWhiteSpace(cursor))
+                {
+                    query["cursor"] = cursor;
+                }
+
+                var requestUri = QueryHelpers.AddQueryString("users.conversations", query!);
+
+                using var httpRequest = new HttpRequestMessage(HttpMethod.Get, requestUri);
+                httpRequest.Headers.Authorization = new AuthenticationHeaderValue("Bearer", token);
+
+                using var response = await _httpClient.SendAsync(httpRequest, cancellationToken);
+                var responseBody = await response.Content.ReadAsStringAsync(cancellationToken);
+
+                if (!response.IsSuccessStatusCode)
+                {
+                    _logger.LogWarning("Slack 取得頻道數量失敗，狀態碼：{StatusCode}，回應：{Body}", response.StatusCode, responseBody);
+                    return totalCount > 0 ? totalCount : null;
+                }
+
+                try
+                {
+                    var result = JsonSerializer.Deserialize<SlackConversationsListResponse>(responseBody, JsonOptions);
+                    if (result?.Ok != true || result.Channels == null)
+                    {
+                        break;
+                    }
+
+                    totalCount += result.Channels.Count;
+                    cursor = result.ResponseMetadata?.NextCursor;
+                }
+                catch (JsonException ex)
+                {
+                    _logger.LogError(ex, "解析 Slack 頻道數量回應失敗：{Body}", responseBody);
+                    break;
+                }
+
+            } while (!string.IsNullOrWhiteSpace(cursor));
+
+            return totalCount;
+        }
+
         public async Task<SlackUserInfoResponse?> GetUserInfoAsync(string token, string userId, CancellationToken cancellationToken = default)
         {
             var result = await GetUsersInfoAsync(token, new[] { userId }, cancellationToken);
@@ -255,9 +322,11 @@ namespace ERP.Web.Services.Slack
 
             foreach (var userId in userIds.Where(id => !string.IsNullOrWhiteSpace(id)).Distinct(StringComparer.OrdinalIgnoreCase))
             {
-                if (_userCache.TryGetValue(userId, out var cached) && DateTimeOffset.UtcNow - cached.CachedAt < _userCacheDuration)
+                // 從伺服器端共享緩存讀取使用者資訊
+                var cacheKey = $"{UserInfoCacheKeyPrefix}{userId}";
+                if (_memoryCache.TryGetValue<SlackUserInfoResponse>(cacheKey, out var cached))
                 {
-                    result[userId] = cached.Response;
+                    result[userId] = cached;
                 }
                 else
                 {
@@ -277,7 +346,14 @@ namespace ERP.Web.Services.Slack
             {
                 if (item.Response != null)
                 {
-                    _userCache[item.UserId] = (item.Response, DateTimeOffset.UtcNow);
+                    // 將使用者資訊存入伺服器端共享緩存（所有用戶共享）
+                    var cacheKey = $"{UserInfoCacheKeyPrefix}{item.UserId}";
+                    var cacheOptions = new MemoryCacheEntryOptions
+                    {
+                        AbsoluteExpirationRelativeToNow = _userCacheDuration,
+                        SlidingExpiration = null // 不使用滑動過期，確保緩存穩定
+                    };
+                    _memoryCache.Set(cacheKey, item.Response, cacheOptions);
                     result[item.UserId] = item.Response;
                 }
             }
@@ -327,14 +403,47 @@ namespace ERP.Web.Services.Slack
 
             limit = Math.Clamp(limit, 1, 50);
             var searchTerm = keyword.Trim();
-            var matches = new List<SlackUser>(limit);
+
+            // 先從緩存讀取使用者清單
+            List<SlackUser>? allUsers = null;
+            if (_memoryCache.TryGetValue<List<SlackUser>>(UsersListCacheKey, out allUsers) && allUsers != null && allUsers.Count > 0)
+            {
+                // 緩存存在，直接從緩存搜尋
+                return SearchUsersInCache(allUsers, searchTerm, limit);
+            }
+
+            // 緩存不存在，從 Slack API 取得所有使用者
+            allUsers = await FetchAllUsersAsync(token, cancellationToken);
+            if (allUsers == null || allUsers.Count == 0)
+            {
+                return Array.Empty<SlackUser>();
+            }
+
+            // 將使用者清單存入緩存（24 小時）
+            var cacheOptions = new MemoryCacheEntryOptions
+            {
+                AbsoluteExpirationRelativeToNow = _userCacheDuration, // 24 小時
+                SlidingExpiration = null
+            };
+            _memoryCache.Set(UsersListCacheKey, allUsers, cacheOptions);
+
+            // 從緩存搜尋
+            return SearchUsersInCache(allUsers, searchTerm, limit);
+        }
+
+        /// <summary>
+        /// 從 Slack API 取得所有使用者清單
+        /// </summary>
+        private async Task<List<SlackUser>?> FetchAllUsersAsync(string token, CancellationToken cancellationToken)
+        {
+            var allUsers = new List<SlackUser>();
             string? cursor = null;
 
             do
             {
                 var query = new Dictionary<string, string?>
                 {
-                    ["limit"] = "200",
+                    ["limit"] = "200", // 每次最多取得 200 筆
                     ["cursor"] = cursor
                 };
 
@@ -349,7 +458,7 @@ namespace ERP.Web.Services.Slack
                 if (!response.IsSuccessStatusCode)
                 {
                     _logger.LogWarning("Slack 取得使用者清單失敗，狀態碼：{StatusCode}，回應：{Body}", response.StatusCode, responseBody);
-                    break;
+                    return allUsers.Count > 0 ? allUsers : null;
                 }
 
                 SlackUsersListResponse? listResponse;
@@ -360,7 +469,7 @@ namespace ERP.Web.Services.Slack
                 catch (JsonException ex)
                 {
                     _logger.LogError(ex, "解析 Slack 使用者清單失敗：{Body}", responseBody);
-                    break;
+                    return allUsers.Count > 0 ? allUsers : null;
                 }
 
                 if (listResponse?.Ok != true || listResponse.Members == null)
@@ -368,6 +477,7 @@ namespace ERP.Web.Services.Slack
                     break;
                 }
 
+                // 過濾掉 SlackBot 和無效的使用者
                 foreach (var user in listResponse.Members)
                 {
                     if (user == null || string.Equals(user.Id, "USLACKBOT", StringComparison.OrdinalIgnoreCase))
@@ -375,30 +485,46 @@ namespace ERP.Web.Services.Slack
                         continue;
                     }
 
-                    var displayName = user.Profile?.DisplayNameNormalized ?? user.Profile?.DisplayName;
-                    var realName = user.Profile?.RealNameNormalized ?? user.Profile?.RealName ?? user.RealName;
-                    var searchable = string.Join(' ', new[] { displayName, realName, user.Name, user.Id })
-                        .ToLowerInvariant();
+                    allUsers.Add(user);
+                }
 
-                    if (searchable.Contains(searchTerm.ToLowerInvariant(), StringComparison.Ordinal))
-                    {
-                        matches.Add(user);
-                    }
+                cursor = listResponse.ResponseMetadata?.NextCursor;
+
+            } while (!string.IsNullOrWhiteSpace(cursor));
+
+            return allUsers;
+        }
+
+        /// <summary>
+        /// 從緩存的使用者清單中搜尋
+        /// </summary>
+        private IReadOnlyCollection<SlackUser> SearchUsersInCache(List<SlackUser> allUsers, string searchTerm, int limit)
+        {
+            var matches = new List<SlackUser>(limit);
+            var lowerSearchTerm = searchTerm.ToLowerInvariant();
+
+            foreach (var user in allUsers)
+            {
+                if (user == null)
+                {
+                    continue;
+                }
+
+                var displayName = user.Profile?.DisplayNameNormalized ?? user.Profile?.DisplayName;
+                var realName = user.Profile?.RealNameNormalized ?? user.Profile?.RealName ?? user.RealName;
+                var searchable = string.Join(' ', new[] { displayName, realName, user.Name, user.Id })
+                    .ToLowerInvariant();
+
+                if (searchable.Contains(lowerSearchTerm, StringComparison.Ordinal))
+                {
+                    matches.Add(user);
 
                     if (matches.Count >= limit)
                     {
                         break;
                     }
                 }
-
-                if (matches.Count >= limit)
-                {
-                    break;
-                }
-
-                cursor = listResponse.ResponseMetadata?.NextCursor;
-
-            } while (!string.IsNullOrWhiteSpace(cursor));
+            }
 
             return matches;
         }

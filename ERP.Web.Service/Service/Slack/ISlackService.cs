@@ -1,6 +1,6 @@
-using ERP.Web.Services.Slack.Models;
+using ERP.Web.Models.Models.Slack;
 
-namespace ERP.Web.Services.Slack
+namespace ERP.Web.Service.Service.Slack
 {
     public interface ISlackService
     {
@@ -28,6 +28,11 @@ namespace ERP.Web.Services.Slack
         /// 取得目前使用者可存取的 Slack 對話清單。
         /// </summary>
         Task<SlackConversationsListResponse?> GetUserConversationsAsync(string token, SlackConversationsListRequest request, CancellationToken cancellationToken = default);
+
+        /// <summary>
+        /// 取得目前使用者可存取的 Slack 對話數量（僅檢查數量，不獲取完整資料）。
+        /// </summary>
+        Task<int?> GetUserConversationsCountAsync(string token, string types = "private_channel,im", CancellationToken cancellationToken = default);
 
         /// <summary>
         /// 取得 Slack 使用者資訊（顯示名稱、真實姓名等）。

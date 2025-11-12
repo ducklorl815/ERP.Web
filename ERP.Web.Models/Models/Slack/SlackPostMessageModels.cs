@@ -1,7 +1,7 @@
 using System.ComponentModel.DataAnnotations;
 using System.Text.Json.Serialization;
 
-namespace ERP.Web.Services.Slack.Models
+namespace ERP.Web.Models.Models.Slack
 {
     public class SlackPostMessageRequest
     {
