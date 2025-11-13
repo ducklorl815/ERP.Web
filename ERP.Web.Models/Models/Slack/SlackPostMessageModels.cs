@@ -215,6 +215,21 @@ namespace ERP.Web.Models.Models.Slack
         public string? Latest { get; set; }
     }
 
+    /// <summary>
+    /// 頻道資訊回應（用於查詢頻道詳細資訊）
+    /// </summary>
+    public class SlackConversationInfoResponse
+    {
+        [JsonPropertyName("ok")]
+        public bool Ok { get; set; }
+
+        [JsonPropertyName("channel")]
+        public SlackConversationItem? Channel { get; set; }
+
+        [JsonPropertyName("error")]
+        public string? Error { get; set; }
+    }
+
     public class SlackConversationsListRequest
     {
         public string Types { get; set; } = "public_channel,private_channel,im";

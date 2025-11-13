@@ -17,8 +17,12 @@
     window.SlackChat.window = {
         /**
          * 建立新聊天視窗
+         * @param {string} channelId - 頻道 ID
+         * @param {string} channelName - 頻道名稱（DisplayName，用於 data 屬性）
+         * @param {string} userId - 使用者 ID
+         * @param {string} realName - 使用者真實名稱（優先使用於標題顯示）
          */
-        createChatWindow(channelId, channelName, userId) {
+        createChatWindow(channelId, channelName, userId, realName) {
             // 如果視窗已存在，則直接顯示
             if (state.chatWindows.has(channelId)) {
                 const existingWindow = state.chatWindows.get(channelId);
@@ -33,15 +37,21 @@
             // 從模板建立新視窗
             const windowElement = config.template.content.cloneNode(true).querySelector('.slack-chat-box');
             windowElement.dataset.channelId = channelId || '';
+            // data-channel-name 使用 channelName（DisplayName），但標題顯示使用 RealName
             windowElement.dataset.channelName = channelName || '';
             if (userId) {
                 windowElement.dataset.userId = userId;
             }
+            // 儲存 realName 到 data 屬性，以便後續使用
+            if (realName) {
+                windowElement.dataset.realName = realName;
+            }
 
-            // 設定頻道標題
+            // 設定頻道標題（優先使用 RealName，如果沒有則使用 DisplayName）
             const titleElement = windowElement.querySelector('.slack-channel-title');
             if (titleElement) {
-                titleElement.textContent = channelName || 'Slack 即時通訊';
+                const titleToShow = realName || channelName || 'Slack 即時通訊';
+                titleElement.textContent = titleToShow;
             }
 
             // 如果沒有頻道 ID（新開的頻道），自動顯示搜尋功能
@@ -154,8 +164,26 @@
                 // 更新對應的小圖示狀態為非活躍（但不要刪除小圖示）
                 window.SlackChat.icons?.updateRecentChatIconState(channelId, false);
             } else {
-                // 如果找不到，嘗試查找所有視窗，看看是否有匹配的
-                console.warn('關閉聊天視窗：找不到對應的視窗', channelId);
+                // 如果找不到，嘗試從 DOM 中查找所有具有該 channelId 的視窗並關閉
+                const allWindows = config.container.querySelectorAll('.slack-chat-box');
+                let found = false;
+                allWindows.forEach(windowEl => {
+                    const windowChannelId = windowEl.dataset.channelId;
+                    if (windowChannelId === channelId) {
+                        windowEl.remove();
+                        found = true;
+                        // 如果該視窗在 Map 中，也要移除
+                        if (state.chatWindows.has(channelId)) {
+                            state.chatWindows.delete(channelId);
+                        }
+                        // 更新對應的小圖示狀態為非活躍
+                        window.SlackChat.icons?.updateRecentChatIconState(channelId, false);
+                    }
+                });
+                
+                if (!found) {
+                    console.warn('關閉聊天視窗：找不到對應的視窗', channelId);
+                }
             }
         },
 

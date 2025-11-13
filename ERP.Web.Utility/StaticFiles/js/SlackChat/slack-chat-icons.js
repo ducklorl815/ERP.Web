@@ -54,8 +54,11 @@
                 // 重新添加關閉按鈕
                 this.addCloseButtonToIcon(existingIcon, channelId);
                 
-                // 更新 title
-                existingIcon.title = displayName || realName || '開啟聊天視窗';
+                // 更新 title 和 data 屬性（優先使用 realName）
+                existingIcon.title = realName || displayName || '開啟聊天視窗';
+                if (realName) {
+                    existingIcon.dataset.realName = realName;
+                }
                 
                 // 將現有圖示移到最前面（因為容器使用 flex-direction: row-reverse，所以使用 appendChild 會讓它顯示在最左邊）
                 if (existingIcon.parentNode === config.recentChatIconsContainer) {
@@ -72,9 +75,13 @@
             // 建立小圖示按鈕
             const iconBtn = document.createElement('div');
             iconBtn.className = 'slack-recent-chat-icon';
-            iconBtn.title = displayName || realName || '開啟聊天視窗';
+            iconBtn.title = realName || displayName || '開啟聊天視窗';
             iconBtn.dataset.channelId = channelId;
             iconBtn.dataset.channelName = displayName || '';
+            // 儲存 realName 到 data 屬性，以便後續使用
+            if (realName) {
+                iconBtn.dataset.realName = realName;
+            }
             if (userId) {
                 iconBtn.dataset.userId = userId;
             }
@@ -107,13 +114,26 @@
                     return;
                 }
                 if (channelId) {
+                    // 從圖示的 data 屬性中取得 realName（如果有的話）
+                    const iconRealName = iconBtn.dataset.realName || realName;
+                    const iconDisplayName = iconBtn.dataset.channelName || displayName;
+                    
                     // 如果視窗已存在，直接顯示
                     if (state.chatWindows.has(channelId)) {
                         const existingWindow = state.chatWindows.get(channelId);
                         existingWindow.classList.add('active');
+                        // 確保標題使用 RealName
+                        const existingRealName = existingWindow.dataset.realName || iconRealName;
+                        if (existingRealName) {
+                            const titleElement = existingWindow.querySelector('.slack-channel-title');
+                            if (titleElement) {
+                                titleElement.textContent = existingRealName;
+                            }
+                            existingWindow.dataset.realName = existingRealName;
+                        }
                     } else {
-                        // 建立新的聊天視窗
-                        window.SlackChat.window?.createChatWindow(channelId, displayName, userId);
+                        // 建立新的聊天視窗（傳遞 realName）
+                        window.SlackChat.window?.createChatWindow(channelId, iconDisplayName, userId, iconRealName);
                     }
                 }
             });
@@ -182,11 +202,71 @@
                 if (isActive) {
                     iconBtn.style.background = '#18a689';
                     iconBtn.style.boxShadow = '0 4px 12px rgba(26, 179, 148, 0.4)';
+                    // 當視窗開啟時，清除未讀訊息標記
+                    this.updateUnreadCount(channelId, 0);
                 } else {
                     iconBtn.style.background = '#1ab394';
                     iconBtn.style.boxShadow = '0 3px 10px rgba(0, 0, 0, 0.15)';
                 }
             }
+        },
+
+        /**
+         * 更新未讀訊息數量
+         * @param {string} channelId - 頻道 ID
+         * @param {number} count - 未讀訊息數量（0 表示清除標記）
+         */
+        updateUnreadCount(channelId, count) {
+            const iconBtn = state.recentChatIcons.get(channelId);
+            if (!iconBtn) return;
+
+            // 查找或建立未讀訊息標記
+            let badge = iconBtn.querySelector('.badge');
+            
+            if (count > 0) {
+                // 需要顯示未讀訊息標記
+                if (!badge) {
+                    // 建立新的標記
+                    badge = document.createElement('span');
+                    badge.className = 'badge';
+                    iconBtn.appendChild(badge);
+                }
+                // 更新數量（如果超過 99，顯示 99+）
+                badge.textContent = count > 99 ? '99+' : count.toString();
+                badge.style.display = 'flex';
+            } else {
+                // 清除未讀訊息標記
+                if (badge) {
+                    badge.style.display = 'none';
+                }
+            }
+        },
+
+        /**
+         * 增加未讀訊息數量（用於收到新訊息時）
+         * @param {string} channelId - 頻道 ID
+         * @param {number} increment - 要增加的数量（預設為 1）
+         */
+        incrementUnreadCount(channelId, increment = 1) {
+            const iconBtn = state.recentChatIcons.get(channelId);
+            if (!iconBtn) return;
+
+            // 取得目前的未讀數量
+            const badge = iconBtn.querySelector('.badge');
+            let currentCount = 0;
+            
+            if (badge && badge.style.display !== 'none') {
+                const badgeText = badge.textContent || '';
+                // 如果顯示 "99+"，則使用 99 作為基數
+                if (badgeText === '99+') {
+                    currentCount = 99;
+                } else {
+                    currentCount = parseInt(badgeText) || 0;
+                }
+            }
+            
+            // 更新未讀數量
+            this.updateUnreadCount(channelId, currentCount + increment);
         }
     };
 })();

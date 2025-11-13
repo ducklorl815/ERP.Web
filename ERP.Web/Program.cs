@@ -1,3 +1,4 @@
+using ERP.Web.Hubs;
 using ERP.Web.Models.Respository;
 using ERP.Web.Models.Respository.Account;
 using ERP.Web.Models.Respository.ControllerSetting;
@@ -59,6 +60,15 @@ builder.Services.Configure<SlackOptions>(builder.Configuration.GetSection("Slack
 
 builder.Services.AddHttpClient<ISlackService, SlackService>();
 
+// SignalR 服務註冊（用於即時通知）
+builder.Services.AddSignalR(options =>
+{
+    // 啟用詳細錯誤訊息（開發環境）
+    options.EnableDetailedErrors = builder.Environment.IsDevelopment();
+    // 設定最大訊息大小（預設為 32KB）
+    options.MaximumReceiveMessageSize = 32 * 1024;
+});
+
 var app = builder.Build();
 
 // Configure the HTTP request pipeline.
@@ -69,7 +79,11 @@ if (!app.Environment.IsDevelopment())
     app.UseHsts();
 }
 
-app.UseHttpsRedirection();
+// HTTPS 重定向可能會影響 WebSocket 連接，在開發環境中暫時停用
+if (!app.Environment.IsDevelopment())
+{
+    app.UseHttpsRedirection();
+}
 app.UseStaticFiles();
 
 app.UseDeveloperExceptionPage();
@@ -85,6 +99,9 @@ app.UseRouting();
 app.UseSession();
 
 app.UseAuthorization();
+
+// SignalR Hub 路由（必須在 UseRouting 和 UseAuthorization 之後）
+app.MapHub<SlackNotificationHub>("/hubs/slackNotification");
 
 app.MapControllerRoute(
     name: "default",

@@ -108,6 +108,9 @@
 
     <!-- Toastr：美觀的提示訊息 -->
     <script src="~/StaticFiles/lib/toastr/toastr.min.js"></script>
+    
+    <!-- SignalR：即時通訊（用於 Slack 訊息通知） -->
+    <script src="https://cdnjs.cloudflare.com/ajax/libs/microsoft-signalr/6.0.1/signalr.min.js"></script>
 
     <!-- 自訂的分頁功能 JS -->
     <script src="~/StaticFiles/js/pageing.js"></script>
@@ -149,6 +152,238 @@
 
             }, 1300);
 
+        });
+    </script>
+    
+    <!-- SignalR 連接腳本：用於接收 Slack 即時訊息通知 -->
+    <script>
+        $(document).ready(function () {
+            // 等待頁面完全載入後再建立連接，避免資源競爭
+            setTimeout(function() {
+                // 取得目前使用者的 Slack User ID（從 slack-chat-container 的 data 屬性）
+                // 在連接建立前先取得，避免重複查詢
+                const slackContainer = document.getElementById('slack-chat-container');
+                const currentUserId = slackContainer ? (slackContainer.dataset.userId || '') : '';
+
+                // 初始化 SignalR 連接
+                // 優先使用 LongPolling 或 ServerSentEvents，因為 WebSocket 在某些環境下可能不穩定
+                const connection = new signalR.HubConnectionBuilder()
+                    .withUrl("/hubs/slackNotification", {
+                        // 使用 LongPolling 和 ServerSentEvents，避免 WebSocket 連接問題
+                        // 如果 WebSocket 可用，SignalR 會自動升級
+                        transport: signalR.HttpTransportType.LongPolling | signalR.HttpTransportType.ServerSentEvents
+                    })
+                    .withAutomaticReconnect({
+                        nextRetryDelayInMilliseconds: retryContext => {
+                            // 重試策略：前 3 次立即重試，之後每次延遲 2 秒，最多重試 10 次
+                            if (retryContext.previousRetryCount < 3) {
+                                return 0;
+                            }
+                            if (retryContext.previousRetryCount >= 10) {
+                                // 超過 10 次後，停止自動重連
+                                return null;
+                            }
+                            return 2000;
+                        }
+                    })
+                    .configureLogging(signalR.LogLevel.Warning) // 降低日誌級別，減少 console 輸出
+                    .build();
+
+                // 加入使用者群組的輔助函數
+                // 確保連接狀態為 Connected 後才調用 invoke
+                function joinUserGroupIfNeeded() {
+                    if (!currentUserId) {
+                        console.warn("無法取得當前使用者的 Slack User ID，將接收所有訊息通知");
+                        return Promise.resolve();
+                    }
+
+                    // 檢查連接狀態
+                    if (connection.state !== signalR.HubConnectionState.Connected) {
+                        console.warn("SignalR 連接尚未建立，無法加入使用者群組。當前狀態：", connection.state);
+                        return Promise.resolve();
+                    }
+
+                    return connection.invoke("JoinUserGroup", currentUserId)
+                        .then(function () {
+                            console.log("已加入 Slack 使用者群組：", currentUserId);
+                        })
+                        .catch(function (err) {
+                            console.error("加入 Slack 使用者群組失敗：", err.toString());
+                            // 不拋出錯誤，避免中斷連接流程
+                        });
+                }
+
+                // 當連接建立時
+                connection.start()
+                    .then(function () {
+                        console.log("SignalR 連接已建立：Slack 訊息通知已啟用");
+                        // 連接建立後，加入使用者群組
+                        return joinUserGroupIfNeeded();
+                    })
+                    .catch(function (err) {
+                        console.error("SignalR 連接失敗：", err.message || err);
+                        console.error("錯誤詳情：", {
+                            message: err.message,
+                            stack: err.stack,
+                            name: err.name
+                        });
+                        // 不進行手動重連，讓 withAutomaticReconnect 自動處理
+                    });
+
+                // 監聽接收訊息事件
+                connection.on("ReceiveMessage", function (message) {
+                    // 記錄所有收到的訊息（用於調試）
+                    console.log("🔔 SignalR 收到訊息事件：", message);
+                    
+                    // 檢查訊息格式
+                    if (!message) {
+                        console.warn("⚠️ 收到空訊息，跳過處理");
+                        return;
+                    }
+                    
+                    // 處理屬性名稱大小寫問題（SignalR 可能將 PascalCase 轉換為 camelCase）
+                    // 同時支援 ChannelId 和 channelId、SenderDisplayName 和 senderDisplayName 等
+                    const channelId = message.ChannelId || message.channelId;
+                    const senderUserId = message.SenderUserId || message.senderUserId;
+                    const senderDisplayName = message.SenderDisplayName || message.senderDisplayName;
+                    const senderRealName = message.SenderRealName || message.senderRealName;
+                    const text = message.Text || message.text;
+                    const recipientUserId = message.RecipientUserId || message.recipientUserId;
+                    
+                    // 優先使用 RealName，如果沒有則使用 DisplayName
+                    const senderName = senderRealName || senderDisplayName || '未知使用者';
+                    
+                    console.log("   當前使用者 ID：", currentUserId);
+                    console.log("   訊息接收者 ID：", recipientUserId);
+                    console.log("   訊息發送者 RealName：", senderRealName);
+                    console.log("   訊息發送者 DisplayName：", senderDisplayName);
+                    console.log("   最終使用名稱：", senderName);
+                    console.log("   訊息內容：", text);
+                    console.log("   頻道 ID：", channelId);
+                    
+                    // 如果訊息有指定接收者 ID，且與當前使用者不符，則不顯示通知
+                    if (recipientUserId && currentUserId && 
+                        recipientUserId !== currentUserId) {
+                        console.log("ℹ️ 訊息不是發送給當前使用者的，跳過通知。接收者：", recipientUserId, "當前使用者：", currentUserId);
+                        return;
+                    }
+                    
+                    // 檢查必要的訊息欄位
+                    if (!senderDisplayName && !text) {
+                        console.warn("⚠️ 訊息缺少必要欄位（SenderDisplayName 或 Text），但仍嘗試顯示通知");
+                    }
+                    
+                    // 使用 Toastr 顯示通知
+                    toastr.options = {
+                        closeButton: true,
+                        progressBar: true,
+                        showMethod: 'slideDown',
+                        timeOut: 5000, // 5 秒後自動關閉
+                        positionClass: 'toast-top-right',
+                        onclick: function () {
+                            // 點擊通知時可以開啟對應的聊天視窗
+                            console.log("點擊了 Slack 訊息通知：", message);
+                            // 如果 Slack Chat 功能已載入，可以嘗試開啟對應的頻道
+                            if (window.SlackChat && channelId) {
+                                // 觸發開啟頻道的事件（如果 Slack Chat 有提供這個功能）
+                                const event = new CustomEvent('slack-open-channel', { 
+                                    detail: { channelId: channelId } 
+                                });
+                                document.dispatchEvent(event);
+                            }
+                        }
+                    };
+                    
+                    // 顯示通知
+                    const messageText = text || '(無訊息內容)';
+                    
+                    toastr.info(
+                        messageText.length > 100 ? messageText.substring(0, 100) + '...' : messageText,
+                        '📩 來自 ' + senderName + ' 的 Slack 訊息',
+                        {
+                            timeOut: 5000,
+                            extendedTimeOut: 2000
+                        }
+                    );
+                    
+                    console.log("✅ 已顯示 Slack 訊息通知");
+                    
+                    // 自動建立或更新小圖示並顯示未讀訊息數量
+                    if (channelId && window.SlackChat && window.SlackChat.icons) {
+                        try {
+                            // 優先使用 RealName，如果沒有則使用 DisplayName
+                            const displayName = senderDisplayName || senderName;
+                            const realName = senderRealName || senderName;
+                            const userId = senderUserId;
+                            
+                            // 檢查圖示是否已存在
+                            const existingIcon = window.SlackChat.state?.recentChatIcons?.get(channelId);
+                            
+                            if (!existingIcon) {
+                                // 如果圖示不存在，建立新的圖示（使用 RealName）
+                                window.SlackChat.icons.createRecentChatIcon(channelId, displayName, userId, realName);
+                                console.log("✅ 已建立新的聊天圖示：", channelId, "RealName:", realName);
+                            }
+                            
+                            // 檢查對應的聊天視窗是否已開啟
+                            const chatWindow = window.SlackChat.state?.chatWindows?.get(channelId);
+                            const isWindowOpen = chatWindow && chatWindow.classList.contains('active');
+                            
+                            // 如果視窗未開啟，增加未讀訊息數量
+                            if (!isWindowOpen) {
+                                window.SlackChat.icons.incrementUnreadCount(channelId, 1);
+                                console.log("✅ 已更新未讀訊息數量：", channelId);
+                            } else {
+                                // 如果視窗已開啟，清除未讀訊息標記
+                                window.SlackChat.icons.updateUnreadCount(channelId, 0);
+                                
+                                // 更新視窗標題為 RealName（確保一致性）
+                                const titleElement = chatWindow.querySelector('.slack-channel-title');
+                                if (titleElement && realName) {
+                                    titleElement.textContent = realName;
+                                    chatWindow.dataset.realName = realName;
+                                }
+                            }
+                        } catch (error) {
+                            console.error("❌ 處理聊天圖示時發生錯誤：", error);
+                        }
+                    } else {
+                        if (!channelId) {
+                            console.warn("⚠️ 訊息缺少 ChannelId，無法建立聊天圖示。訊息物件：", message);
+                        } else if (!window.SlackChat) {
+                            console.warn("⚠️ SlackChat 模組未載入，無法建立聊天圖示");
+                        }
+                    }
+                });
+
+                // 當連接正在重新連接時
+                connection.onreconnecting(function (error) {
+                    if (error) {
+                        console.log("SignalR 正在重新連接... 錯誤：", error.message || error);
+                    } else {
+                        console.log("SignalR 正在重新連接...");
+                    }
+                });
+
+                // 當連接重新建立時，需要重新加入使用者群組
+                connection.onreconnected(function (connectionId) {
+                    console.log("SignalR 已重新連接，連接 ID：", connectionId);
+                    // 重新加入使用者群組
+                    joinUserGroupIfNeeded();
+                });
+
+                // 當連接關閉時（無法自動重連的情況）
+                connection.onclose(function (error) {
+                    if (error) {
+                        console.error("SignalR 連接已關閉，錯誤：", error.message || error);
+                    } else {
+                        console.log("SignalR 連接已正常關閉");
+                    }
+                });
+
+                // 將連接物件儲存到全域變數，以便在其他地方使用
+                window.slackNotificationConnection = connection;
+            }, 500); // 延遲 500ms 確保頁面完全載入
         });
     </script>
     <script>

@@ -1,6 +1,8 @@
+using ERP.Web.Hubs;
 using ERP.Web.Models.Models.Slack;
 using ERP.Web.Service.Service.Slack;
 using Microsoft.AspNetCore.Mvc;
+using Microsoft.AspNetCore.SignalR;
 using Microsoft.Extensions.Caching.Memory;
 using Microsoft.Extensions.Options;
 using System.Text;
@@ -14,9 +16,17 @@ namespace ERP.Web.Controllers.Slack
     [Route("slack")]
     public class SlackCommandController : SlackControllerBase
     {
-        public SlackCommandController(ISlackService slackService, IOptions<SlackOptions> options, ILogger<SlackCommandController> logger, IMemoryCache memoryCache)
+        private readonly IHubContext<SlackNotificationHub> _hubContext;
+
+        public SlackCommandController(
+            ISlackService slackService, 
+            IOptions<SlackOptions> options, 
+            ILogger<SlackCommandController> logger, 
+            IMemoryCache memoryCache,
+            IHubContext<SlackNotificationHub> hubContext)
             : base(slackService, options, logger, memoryCache)
         {
+            _hubContext = hubContext ?? throw new ArgumentNullException(nameof(hubContext));
         }
 
         /// <summary>
@@ -86,6 +96,9 @@ namespace ERP.Web.Controllers.Slack
 
         /// <summary>
         /// Slack 事件處理（Webhook）
+        /// 支援兩個路由：
+        /// - /slack/events（標準路由）
+        /// - /SlackCommand/Events（向後兼容路由，用於 Slack Event Subscriptions）
         /// </summary>
         [HttpPost("events")]
         [IgnoreAntiforgeryToken]
@@ -150,6 +163,13 @@ namespace ERP.Web.Controllers.Slack
             {
                 var slackEvent = envelope.Event;
 
+                // 記錄所有收到的事件（用於調試）
+                var textPreview = !string.IsNullOrWhiteSpace(slackEvent.Text) 
+                    ? (slackEvent.Text.Length > 50 ? slackEvent.Text.Substring(0, 50) + "..." : slackEvent.Text)
+                    : "(無)";
+                _logger.LogInformation("收到 Slack 事件：Type={Type} Subtype={Subtype} Channel={Channel} User={User} Text={Text}", 
+                    slackEvent.Type, slackEvent.Subtype ?? "(無)", slackEvent.Channel ?? "(無)", slackEvent.User ?? "(無)", textPreview);
+
                 if (string.Equals(slackEvent.Type, "message", StringComparison.OrdinalIgnoreCase) && string.IsNullOrWhiteSpace(slackEvent.Subtype))
                 {
                     // 檢查是否為私訊（直接訊息）
@@ -158,21 +178,297 @@ namespace ERP.Web.Controllers.Slack
                         (slackEvent.Channel.StartsWith("D", StringComparison.OrdinalIgnoreCase) ||
                          string.Equals(slackEvent.ChannelType, "im", StringComparison.OrdinalIgnoreCase));
 
+                    _logger.LogInformation("訊息類型判斷：IsDirectMessage={IsDirectMessage} Channel={Channel} ChannelType={ChannelType}", 
+                        isDirectMessage, slackEvent.Channel, slackEvent.ChannelType ?? "(無)");
+
                     if (isDirectMessage && !string.IsNullOrWhiteSpace(slackEvent.Channel))
                     {
-                        // 取得接收者的使用者 ID（需要從 session 或配置中取得）
-                        // 注意：Slack Events API 不會直接告訴我們接收者是誰
-                        // 我們需要透過其他方式判斷，例如從 channel 資訊中取得
-                        // 這裡先儲存訊息，後續可以透過 API 查詢頻道資訊來判斷接收者
-                        await StoreUnreadMessageAsync(slackEvent, cancellationToken);
+                        // 儲存未讀訊息
+                        var unreadMessage = await StoreUnreadMessageAsync(slackEvent, cancellationToken);
+                        
+                        // 透過 SignalR 推送即時通知
+                        if (unreadMessage != null && !string.IsNullOrWhiteSpace(slackEvent.Channel))
+                        {
+                            try
+                            {
+                                // 查詢頻道資訊以確定接收者
+                                string? recipientUserId = null;
+                                var token = GetEffectiveToken();
+                                if (!string.IsNullOrWhiteSpace(token))
+                                {
+                                    var channelInfo = await _slackService.GetConversationInfoAsync(token, slackEvent.Channel, cancellationToken);
+                                    if (channelInfo?.Ok == true && channelInfo.Channel != null)
+                                    {
+                                        // 對於直接訊息（DM），Channel.User 欄位包含另一個使用者的 ID
+                                        // 發送者是 slackEvent.User，接收者是 Channel.User（如果不是發送者的話）
+                                        if (channelInfo.Channel.IsIm && !string.IsNullOrWhiteSpace(channelInfo.Channel.User))
+                                        {
+                                            // 如果 Channel.User 不是發送者，則為接收者
+                                            if (!string.Equals(channelInfo.Channel.User, slackEvent.User, StringComparison.OrdinalIgnoreCase))
+                                            {
+                                                recipientUserId = channelInfo.Channel.User;
+                                            }
+                                        }
+                                        
+                                        _logger.LogInformation("查詢頻道資訊：Channel={Channel} IsIm={IsIm} User={User} Sender={Sender} Recipient={Recipient}", 
+                                            slackEvent.Channel, channelInfo.Channel.IsIm, channelInfo.Channel.User, slackEvent.User, recipientUserId ?? "未知");
+                                    }
+                                }
+                                
+                                // 從暫存中取得使用者資訊（優先根據頻道 ID，其次根據使用者 ID）
+                                string? senderDisplayName = unreadMessage.SenderDisplayName;
+                                string? senderRealName = null;
+                                
+                                // 優先從暫存中取得使用者資訊（效能更好）
+                                // 在暫存的頻道清單中，每個 IM 頻道都包含使用者的 RealName 和 DisplayName
+                                if (string.IsNullOrWhiteSpace(senderDisplayName))
+                                {
+                                    try
+                                    {
+                                        // 嘗試從不同類型的暫存中取得頻道資訊
+                                        // 注意：暫存鍵的格式是 ChannelsCacheKey:{types}，types 可能包含空格或不同的順序
+                                        var cacheKeys = new[] 
+                                        { 
+                                            $"{ChannelsCacheKey}:private_channel,im,mpim",
+                                            $"{ChannelsCacheKey}:im",
+                                            $"{ChannelsCacheKey}:private_channel,im",
+                                            $"{ChannelsCacheKey}:im,private_channel,mpim", // 不同的順序
+                                            $"{ChannelsCacheKey}:im,mpim,private_channel"  // 不同的順序
+                                        };
+                                        
+                                        ChannelCacheItem? foundChannelInfo = null;
+                                        string? foundCacheKey = null;
+                                        
+                                        foreach (var cacheKey in cacheKeys)
+                                        {
+                                            if (_memoryCache.TryGetValue<ChannelsCacheWrapper>(cacheKey, out var cachedWrapper) 
+                                                && cachedWrapper?.Channels != null)
+                                            {
+                                                _logger.LogDebug("檢查暫存鍵：{CacheKey}，包含 {Count} 個頻道", cacheKey, cachedWrapper.Channels.Count);
+                                                
+                                                // 優先根據頻道 ID 查找（最準確）
+                                                if (!string.IsNullOrWhiteSpace(slackEvent.Channel))
+                                                {
+                                                    foundChannelInfo = cachedWrapper.Channels
+                                                        .FirstOrDefault(c => string.Equals(c.Id, slackEvent.Channel, StringComparison.OrdinalIgnoreCase));
+                                                    
+                                                    if (foundChannelInfo != null)
+                                                    {
+                                                        foundCacheKey = cacheKey;
+                                                        _logger.LogInformation("從暫存取得頻道資訊（根據頻道 ID）：CacheKey={CacheKey} ChannelId={ChannelId} RealName={RealName} DisplayName={DisplayName} UserId={UserId}", 
+                                                            cacheKey, slackEvent.Channel, foundChannelInfo.RealName, foundChannelInfo.DisplayName, foundChannelInfo.UserId);
+                                                        break;
+                                                    }
+                                                }
+                                                
+                                                // 如果根據頻道 ID 找不到，再根據使用者 ID 查找（IM 頻道的 UserId 就是使用者的 ID）
+                                                if (foundChannelInfo == null && !string.IsNullOrWhiteSpace(slackEvent.User))
+                                                {
+                                                    foundChannelInfo = cachedWrapper.Channels
+                                                        .FirstOrDefault(c => c.IsIm 
+                                                            && string.Equals(c.UserId, slackEvent.User, StringComparison.OrdinalIgnoreCase));
+                                                    
+                                                    if (foundChannelInfo != null)
+                                                    {
+                                                        foundCacheKey = cacheKey;
+                                                        _logger.LogInformation("從暫存取得頻道資訊（根據使用者 ID）：CacheKey={CacheKey} UserId={UserId} ChannelId={ChannelId} RealName={RealName} DisplayName={DisplayName}", 
+                                                            cacheKey, slackEvent.User, foundChannelInfo.Id, foundChannelInfo.RealName, foundChannelInfo.DisplayName);
+                                                        break;
+                                                    }
+                                                }
+                                            }
+                                            else
+                                            {
+                                                _logger.LogDebug("暫存鍵不存在或為空：{CacheKey}", cacheKey);
+                                            }
+                                        }
+                                        
+                                        if (foundChannelInfo != null)
+                                        {
+                                            // 對於直接訊息（IM），頻道的 RealName 和 DisplayName 就是使用者的名稱
+                                            senderRealName = foundChannelInfo.RealName;
+                                            senderDisplayName = foundChannelInfo.DisplayName;
+                                            
+                                            _logger.LogInformation("從暫存取得使用者資訊成功：ChannelId={ChannelId} UserId={UserId} RealName={RealName} DisplayName={DisplayName}", 
+                                                foundChannelInfo.Id, slackEvent.User, senderRealName, senderDisplayName);
+                                        }
+                                        else
+                                        {
+                                            _logger.LogWarning("暫存中找不到頻道資訊：ChannelId={ChannelId} UserId={UserId}。已嘗試的暫存鍵：{CacheKeys}", 
+                                                slackEvent.Channel, slackEvent.User, string.Join(", ", cacheKeys));
+                                            
+                                            // 列出暫存中所有可用的鍵（用於調試）
+                                            _logger.LogDebug("可用的暫存鍵數量：{Count}", cacheKeys.Length);
+                                        }
+                                    }
+                                    catch (Exception ex)
+                                    {
+                                        _logger.LogWarning(ex, "從暫存取得使用者資訊失敗：ChannelId={ChannelId} UserId={UserId}", 
+                                            slackEvent.Channel, slackEvent.User);
+                                    }
+                                }
+                                
+                                // 如果暫存中沒有找到，且 SenderDisplayName 仍為 null，才查詢 Slack API
+                                if (string.IsNullOrWhiteSpace(senderDisplayName) && !string.IsNullOrWhiteSpace(slackEvent.User))
+                                {
+                                    var tokenForUserInfo = GetEffectiveToken();
+                                    if (!string.IsNullOrWhiteSpace(tokenForUserInfo))
+                                    {
+                                        try
+                                        {
+                                            var userInfo = await _slackService.GetUserInfoAsync(tokenForUserInfo, slackEvent.User, cancellationToken);
+                                            if (userInfo?.Ok == true && userInfo.User != null)
+                                            {
+                                                var profile = userInfo.User.Profile;
+                                                // 優先使用 RealName
+                                                senderRealName = profile?.RealName ?? profile?.RealNameNormalized ?? 
+                                                                userInfo.User.RealName ?? userInfo.User.Name;
+                                                // 如果沒有 RealName，使用 DisplayName
+                                                senderDisplayName = senderRealName ?? 
+                                                                    profile?.DisplayName ?? profile?.DisplayNameNormalized;
+                                                
+                                                _logger.LogDebug("從 Slack API 取得使用者資訊：UserId={UserId} RealName={RealName} DisplayName={DisplayName}", 
+                                                    slackEvent.User, senderRealName, senderDisplayName);
+                                            }
+                                        }
+                                        catch (Exception ex)
+                                        {
+                                            _logger.LogWarning(ex, "查詢使用者資訊失敗（推送通知時）：UserId={UserId}", slackEvent.User);
+                                        }
+                                    }
+                                }
+                                
+                                // 準備通知資料
+                                var notificationData = new
+                                {
+                                    ChannelId = slackEvent.Channel,
+                                    SenderUserId = slackEvent.User,
+                                    SenderDisplayName = senderDisplayName,
+                                    SenderRealName = senderRealName, // 新增 RealName 欄位
+                                    Text = slackEvent.Text,
+                                    Timestamp = slackEvent.Timestamp,
+                                    ReceivedAt = unreadMessage.ReceivedAt,
+                                    RecipientUserId = recipientUserId // 包含接收者 ID，前端可以用來過濾
+                                };
+                                
+                                // 如果有確定的接收者，嘗試推送給該使用者的群組；否則推送給所有使用者
+                                if (!string.IsNullOrWhiteSpace(recipientUserId))
+                                {
+                                    // 推送給特定使用者的群組
+                                    await _hubContext.Clients.Group($"SlackUser_{recipientUserId}").SendAsync("ReceiveMessage", notificationData);
+                                    _logger.LogInformation("已透過 SignalR 推送 Slack 訊息通知給特定使用者：Channel={Channel} Sender={Sender} Recipient={Recipient}", 
+                                        slackEvent.Channel, slackEvent.User, recipientUserId);
+                                }
+                                else
+                                {
+                                    // 如果無法確定接收者，推送給所有連接的使用者（前端會過濾）
+                                    await _hubContext.Clients.All.SendAsync("ReceiveMessage", notificationData);
+                                    _logger.LogInformation("已透過 SignalR 推送 Slack 訊息通知給所有使用者（無法確定接收者）：Channel={Channel} Sender={Sender}", 
+                                        slackEvent.Channel, slackEvent.User);
+                                }
+                            }
+                            catch (Exception ex)
+                            {
+                                _logger.LogError(ex, "推送 SignalR 通知失敗：Channel={Channel}", slackEvent.Channel);
+                            }
+                        }
                     }
 
                     _logger.LogInformation("接收到 Slack 訊息：Channel={Channel} User={User} Text={Text} IsDirectMessage={IsDirectMessage}", 
                         slackEvent.Channel, slackEvent.User, slackEvent.Text, isDirectMessage);
                 }
+                else
+                {
+                    // 記錄非直接訊息或不符合條件的事件
+                    _logger.LogInformation("跳過處理的訊息事件：Type={Type} Subtype={Subtype} Channel={Channel} IsDirectMessage={IsDirectMessage}", 
+                        slackEvent.Type, slackEvent.Subtype ?? "(無)", slackEvent.Channel ?? "(無)", 
+                        !string.IsNullOrWhiteSpace(slackEvent.Channel) && 
+                        (slackEvent.Channel.StartsWith("D", StringComparison.OrdinalIgnoreCase) ||
+                         string.Equals(slackEvent.ChannelType, "im", StringComparison.OrdinalIgnoreCase)));
+                }
+            }
+            else
+            {
+                // 記錄非 event_callback 類型的事件
+                _logger.LogInformation("收到非 event_callback 類型的 Slack 事件：EnvelopeType={EnvelopeType} EventType={EventType}", 
+                    envelope?.Type ?? "(無)", envelope?.Event?.Type ?? "(無)");
             }
 
             return Ok();
+        }
+
+        /// <summary>
+        /// Slack 事件處理（Webhook）- 向後兼容路由
+        /// 此方法用於支援 Slack Event Subscriptions 的 /SlackCommand/Events 路徑
+        /// </summary>
+        [HttpPost]
+        [Route("/SlackCommand/Events")]
+        [IgnoreAntiforgeryToken]
+        public async Task<IActionResult> EventsLegacy(CancellationToken cancellationToken)
+        {
+            // 直接呼叫主要的事件處理方法
+            return await Events(cancellationToken);
+        }
+
+        /// <summary>
+        /// 測試 SignalR 推送功能（僅用於開發和調試）
+        /// </summary>
+        [HttpPost("test/notification")]
+        [HttpGet("test/notification")] // 同時支援 GET 以便在瀏覽器中直接測試
+        [IgnoreAntiforgeryToken]
+        public async Task<IActionResult> TestNotification([FromQuery] string? userId = null, CancellationToken cancellationToken = default)
+        {
+            try
+            {
+                // 取得當前使用者的 Slack User ID（如果未提供）
+                var targetUserId = userId;
+                if (string.IsNullOrWhiteSpace(targetUserId))
+                {
+                    // 嘗試從 Session 取得
+                    targetUserId = HttpContext.Session.GetString("Slack:UserId");
+                }
+
+                // 準備測試通知資料
+                var testNotification = new
+                {
+                    ChannelId = "TEST_CHANNEL",
+                    SenderUserId = "TEST_SENDER",
+                    SenderDisplayName = "測試發送者",
+                    Text = $"這是一則測試訊息，發送時間：{DateTime.Now:yyyy-MM-dd HH:mm:ss}",
+                    Timestamp = DateTimeOffset.UtcNow.ToUnixTimeSeconds().ToString(),
+                    ReceivedAt = DateTime.UtcNow,
+                    RecipientUserId = targetUserId
+                };
+
+                // 如果有指定的使用者 ID，推送給該使用者的群組；否則推送給所有使用者
+                if (!string.IsNullOrWhiteSpace(targetUserId))
+                {
+                    await _hubContext.Clients.Group($"SlackUser_{targetUserId}").SendAsync("ReceiveMessage", testNotification, cancellationToken);
+                    _logger.LogInformation("測試推送：已透過 SignalR 推送測試訊息給使用者群組 SlackUser_{UserId}", targetUserId);
+                    return Ok(new { 
+                        Message = "測試訊息已推送", 
+                        TargetUserId = targetUserId,
+                        Notification = testNotification
+                    });
+                }
+                else
+                {
+                    await _hubContext.Clients.All.SendAsync("ReceiveMessage", testNotification, cancellationToken);
+                    _logger.LogInformation("測試推送：已透過 SignalR 推送測試訊息給所有連接的使用者");
+                    return Ok(new { 
+                        Message = "測試訊息已推送給所有使用者（未指定使用者 ID）", 
+                        Notification = testNotification
+                    });
+                }
+            }
+            catch (Exception ex)
+            {
+                _logger.LogError(ex, "測試推送失敗");
+                return StatusCode(StatusCodes.Status500InternalServerError, new { 
+                    Message = "測試推送失敗", 
+                    Error = ex.Message 
+                });
+            }
         }
 
         /// <summary>
@@ -333,13 +629,14 @@ namespace ERP.Web.Controllers.Slack
         /// <summary>
         /// 儲存未讀訊息到記憶體快取
         /// </summary>
-        private async Task StoreUnreadMessageAsync(SlackEventBody slackEvent, CancellationToken cancellationToken)
+        /// <returns>儲存的未讀訊息物件，如果儲存失敗則返回 null</returns>
+        private async Task<SlackUnreadMessage?> StoreUnreadMessageAsync(SlackEventBody slackEvent, CancellationToken cancellationToken)
         {
             try
             {
                 if (string.IsNullOrWhiteSpace(slackEvent.Channel) || string.IsNullOrWhiteSpace(slackEvent.User))
                 {
-                    return;
+                    return null;
                 }
 
                 // 取得發送者資訊
@@ -397,11 +694,18 @@ namespace ERP.Web.Controllers.Slack
 
                     _logger.LogInformation("已儲存未讀訊息：Channel={Channel} Sender={Sender} Text={Text}", 
                         slackEvent.Channel, slackEvent.User, slackEvent.Text);
+                    
+                    // 返回儲存的訊息物件
+                    return unreadMessage;
                 }
+                
+                // 訊息已存在，返回 null
+                return null;
             }
             catch (Exception ex)
             {
                 _logger.LogError(ex, "儲存未讀訊息失敗：Channel={Channel}", slackEvent.Channel);
+                return null;
             }
         }
 

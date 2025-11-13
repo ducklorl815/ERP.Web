@@ -58,5 +58,10 @@ namespace ERP.Web.Service.Service.Slack
         /// 取得最近溝通的私人頻道清單（按最後更新時間排序）。
         /// </summary>
         Task<SlackConversationsListResponse?> GetRecentConversationsAsync(string token, string types = "im,mpim", int limit = 10, CancellationToken cancellationToken = default);
+
+        /// <summary>
+        /// 取得頻道資訊（用於確定直接訊息的接收者）。
+        /// </summary>
+        Task<SlackConversationInfoResponse?> GetConversationInfoAsync(string token, string channelId, CancellationToken cancellationToken = default);
     }
 }

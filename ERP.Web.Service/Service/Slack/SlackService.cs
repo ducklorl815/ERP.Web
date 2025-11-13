@@ -674,5 +674,50 @@ namespace ERP.Web.Service.Service.Slack
                 throw;
             }
         }
+
+        /// <summary>
+        /// 取得頻道資訊（用於確定直接訊息的接收者）
+        /// </summary>
+        public async Task<SlackConversationInfoResponse?> GetConversationInfoAsync(string token, string channelId, CancellationToken cancellationToken = default)
+        {
+            if (string.IsNullOrWhiteSpace(token))
+            {
+                throw new ArgumentException("Slack token 不可為空白。", nameof(token));
+            }
+
+            if (string.IsNullOrWhiteSpace(channelId))
+            {
+                throw new ArgumentException("頻道 ID 不可為空白。", nameof(channelId));
+            }
+
+            var query = new Dictionary<string, string?>
+            {
+                ["channel"] = channelId
+            };
+
+            var requestUri = QueryHelpers.AddQueryString("conversations.info", query!);
+
+            using var httpRequest = new HttpRequestMessage(HttpMethod.Get, requestUri);
+            httpRequest.Headers.Authorization = new AuthenticationHeaderValue("Bearer", token);
+
+            using var response = await _httpClient.SendAsync(httpRequest, cancellationToken);
+            var responseBody = await response.Content.ReadAsStringAsync(cancellationToken);
+
+            if (!response.IsSuccessStatusCode)
+            {
+                _logger.LogWarning("Slack 取得頻道資訊失敗，狀態碼：{StatusCode}，回應：{Body}", response.StatusCode, responseBody);
+                return null;
+            }
+
+            try
+            {
+                return JsonSerializer.Deserialize<SlackConversationInfoResponse>(responseBody, JsonOptions);
+            }
+            catch (JsonException ex)
+            {
+                _logger.LogError(ex, "解析 Slack 頻道資訊回應失敗：{Body}", responseBody);
+                throw;
+            }
+        }
     }
 }

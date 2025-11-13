@@ -404,18 +404,53 @@
                 
                 window.SlackChat.channel.openChannelForUser(userId, channelName).then(result => {
                     if (result && result.channelId) {
-                        // 更新視窗資料
                         const newChannelId = result.channelId;
+                        
+                        // 檢查該 channelId 是否已經存在視窗
+                        const existingWindow = state.chatWindows.get(newChannelId);
+                        if (existingWindow && existingWindow !== currentWindow) {
+                            // 如果已存在另一個視窗，關閉當前視窗並顯示已存在的視窗
+                            console.log('頻道視窗已存在，關閉當前視窗並顯示已存在的視窗:', newChannelId);
+                            
+                            // 移除當前視窗
+                            const currentOldChannelId = currentWindow.dataset.channelId || '';
+                            if (currentOldChannelId && state.chatWindows.has(currentOldChannelId)) {
+                                state.chatWindows.delete(currentOldChannelId);
+                            }
+                            if ((!currentOldChannelId || currentOldChannelId === '') && state.chatWindows.has('')) {
+                                state.chatWindows.delete('');
+                            }
+                            currentWindow.remove();
+                            
+                            // 顯示已存在的視窗
+                            existingWindow.classList.add('active');
+                            // 更新標題（優先使用 RealName）
+                            const titleElement = existingWindow.querySelector('.slack-channel-title');
+                            if (titleElement && realName) {
+                                titleElement.textContent = realName;
+                                existingWindow.dataset.realName = realName;
+                            }
+                            // 更新小圖示狀態
+                            window.SlackChat.icons?.updateRecentChatIconState(newChannelId, true);
+                            return;
+                        }
+                        
+                        // 更新視窗資料
                         currentWindow.dataset.channelId = newChannelId;
                         currentWindow.dataset.channelName = channelName;
                         if (userId) {
                             currentWindow.dataset.userId = userId;
                         }
                         
-                        // 更新標題
+                        // 更新標題（優先使用 RealName）
                         const titleElement = currentWindow.querySelector('.slack-channel-title');
                         if (titleElement) {
-                            titleElement.textContent = channelName;
+                            const titleToShow = realName || channelName || 'Slack 即時通訊';
+                            titleElement.textContent = titleToShow;
+                        }
+                        // 更新 data 屬性
+                        if (realName) {
+                            currentWindow.dataset.realName = realName;
                         }
                         
                         // 更新聊天視窗 Map（移除舊的，加入新的）
@@ -452,6 +487,37 @@
 
             // 如果有頻道 ID，直接切換
             if (channelId) {
+                // 檢查該 channelId 是否已經存在視窗
+                const existingWindow = state.chatWindows.get(channelId);
+                if (existingWindow && existingWindow !== currentWindow) {
+                    // 如果已存在另一個視窗，關閉當前視窗並顯示已存在的視窗
+                    console.log('頻道視窗已存在，關閉當前視窗並顯示已存在的視窗:', channelId);
+                    
+                    // 取得當前視窗的舊 channelId
+                    const oldChannelId = currentWindow.dataset.channelId || '';
+                    
+                    // 移除當前視窗
+                    if (oldChannelId && state.chatWindows.has(oldChannelId)) {
+                        state.chatWindows.delete(oldChannelId);
+                    }
+                    if ((!oldChannelId || oldChannelId === '') && state.chatWindows.has('')) {
+                        state.chatWindows.delete('');
+                    }
+                    currentWindow.remove();
+                    
+                    // 顯示已存在的視窗
+                    existingWindow.classList.add('active');
+                    // 更新標題（優先使用 RealName）
+                    const titleElement = existingWindow.querySelector('.slack-channel-title');
+                    if (titleElement && realName) {
+                        titleElement.textContent = realName;
+                        existingWindow.dataset.realName = realName;
+                    }
+                    // 更新小圖示狀態
+                    window.SlackChat.icons?.updateRecentChatIconState(channelId, true);
+                    return;
+                }
+                
                 // 取得舊的 channelId（可能是空的）
                 const oldChannelId = currentWindow.dataset.channelId || '';
                 
@@ -462,10 +528,15 @@
                     currentWindow.dataset.userId = userId;
                 }
                 
-                // 更新標題
+                // 更新標題（優先使用 RealName）
                 const titleElement = currentWindow.querySelector('.slack-channel-title');
                 if (titleElement) {
-                    titleElement.textContent = channelName;
+                    const titleToShow = realName || channelName || 'Slack 即時通訊';
+                    titleElement.textContent = titleToShow;
+                }
+                // 更新 data 屬性
+                if (realName) {
+                    currentWindow.dataset.realName = realName;
                 }
                 
                 // 更新聊天視窗 Map（如果 channelId 改變，移除舊的 key）
