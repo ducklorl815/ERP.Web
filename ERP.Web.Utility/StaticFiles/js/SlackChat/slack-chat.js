@@ -1,0 +1,1300 @@
+(function () {
+    // 取得聊天視窗容器元素
+    const container = document.getElementById('slack-chat-container');
+    const newChatBtn = document.getElementById('slack-new-chat-btn');
+    const template = document.getElementById('slack-chat-window-template');
+    const recentChatIconsContainer = document.getElementById('slack-recent-chat-icons');
+    
+    if (!container || !template) {
+        return;
+    }
+
+    // 從 data 屬性取得設定值
+    const hasToken = container.dataset.hasToken === 'true';
+    const authSuccess = container.dataset.authSuccess === 'true';
+    const authorizeUrl = container.dataset.authorizeUrl;
+    const messageUrl = container.dataset.messageUrl;
+    const messagesUrl = container.dataset.messagesUrl;
+    const channelsUrl = container.dataset.channelsUrl;
+    const channelsAllUrl = container.dataset.channelsAllUrl;
+    const channelsRefreshUrl = container.dataset.channelsRefreshUrl;
+    const openChannelUrl = container.dataset.openChannelUrl;
+    const defaultChannel = container.dataset.defaultChannel || '';
+    const currentUserId = container.dataset.userId || '';
+    const channelsStorageKey = 'erp.slack.channels';
+    const channelsLastUpdatedKey = 'erp.slack.channelsLastUpdated';
+    const cacheExpirationMs = 60 * 60 * 1000; // 1 小時（3600000 毫秒）
+
+    // 聊天視窗管理
+    const chatWindows = new Map(); // channelId -> windowElement
+    const recentChatIcons = new Map(); // channelId -> iconElement
+    const channelLastMessageTime = new Map(); // channelId -> lastMessageTimestamp
+    const userInfoMap = new Map(); // userId -> { realName, displayName }
+    let channelCache = [];
+    let globalSearchTimer = null;
+    let messagePollingTimer = null;
+    const messagePollingInterval = 30000; // 30 秒輪詢一次
+
+    // 觸發聊天視窗按鈕事件（即使沒有 Token 也要顯示）
+    const chatTrigger = document.getElementById('small-chat');
+    const openSmallChatLink = chatTrigger?.querySelector('.open-small-chat');
+    if (openSmallChatLink) {
+        openSmallChatLink.addEventListener('click', (e) => {
+            e.preventDefault();
+            if (!hasToken) {
+                // 如果沒有 Token，導向授權頁面
+                if (authorizeUrl) {
+                    window.location.href = authorizeUrl;
+                }
+                return;
+            }
+            // 如果有 Token，建立預設聊天視窗
+            if (defaultChannel) {
+                createChatWindow(defaultChannel, 'Slack 即時通訊', '');
+            } else {
+                // 如果沒有預設頻道，建立空視窗讓使用者選擇
+                createChatWindow('', 'Slack 即時通訊', '');
+            }
+        });
+    }
+
+    // 新增聊天視窗按鈕事件（即使沒有 Token 也要顯示）
+    if (newChatBtn) {
+        newChatBtn.addEventListener('click', () => {
+            if (!hasToken) {
+                // 如果沒有 Token，導向授權頁面
+                if (authorizeUrl) {
+                    window.location.href = authorizeUrl;
+                }
+                return;
+            }
+            // 建立一個空的聊天視窗，等待選擇頻道
+            createChatWindow('', 'Slack 即時通訊', '');
+        });
+    }
+
+    // 如果沒有 Token，只初始化觸發按鈕，不初始化其他功能
+    if (!hasToken) {
+        return;
+    }
+
+    // 建立新聊天視窗
+    function createChatWindow(channelId, channelName, userId) {
+        // 如果視窗已存在，則直接顯示
+        if (chatWindows.has(channelId)) {
+            const existingWindow = chatWindows.get(channelId);
+            existingWindow.classList.add('active');
+            // 更新對應的小圖示狀態為活躍
+            if (channelId) {
+                updateRecentChatIconState(channelId, true);
+            }
+            return existingWindow;
+        }
+
+        // 從模板建立新視窗
+        const windowElement = template.content.cloneNode(true).querySelector('.slack-chat-box');
+        windowElement.dataset.channelId = channelId || '';
+        windowElement.dataset.channelName = channelName || '';
+        if (userId) {
+            windowElement.dataset.userId = userId;
+        }
+
+        // 設定頻道標題
+        const titleElement = windowElement.querySelector('.slack-channel-title');
+        if (titleElement) {
+            titleElement.textContent = channelName || 'Slack 即時通訊';
+        }
+
+        // 如果沒有頻道 ID（新開的頻道），自動顯示搜尋功能
+        const searchToggle = windowElement.querySelector('.slack-search-toggle');
+        const searchWrapper = windowElement.querySelector('.slack-channel-search-wrapper');
+        if (!channelId || channelId === '') {
+            // 新開的頻道，顯示搜尋按鈕和搜尋欄
+            if (searchToggle) {
+                searchToggle.style.display = 'block';
+            }
+            if (searchWrapper) {
+                searchWrapper.style.display = 'block';
+            }
+            // 自動聚焦到搜尋輸入框並載入頻道列表
+            const searchInput = windowElement.querySelector('.slack-channel-search');
+            const channelResults = windowElement.querySelector('.slack-channel-results');
+            if (searchInput) {
+                // 先載入頻道列表
+                loadChannels().then(() => {
+                    setTimeout(() => {
+                        searchInput.focus();
+                        // 如果已經有頻道快取，顯示頻道列表
+                        if (channelCache.length > 0 && channelResults) {
+                            renderChannelResultsInWindow(channelCache, channelResults, windowElement);
+                            channelResults.style.display = 'block';
+                        } else if (channelResults) {
+                            // 如果沒有頻道，顯示提示訊息
+                            channelResults.innerHTML = '<div class="text-muted small text-center py-2">載入頻道中...</div>';
+                            channelResults.style.display = 'block';
+                        }
+                    }, 100);
+                }).catch(error => {
+                    console.error('載入頻道列表失敗', error);
+                    if (channelResults) {
+                        channelResults.innerHTML = '<div class="text-muted small text-center py-2">載入頻道失敗，請重試</div>';
+                        channelResults.style.display = 'block';
+                    }
+                });
+            }
+        } else {
+            // 已有頻道的視窗，搜尋按鈕保持顯示（可以點擊來顯示搜尋欄）
+            if (searchToggle) {
+                searchToggle.style.display = 'block';
+            }
+        }
+
+        // 設定關閉按鈕
+        const closeBtn = windowElement.querySelector('.slack-close-btn');
+        if (closeBtn) {
+            closeBtn.addEventListener('click', () => {
+                // 取得目前的 channelId（可能是空的）
+                const currentChannelId = windowElement.dataset.channelId || channelId || '';
+                closeChatWindow(currentChannelId);
+            });
+        }
+
+        // 設定搜尋功能
+        setupSearchInWindow(windowElement);
+
+        // 加入容器
+        container.appendChild(windowElement);
+        windowElement.classList.add('active');
+        
+        // 如果有頻道 ID，設定表單並載入訊息
+        if (channelId) {
+            // 使用 setupMessageForm 設定表單（確保使用正確的 channelId）
+            setupMessageForm(windowElement, channelId);
+            chatWindows.set(channelId, windowElement);
+            // 載入歷史訊息
+            loadMessages(channelId);
+            // 更新對應的小圖示狀態為活躍
+            updateRecentChatIconState(channelId, true);
+        } else {
+            // 沒有頻道 ID（新開的頻道），設定表單但不啟用（等待選擇頻道）
+            const form = windowElement.querySelector('.slack-chat-form');
+            const messageInput = windowElement.querySelector('.slack-message-input');
+            if (form && messageInput) {
+                // 禁用輸入框，直到選擇頻道
+                messageInput.disabled = true;
+                messageInput.placeholder = '請先選擇頻道...';
+            }
+            // 使用空字串作為 key（新開的頻道）
+            chatWindows.set('', windowElement);
+        }
+
+        return windowElement;
+    }
+
+    // 關閉聊天視窗
+    function closeChatWindow(channelId) {
+        // 如果 channelId 為空，嘗試找到所有空字串的視窗
+        if (!channelId || channelId === '') {
+            // 查找所有空字串的視窗並關閉
+            for (const [key, windowElement] of chatWindows.entries()) {
+                if (!key || key === '') {
+                    windowElement.remove();
+                    chatWindows.delete(key);
+                    return;
+                }
+            }
+            return;
+        }
+        
+        const windowElement = chatWindows.get(channelId);
+        if (windowElement) {
+            windowElement.remove();
+            chatWindows.delete(channelId);
+            // 更新對應的小圖示狀態為非活躍（但不要刪除小圖示）
+            updateRecentChatIconState(channelId, false);
+        } else {
+            // 如果找不到，嘗試查找所有視窗，看看是否有匹配的
+            console.warn('關閉聊天視窗：找不到對應的視窗', channelId);
+        }
+    }
+
+    // 設定視窗內的搜尋功能
+    function setupSearchInWindow(windowElement) {
+        const searchToggle = windowElement.querySelector('.slack-search-toggle');
+        const searchWrapper = windowElement.querySelector('.slack-channel-search-wrapper');
+        const searchInput = windowElement.querySelector('.slack-channel-search');
+        const loadBtn = windowElement.querySelector('.slack-load-channels');
+        const channelResults = windowElement.querySelector('.slack-channel-results');
+        const titleElement = windowElement.querySelector('.slack-channel-title');
+        const channelId = windowElement.dataset.channelId;
+
+        // 搜尋切換按鈕
+        if (searchToggle && searchWrapper) {
+            searchToggle.addEventListener('click', (e) => {
+                e.preventDefault();
+                e.stopPropagation();
+                const isHidden = searchWrapper.style.display === 'none' || searchWrapper.style.display === '';
+                searchWrapper.style.display = isHidden ? 'block' : 'none';
+                if (isHidden && searchInput) {
+                    setTimeout(() => {
+                        searchInput.focus();
+                        // 如果頻道快取為空，先載入頻道列表
+                        if (channelCache.length === 0) {
+                            loadChannels().then(() => {
+                                if (channelCache.length > 0 && channelResults) {
+                                    renderChannelResultsInWindow(channelCache, channelResults, windowElement);
+                                    channelResults.style.display = 'block';
+                                }
+                            });
+                        } else if (channelResults) {
+                            renderChannelResultsInWindow(channelCache, channelResults, windowElement);
+                            channelResults.style.display = 'block';
+                        }
+                    }, 100);
+                } else if (!isHidden && channelResults) {
+                    channelResults.style.display = 'none';
+                }
+            });
+        }
+
+        // 搜尋輸入框
+        if (searchInput) {
+            searchInput.addEventListener('input', () => {
+                if (globalSearchTimer) {
+                    clearTimeout(globalSearchTimer);
+                }
+                globalSearchTimer = setTimeout(() => {
+                    const keyword = searchInput.value.trim();
+                    if (keyword && channelResults) {
+                        // 如果頻道快取為空，先載入頻道列表
+                        if (channelCache.length === 0) {
+                            loadChannels().then(() => {
+                                searchChannelsInWindow(keyword, channelResults, windowElement);
+                            });
+                        } else {
+                            searchChannelsInWindow(keyword, channelResults, windowElement);
+                        }
+                    } else if (channelResults) {
+                        // 如果沒有關鍵字，顯示所有頻道
+                        if (channelCache.length > 0) {
+                            renderChannelResultsInWindow(channelCache, channelResults, windowElement);
+                            channelResults.style.display = 'block';
+                        } else {
+                            channelResults.style.display = 'none';
+                        }
+                    }
+                }, 300);
+            });
+
+            searchInput.addEventListener('focus', () => {
+                // 如果頻道快取為空，先載入頻道列表
+                if (channelCache.length === 0) {
+                    loadChannels().then(() => {
+                        if (channelCache.length > 0 && channelResults) {
+                            renderChannelResultsInWindow(channelCache, channelResults, windowElement);
+                            channelResults.style.display = 'block';
+                        }
+                    });
+                } else if (channelResults) {
+                    renderChannelResultsInWindow(channelCache, channelResults, windowElement);
+                    channelResults.style.display = 'block';
+                }
+            });
+
+            // 按下 Enter 鍵時，選擇第一個結果
+            searchInput.addEventListener('keydown', (e) => {
+                if (e.key === 'Enter' && channelResults && channelResults.style.display !== 'none') {
+                    e.preventDefault();
+                    const firstItem = channelResults.querySelector('.slack-channel-item');
+                    if (firstItem) {
+                        firstItem.click();
+                    }
+                }
+            });
+        }
+
+        // 載入頻道按鈕
+        if (loadBtn) {
+            loadBtn.addEventListener('click', (e) => {
+                e.preventDefault();
+                e.stopPropagation();
+                loadChannels(true).then(() => {
+                    if (channelResults && searchInput) {
+                        const keyword = searchInput.value.trim();
+                        if (keyword) {
+                            searchChannelsInWindow(keyword, channelResults, windowElement);
+                        } else {
+                            renderChannelResultsInWindow(channelCache, channelResults, windowElement);
+                        }
+                        channelResults.style.display = 'block';
+                    }
+                });
+            });
+        }
+    }
+
+    // 在視窗內搜尋頻道
+    function searchChannelsInWindow(keyword, resultsContainer, windowElement) {
+        if (!resultsContainer) return;
+
+        // 過濾頻道列表
+        const filtered = channelCache.filter(item => {
+            if (!item) return false;
+            const displayName = ((item.displayName || item.DisplayName || '').toString()).toLowerCase();
+            const name = ((item.name || item.Name || '').toString()).toLowerCase();
+            const id = ((item.id || item.Id || '').toString()).toLowerCase();
+            const userId = ((item.userId || item.UserId || '').toString()).toLowerCase();
+            const searchTerm = keyword.toLowerCase();
+            return displayName.includes(searchTerm) || name.includes(searchTerm) || id.includes(searchTerm) || userId.includes(searchTerm);
+        });
+
+        renderChannelResultsInWindow(filtered, resultsContainer, windowElement);
+    }
+
+    // 在視窗內渲染頻道結果
+    function renderChannelResultsInWindow(channels, container, windowElement) {
+        if (!container) return;
+
+        container.innerHTML = '';
+        if (!channels || channels.length === 0) {
+            const empty = document.createElement('div');
+            empty.className = 'text-muted small text-center py-2';
+            empty.textContent = '沒有找到相關頻道';
+            container.appendChild(empty);
+            container.style.display = 'block';
+            return;
+        }
+
+        // 建立頻道項目按鈕
+        channels.forEach(item => {
+            if (!item) return;
+            const channelId = item.id || item.Id || '';
+            const displayName = item.displayName || item.DisplayName || item.name || item.Name || channelId;
+            const realName = item.realName || item.RealName || item.real_name || item.real_name_normalized || '';
+            const userId = item.userId || item.UserId || '';
+            const isIm = item.isIm || item.IsIm || false;
+            const isPrivate = item.isPrivate || item.IsPrivate || false;
+            const labelSuffix = isIm ? '[私訊]' : (isPrivate ? '[私密]' : '');
+
+            const button = document.createElement('button');
+            button.type = 'button';
+            button.className = 'btn btn-light btn-sm slack-channel-item';
+            button.textContent = displayName;
+            
+            if (labelSuffix) {
+                const suffix = document.createElement('small');
+                suffix.className = 'text-muted';
+                suffix.textContent = labelSuffix;
+                button.appendChild(document.createTextNode(' '));
+                button.appendChild(suffix);
+            }
+
+            button.addEventListener('click', () => {
+                selectChannelInWindow(channelId, displayName, userId, realName, windowElement);
+                container.style.display = 'none';
+            });
+
+            container.appendChild(button);
+        });
+
+        container.style.display = 'block';
+    }
+
+    // 在視窗內選擇頻道
+    function selectChannelInWindow(channelId, channelName, userId, realName, currentWindow) {
+        // 收合搜尋欄
+        const searchWrapper = currentWindow.querySelector('.slack-channel-search-wrapper');
+        const channelResults = currentWindow.querySelector('.slack-channel-results');
+        const searchInput = currentWindow.querySelector('.slack-channel-search');
+        
+        if (searchWrapper) {
+            searchWrapper.style.display = 'none';
+        }
+        if (channelResults) {
+            channelResults.style.display = 'none';
+        }
+        if (searchInput) {
+            searchInput.value = '';
+        }
+
+        // 如果沒有頻道 ID 但有使用者 ID，需要開啟頻道
+        if (!channelId && userId && openChannelUrl) {
+            // 先取得舊的 channelId（可能是空的）
+            const oldChannelId = currentWindow.dataset.channelId || '';
+            
+            openChannelForUser(userId, channelName).then(result => {
+                if (result && result.channelId) {
+                    // 更新視窗資料
+                    const newChannelId = result.channelId;
+                    currentWindow.dataset.channelId = newChannelId;
+                    currentWindow.dataset.channelName = channelName;
+                    if (userId) {
+                        currentWindow.dataset.userId = userId;
+                    }
+                    
+                    // 更新標題
+                    const titleElement = currentWindow.querySelector('.slack-channel-title');
+                    if (titleElement) {
+                        titleElement.textContent = channelName;
+                    }
+                    
+                    // 更新聊天視窗 Map（移除舊的，加入新的）
+                    if (oldChannelId && chatWindows.has(oldChannelId)) {
+                        chatWindows.delete(oldChannelId);
+                        console.log('移除舊的 channelId:', oldChannelId);
+                    }
+                    // 如果舊的 channelId 是空的，也要移除
+                    if ((!oldChannelId || oldChannelId === '') && chatWindows.has('')) {
+                        chatWindows.delete('');
+                        console.log('移除空 channelId');
+                    }
+                    chatWindows.set(newChannelId, currentWindow);
+                    console.log('設定新的 channelId:', newChannelId);
+                    
+                    // 重新設定表單提交事件（使用新的 channelId）
+                    setupMessageForm(currentWindow, newChannelId);
+                    
+                    // 載入歷史訊息
+                    loadMessages(newChannelId);
+                    
+                    // 建立或更新小圖示（使用 realName）
+                    createRecentChatIcon(newChannelId, channelName, userId, realName);
+                    
+                    // 更新小圖示狀態
+                    updateRecentChatIconState(newChannelId, true);
+                }
+            }).catch(error => {
+                console.error('開啟頻道失敗', error);
+                showTemporaryStatusInWindow(currentWindow, '開啟頻道失敗', 'danger', 3000);
+            });
+            return;
+        }
+
+        // 如果有頻道 ID，直接切換
+        if (channelId) {
+            // 取得舊的 channelId（可能是空的）
+            const oldChannelId = currentWindow.dataset.channelId || '';
+            
+            // 更新視窗資料
+            currentWindow.dataset.channelId = channelId;
+            currentWindow.dataset.channelName = channelName;
+            if (userId) {
+                currentWindow.dataset.userId = userId;
+            }
+            
+            // 更新標題
+            const titleElement = currentWindow.querySelector('.slack-channel-title');
+            if (titleElement) {
+                titleElement.textContent = channelName;
+            }
+            
+            // 更新聊天視窗 Map（如果 channelId 改變，移除舊的 key）
+            if (oldChannelId && oldChannelId !== channelId && chatWindows.has(oldChannelId)) {
+                chatWindows.delete(oldChannelId);
+                console.log('移除舊的 channelId:', oldChannelId);
+            }
+            // 如果舊的 channelId 是空的，也要移除
+            if ((!oldChannelId || oldChannelId === '') && chatWindows.has('')) {
+                chatWindows.delete('');
+                console.log('移除空 channelId');
+            }
+            
+            // 加入新的 channelId
+            chatWindows.set(channelId, currentWindow);
+            console.log('設定新的 channelId:', channelId);
+            
+            // 重新設定表單提交事件（使用新的 channelId）
+            setupMessageForm(currentWindow, channelId);
+            
+            // 載入歷史訊息
+            loadMessages(channelId);
+            
+            // 建立或更新小圖示（使用 realName）
+            createRecentChatIcon(channelId, channelName, userId, realName);
+            
+            // 更新小圖示狀態
+            updateRecentChatIconState(channelId, true);
+        }
+    }
+    
+    // 設定訊息表單（用於更新 channelId）
+    function setupMessageForm(windowElement, channelId) {
+        if (!windowElement) return;
+        
+        if (!channelId || channelId === '') {
+            console.warn('setupMessageForm: channelId 為空，無法設定表單');
+            return;
+        }
+        
+        const form = windowElement.querySelector('.slack-chat-form');
+        const messageInput = windowElement.querySelector('.slack-message-input');
+        
+        if (!form || !messageInput) {
+            console.warn('setupMessageForm: 找不到表單或輸入框');
+            return;
+        }
+        
+        // 移除舊的事件監聽器（通過移除並重新添加）
+        const newForm = form.cloneNode(true);
+        form.parentNode.replaceChild(newForm, form);
+        
+        const newMessageInput = newForm.querySelector('.slack-message-input');
+        
+        if (!newMessageInput) {
+            console.warn('setupMessageForm: 找不到新的輸入框');
+            return;
+        }
+        
+        // 啟用輸入框並設定 placeholder
+        newMessageInput.disabled = false;
+        newMessageInput.placeholder = '請輸入要發送的訊息（按 Enter 發送，Shift+Enter 換行）';
+        
+        // 使用閉包確保 channelId 正確
+        const currentChannelId = channelId;
+        
+        // 重新設定表單提交
+        newForm.addEventListener('submit', (e) => {
+            e.preventDefault();
+            const text = newMessageInput.value.trim();
+            if (text && currentChannelId) {
+                console.log('發送訊息到頻道:', currentChannelId, '內容:', text);
+                sendMessage(currentChannelId, text).then(() => {
+                    newMessageInput.value = '';
+                }).catch(error => {
+                    console.error('發送訊息失敗', error);
+                });
+            } else {
+                console.warn('無法發送訊息：文字為空或 channelId 無效', { text, currentChannelId });
+            }
+        });
+        
+        // Enter 發送，Shift+Enter 換行
+        newMessageInput.addEventListener('keydown', (e) => {
+            if (e.key === 'Enter' && !e.shiftKey) {
+                e.preventDefault();
+                newForm.dispatchEvent(new Event('submit'));
+            }
+        });
+        
+        console.log('表單設定完成，channelId:', currentChannelId);
+    }
+
+    // 顯示臨時狀態訊息（成功或錯誤訊息）
+    function showTemporaryStatusInWindow(windowElement, message, type, duration = 2000) {
+        if (!windowElement) return;
+
+        const statusElement = windowElement.querySelector('.slack-status-message');
+        const statusText = windowElement.querySelector('.slack-status-text');
+        
+        if (statusElement && statusText) {
+            statusText.textContent = message;
+            statusElement.style.display = 'block';
+            statusElement.hidden = false;
+            statusElement.classList.remove('alert-info', 'alert-success', 'alert-danger', 'alert-warning');
+            statusElement.classList.add(`alert-${type}`);
+            
+            // 設定自動隱藏
+            setTimeout(() => {
+                statusElement.style.display = 'none';
+                statusElement.hidden = true;
+            }, duration);
+        }
+    }
+
+    // 載入頻道列表
+    async function loadChannels(force = false) {
+        // 如果不需要強制重新載入且已有快取，直接返回
+        if (!force && channelCache.length > 0) {
+            // 確保使用者資訊對應表已更新
+            channelCache.forEach(channel => {
+                const userId = channel.userId || channel.UserId || '';
+                const realName = channel.realName || channel.RealName || channel.real_name || channel.real_name_normalized || '';
+                const displayName = channel.displayName || channel.DisplayName || channel.display_name || channel.display_name_normalized || '';
+                
+                if (userId && (realName || displayName) && !userInfoMap.has(userId)) {
+                    userInfoMap.set(userId, {
+                        realName: realName || displayName,
+                        displayName: displayName || realName
+                    });
+                }
+            });
+            return channelCache;
+        }
+
+        try {
+            // 嘗試從 sessionStorage 載入
+            const storedChannels = loadChannelsFromStorage();
+            if (!force && storedChannels && storedChannels.length > 0) {
+                channelCache = storedChannels;
+                
+                // 將頻道中的使用者資訊儲存到對應表中（特別是私訊頻道）
+                storedChannels.forEach(channel => {
+                    const userId = channel.userId || channel.UserId || '';
+                    const realName = channel.realName || channel.RealName || channel.real_name || channel.real_name_normalized || '';
+                    const displayName = channel.displayName || channel.DisplayName || channel.display_name || channel.display_name_normalized || '';
+                    
+                    if (userId && (realName || displayName)) {
+                        if (!userInfoMap.has(userId)) {
+                            userInfoMap.set(userId, {
+                                realName: realName || displayName,
+                                displayName: displayName || realName
+                            });
+                        }
+                    }
+                });
+                
+                return channelCache;
+            }
+
+            // 從 API 載入頻道列表
+            const url = channelsAllUrl || channelsUrl;
+            if (!url) {
+                console.error('載入頻道列表：URL 未設定');
+                console.error('channelsAllUrl:', channelsAllUrl);
+                console.error('channelsUrl:', channelsUrl);
+                return [];
+            }
+
+            const requestUrl = `${url}?types=private_channel,im&limit=100`;
+            console.log('載入頻道列表：', requestUrl);
+
+            const response = await fetch(requestUrl, {
+                method: 'GET',
+                headers: { 
+                    'Accept': 'application/json',
+                    'Content-Type': 'application/json'
+                },
+                credentials: 'same-origin'
+            });
+
+            if (response.ok) {
+                const data = await response.json();
+                // 檢查回應格式，支援多種格式
+                const channels = Array.isArray(data) ? data : (data?.Channels || data?.channels || data?.data || []);
+                
+                if (Array.isArray(channels)) {
+                    channelCache = channels;
+                    const lastUpdated = data?.LastUpdated || data?.lastUpdated || data?.lastUpdated || new Date().toISOString();
+                    saveChannelsToStorage(channels, lastUpdated);
+                    
+                    // 將頻道中的使用者資訊儲存到對應表中（特別是私訊頻道）
+                    channels.forEach(channel => {
+                        const userId = channel.userId || channel.UserId || '';
+                        const realName = channel.realName || channel.RealName || channel.real_name || channel.real_name_normalized || '';
+                        const displayName = channel.displayName || channel.DisplayName || channel.display_name || channel.display_name_normalized || '';
+                        
+                        if (userId && (realName || displayName)) {
+                            if (!userInfoMap.has(userId)) {
+                                userInfoMap.set(userId, {
+                                    realName: realName || displayName,
+                                    displayName: displayName || realName
+                                });
+                            }
+                        }
+                    });
+                    
+                    console.log('載入頻道列表成功，共', channels.length, '個頻道');
+                    return channels;
+                } else {
+                    console.warn('載入頻道列表：回應格式不正確', data);
+                }
+            } else {
+                console.error('載入頻道列表失敗', response.status, response.statusText);
+                const errorText = await response.text().catch(() => '');
+                console.error('錯誤詳情：', errorText);
+                
+                if (response.status === 401) {
+                    console.error('載入頻道列表：未授權，請重新登入');
+                } else if (response.status === 403) {
+                    console.error('載入頻道列表：無權限');
+                } else if (response.status === 404) {
+                    console.error('載入頻道列表：API 端點不存在');
+                }
+            }
+        } catch (error) {
+            console.error('載入頻道列表錯誤', error);
+            if (error.message && error.message.includes('fetch')) {
+                console.error('載入頻道列表：無法連線到伺服器');
+            }
+        }
+        return [];
+    }
+
+    // 從 sessionStorage 載入頻道
+    function loadChannelsFromStorage() {
+        try {
+            const stored = sessionStorage.getItem(channelsStorageKey);
+            const lastUpdated = sessionStorage.getItem(channelsLastUpdatedKey);
+            if (!stored || !lastUpdated) return null;
+
+            // 檢查快取是否過期
+            const lastUpdatedDate = new Date(lastUpdated);
+            const now = new Date();
+            if (now - lastUpdatedDate >= cacheExpirationMs) {
+                return null;
+            }
+
+            return JSON.parse(stored);
+        } catch (error) {
+            console.warn('載入頻道快取錯誤', error);
+            return null;
+        }
+    }
+
+    // 儲存頻道到 sessionStorage
+    function saveChannelsToStorage(channels, lastUpdated) {
+        try {
+            sessionStorage.setItem(channelsStorageKey, JSON.stringify(channels));
+            sessionStorage.setItem(channelsLastUpdatedKey, lastUpdated);
+        } catch (error) {
+            console.warn('儲存頻道快取錯誤', error);
+        }
+    }
+
+    // 為使用者開啟頻道
+    async function openChannelForUser(userId, displayName) {
+        if (!openChannelUrl) return null;
+        try {
+            const response = await fetch(openChannelUrl, {
+                method: 'POST',
+                headers: { 'Content-Type': 'application/json' },
+                body: JSON.stringify({ userId })
+            });
+
+            if (response.ok) {
+                return await response.json();
+            }
+        } catch (error) {
+            console.error('開啟頻道錯誤', error);
+        }
+        return null;
+    }
+
+    // 載入訊息
+    async function loadMessages(channelId, appendOnly = false) {
+        if (!channelId) {
+            console.warn('載入訊息：channelId 為空');
+            return;
+        }
+
+        const windowElement = chatWindows.get(channelId);
+        if (!windowElement) {
+            console.warn('載入訊息：找不到對應的視窗', channelId);
+            return;
+        }
+
+        if (!messagesUrl) {
+            console.error('載入訊息：messagesUrl 未設定');
+            const messageEmpty = windowElement.querySelector('.slack-message-empty');
+            if (messageEmpty && !appendOnly) {
+                messageEmpty.textContent = '訊息 URL 未設定';
+            }
+            return;
+        }
+
+        const messageList = windowElement.querySelector('.slack-message-list');
+        const messageEmpty = windowElement.querySelector('.slack-message-empty');
+        if (!messageList) {
+            console.warn('載入訊息：找不到訊息列表元素');
+            return;
+        }
+
+        // 顯示載入中訊息（只在非追加模式時顯示）
+        if (messageEmpty && !appendOnly) {
+            messageEmpty.textContent = '載入中...';
+        }
+
+        try {
+            // 如果是要追加新訊息，可以使用最後一次訊息時間戳記作為參數
+            let url = `${messagesUrl}?channel=${encodeURIComponent(channelId)}&limit=20`;
+            if (appendOnly && channelLastMessageTime.has(channelId)) {
+                const lastMessageTime = channelLastMessageTime.get(channelId);
+                // 可以添加 since 參數（如果 API 支援）
+                // url += `&since=${lastMessageTime}`;
+            }
+            
+            console.log('載入訊息：', url, appendOnly ? '(追加模式)' : '(完整載入)');
+            
+            const response = await fetch(url, {
+                method: 'GET',
+                headers: { 
+                    'Accept': 'application/json',
+                    'Content-Type': 'application/json'
+                },
+                credentials: 'same-origin'
+            });
+
+            if (response.ok) {
+                const data = await response.json();
+                // 檢查回應格式
+                const messages = Array.isArray(data) ? data : (data?.messages || data?.Messages || []);
+                renderMessages(messages, messageList, messageEmpty, channelId, appendOnly);
+            } else {
+                console.error('載入訊息失敗', response.status, response.statusText);
+                const errorText = await response.text().catch(() => '');
+                console.error('錯誤詳情：', errorText);
+                
+                if (messageEmpty && !appendOnly) {
+                    if (response.status === 401) {
+                        messageEmpty.textContent = '未授權，請重新登入';
+                    } else if (response.status === 403) {
+                        messageEmpty.textContent = '無權限存取此頻道';
+                    } else if (response.status === 404) {
+                        messageEmpty.textContent = '頻道不存在';
+                    } else {
+                        messageEmpty.textContent = `載入訊息失敗 (${response.status})`;
+                    }
+                }
+            }
+        } catch (error) {
+            console.error('載入訊息錯誤', error);
+            if (messageEmpty && !appendOnly) {
+                if (error.message && error.message.includes('fetch')) {
+                    messageEmpty.textContent = '無法連線到伺服器';
+                } else {
+                    messageEmpty.textContent = '載入訊息時發生錯誤';
+                }
+            }
+        }
+    }
+    
+    // 輪詢新訊息
+    function startMessagePolling() {
+        // 清除舊的輪詢計時器
+        if (messagePollingTimer) {
+            clearInterval(messagePollingTimer);
+        }
+        
+        // 開始輪詢
+        messagePollingTimer = setInterval(() => {
+            // 只輪詢已開啟的聊天視窗
+            for (const [channelId, windowElement] of chatWindows.entries()) {
+                // 跳過空字串的 channelId（新開的頻道）
+                if (channelId && channelId !== '') {
+                    // 檢查視窗是否可見
+                    if (windowElement && windowElement.classList.contains('active')) {
+                        // 追加模式載入新訊息
+                        loadMessages(channelId, true).catch(error => {
+                            console.error('輪詢訊息錯誤', channelId, error);
+                        });
+                    }
+                }
+            }
+        }, messagePollingInterval);
+        
+        console.log('開始輪詢新訊息，間隔:', messagePollingInterval, '毫秒');
+    }
+    
+    // 停止輪詢新訊息
+    function stopMessagePolling() {
+        if (messagePollingTimer) {
+            clearInterval(messagePollingTimer);
+            messagePollingTimer = null;
+            console.log('停止輪詢新訊息');
+        }
+    }
+
+    // 渲染訊息
+    function renderMessages(messages, messageList, messageEmpty, channelId, appendOnly = false) {
+        if (!messageList) return;
+
+        // 如果只是追加新訊息，不要清空現有訊息
+        if (!appendOnly) {
+            messageList.innerHTML = '';
+        }
+
+        // 如果沒有訊息，顯示空訊息提示
+        if (!messages || messages.length === 0) {
+            if (!appendOnly && messageEmpty) {
+                messageEmpty.textContent = '目前沒有訊息';
+                messageList.appendChild(messageEmpty);
+            }
+            return;
+        }
+
+        // 追蹤最後一次訊息時間戳記
+        let lastTimestamp = null;
+        if (messages.length > 0) {
+            // 找到最新的訊息時間戳記
+            const timestamps = messages
+                .map(item => item.ts ? parseFloat(item.ts) : 0)
+                .filter(ts => ts > 0);
+            if (timestamps.length > 0) {
+                lastTimestamp = Math.max(...timestamps);
+            }
+        }
+
+        // 如果只是追加新訊息，只顯示新的訊息（比最後一次時間戳記新的訊息）
+        let messagesToRender = messages;
+        if (appendOnly && channelId && channelLastMessageTime.has(channelId)) {
+            const lastMessageTime = channelLastMessageTime.get(channelId);
+            messagesToRender = messages.filter(item => {
+                if (!item || !item.ts) return false;
+                const itemTime = parseFloat(item.ts);
+                return itemTime > lastMessageTime;
+            });
+            
+            // 如果沒有新訊息，直接返回
+            if (messagesToRender.length === 0) {
+                return;
+            }
+        }
+
+        // 如果是追加模式，按時間順序排序（從舊到新）
+        // 如果是完整載入，反轉訊息順序（從舊到新）
+        const sortedMessages = appendOnly 
+            ? messagesToRender.sort((a, b) => {
+                const timeA = a.ts ? parseFloat(a.ts) : 0;
+                const timeB = b.ts ? parseFloat(b.ts) : 0;
+                return timeA - timeB;
+            })
+            : [...messagesToRender].reverse();
+            
+        sortedMessages.forEach(item => {
+            if (!item || item.subtype === 'channel_join') return;
+
+            const wrapper = document.createElement('div');
+            const userId = item.user || item.userId || item.UserId || '';
+            const isMe = currentUserId && userId === currentUserId;
+            wrapper.className = `slack-message-item${isMe ? ' me' : ''}`;
+
+            // 如果訊息物件中有使用者資訊，儲存到對應表中
+            if (userId) {
+                const realName = item.realName || item.RealName || item.real_name || item.real_name_normalized || '';
+                const displayName = item.displayName || item.DisplayName || item.display_name || item.display_name_normalized || '';
+                const userName = item.userName || item.UserName || item.username || item.user_name || '';
+                
+                // 優先使用 realName，其次使用 displayName，最後使用 userName
+                const nameToStore = realName || displayName || userName;
+                if (nameToStore && !userInfoMap.has(userId)) {
+                    userInfoMap.set(userId, {
+                        realName: realName || displayName || userName,
+                        displayName: displayName || userName || realName
+                    });
+                }
+            }
+
+            // 取得顯示名稱（優先使用 realName）
+            let displayUserName = '未知使用者';
+            if (isMe) {
+                displayUserName = '我';
+            } else if (userId) {
+                const userInfo = userInfoMap.get(userId);
+                if (userInfo && userInfo.realName) {
+                    displayUserName = userInfo.realName;
+                } else if (userInfo && userInfo.displayName) {
+                    displayUserName = userInfo.displayName;
+                } else {
+                    // 如果對應表中沒有，嘗試從訊息物件中取得
+                    const realName = item.realName || item.RealName || item.real_name || item.real_name_normalized || '';
+                    const displayName = item.displayName || item.DisplayName || item.display_name || item.display_name_normalized || '';
+                    const userName = item.userName || item.UserName || item.username || item.user_name || '';
+                    displayUserName = realName || displayName || userName || userId;
+                }
+            }
+
+            // 訊息元資料（使用者名稱和時間）
+            const meta = document.createElement('div');
+            meta.className = 'slack-message-meta';
+            const date = item.ts ? formatTimestamp(item.ts) : '';
+            meta.innerHTML = `<span>${displayUserName}</span><span>${date}</span>`;
+
+            // 訊息內容
+            const text = document.createElement('div');
+            text.className = 'slack-message-text';
+            text.textContent = item.text || '';
+
+            wrapper.appendChild(meta);
+            wrapper.appendChild(text);
+            
+            // 追加到列表末尾
+            messageList.appendChild(wrapper);
+        });
+
+        // 更新最後一次訊息時間戳記
+        if (channelId) {
+            if (lastTimestamp) {
+                const currentLastTime = channelLastMessageTime.get(channelId) || 0;
+                if (lastTimestamp > currentLastTime) {
+                    channelLastMessageTime.set(channelId, lastTimestamp);
+                    console.log('更新最後一次訊息時間戳記:', channelId, lastTimestamp);
+                }
+            } else if (!appendOnly) {
+                // 如果是完整載入但沒有訊息，清除時間戳記
+                channelLastMessageTime.delete(channelId);
+            }
+        }
+
+        // 自動滾動到底部
+        messageList.scrollTop = messageList.scrollHeight;
+    }
+
+    // 格式化時間戳記
+    function formatTimestamp(ts) {
+        if (!ts) return '';
+        const unix = parseFloat(ts);
+        if (Number.isNaN(unix)) return ts;
+        const date = new Date(unix * 1000);
+        return new Intl.DateTimeFormat('zh-TW', {
+            month: '2-digit',
+            day: '2-digit',
+            hour: '2-digit',
+            minute: '2-digit'
+        }).format(date);
+    }
+
+    // 發送訊息
+    async function sendMessage(channelId, text) {
+        if (!channelId || !text || !messageUrl) {
+            console.warn('發送訊息：參數不完整', { channelId, text, messageUrl });
+            return Promise.reject(new Error('參數不完整'));
+        }
+
+        const windowElement = chatWindows.get(channelId);
+        if (!windowElement) {
+            console.warn('發送訊息：找不到對應的視窗', channelId);
+            return Promise.reject(new Error('找不到對應的視窗'));
+        }
+
+        // 顯示發送中狀態
+        showTemporaryStatusInWindow(windowElement, '發送中，請稍候...', 'info');
+
+        try {
+            console.log('發送訊息請求:', { channel: channelId, text, messageUrl });
+            
+            const response = await fetch(messageUrl, {
+                method: 'POST',
+                headers: { 
+                    'Content-Type': 'application/json',
+                    'Accept': 'application/json'
+                },
+                credentials: 'same-origin',
+                body: JSON.stringify({ channel: channelId, text })
+            });
+
+            if (!response.ok) {
+                const errorText = await response.text().catch(() => '');
+                console.error('發送訊息失敗', response.status, response.statusText, errorText);
+                let errorMessage = '發送失敗';
+                try {
+                    const errorResult = JSON.parse(errorText);
+                    errorMessage = errorResult.message || errorResult.error || errorMessage;
+                } catch (e) {
+                    errorMessage = errorText || errorMessage;
+                }
+                showTemporaryStatusInWindow(windowElement, errorMessage, 'danger', 3000);
+                return Promise.reject(new Error(errorMessage));
+            }
+
+            const result = await response.json().catch(() => ({}));
+            
+            console.log('發送訊息成功', result);
+            showTemporaryStatusInWindow(windowElement, '訊息已成功發送', 'success', 2000);
+            
+            // 重新載入訊息（延遲一點時間，確保訊息已經寫入）
+            setTimeout(() => {
+                loadMessages(channelId);
+            }, 500);
+            
+            return Promise.resolve(result);
+        } catch (error) {
+            console.error('發送訊息錯誤', error);
+            showTemporaryStatusInWindow(windowElement, '無法連線到 Slack API', 'danger', 3000);
+            return Promise.reject(error);
+        }
+    }
+
+    // 建立近期對話視窗小圖示
+    function createRecentChatIcon(channelId, displayName, userId, realName) {
+        if (!recentChatIconsContainer) return;
+        
+        // 如果圖示已存在，更新圖示內容（特別是 realName）並移到最前面
+        const existingIcon = recentChatIcons.get(channelId);
+        if (existingIcon) {
+            // 更新圖示內容（使用 realName）
+            const nameToUse = realName || displayName || '';
+            const firstLetter = nameToUse.charAt(0).toUpperCase();
+            
+            // 先移除關閉按鈕（稍後會重新添加）
+            const closeBtn = existingIcon.querySelector('.slack-icon-close-btn');
+            if (closeBtn) {
+                closeBtn.remove();
+            }
+            
+            // 清除現有內容
+            existingIcon.innerHTML = '';
+            
+            // 如果有名稱，顯示第一個字母；否則使用預設圖示
+            if (nameToUse && nameToUse.length > 0) {
+                // 顯示第一個字母作為圖示
+                const letterSpan = document.createElement('span');
+                letterSpan.textContent = firstLetter;
+                letterSpan.style.fontSize = '18px';
+                letterSpan.style.fontWeight = 'bold';
+                existingIcon.appendChild(letterSpan);
+            } else {
+                // 使用預設圖示
+                const icon = document.createElement('i');
+                icon.className = 'fa fa-comment';
+                existingIcon.appendChild(icon);
+            }
+            
+            // 重新添加關閉按鈕
+            addCloseButtonToIcon(existingIcon, channelId);
+            
+            // 更新 title
+            existingIcon.title = displayName || realName || '開啟聊天視窗';
+            
+            // 將現有圖示移到最前面（因為容器使用 flex-direction: row-reverse，所以使用 appendChild 會讓它顯示在最左邊）
+            if (existingIcon.parentNode === recentChatIconsContainer) {
+                const lastChild = recentChatIconsContainer.lastChild;
+                if (lastChild !== existingIcon) {
+                    recentChatIconsContainer.removeChild(existingIcon);
+                    recentChatIconsContainer.appendChild(existingIcon);
+                }
+            }
+            
+            return existingIcon;
+        }
+
+        // 建立小圖示按鈕
+        const iconBtn = document.createElement('div');
+        iconBtn.className = 'slack-recent-chat-icon';
+        iconBtn.title = displayName || realName || '開啟聊天視窗';
+        iconBtn.dataset.channelId = channelId;
+        iconBtn.dataset.channelName = displayName || '';
+        if (userId) {
+            iconBtn.dataset.userId = userId;
+        }
+
+        // 建立圖示（優先使用 realName 的第一個字母，如果沒有則使用 displayName）
+        const nameToUse = realName || displayName || '';
+        const firstLetter = nameToUse.charAt(0).toUpperCase();
+        // 如果有名稱，顯示第一個字母；否則使用預設圖示
+        if (nameToUse && nameToUse.length > 0) {
+            // 顯示第一個字母作為圖示
+            const letterSpan = document.createElement('span');
+            letterSpan.textContent = firstLetter;
+            letterSpan.style.fontSize = '18px';
+            letterSpan.style.fontWeight = 'bold';
+            iconBtn.appendChild(letterSpan);
+        } else {
+            // 使用預設圖示
+            const icon = document.createElement('i');
+            icon.className = 'fa fa-comment';
+            iconBtn.appendChild(icon);
+        }
+
+        // 添加關閉按鈕
+        addCloseButtonToIcon(iconBtn, channelId);
+
+        // 點擊事件：開啟對應的聊天視窗（但點擊關閉按鈕時不觸發）
+        iconBtn.addEventListener('click', (e) => {
+            // 如果點擊的是關閉按鈕，不觸發開啟視窗
+            if (e.target.closest('.slack-icon-close-btn')) {
+                return;
+            }
+            if (channelId) {
+                // 如果視窗已存在，直接顯示
+                if (chatWindows.has(channelId)) {
+                    const existingWindow = chatWindows.get(channelId);
+                    existingWindow.classList.add('active');
+                } else {
+                    // 建立新的聊天視窗
+                    createChatWindow(channelId, displayName, userId);
+                }
+            }
+        });
+
+        // 加入容器（因為容器使用 flex-direction: row-reverse，所以使用 appendChild 會讓新圖示顯示在最左邊）
+        recentChatIconsContainer.appendChild(iconBtn);
+        recentChatIcons.set(channelId, iconBtn);
+
+        return iconBtn;
+    }
+
+    // 為小圖示添加關閉按鈕
+    function addCloseButtonToIcon(iconElement, channelId) {
+        if (!iconElement || !channelId) return;
+        
+        // 檢查是否已經有關閉按鈕
+        let closeBtn = iconElement.querySelector('.slack-icon-close-btn');
+        if (closeBtn) {
+            return; // 已經有關閉按鈕，不需要重複添加
+        }
+        
+        // 建立關閉按鈕
+        closeBtn = document.createElement('button');
+        closeBtn.type = 'button';
+        closeBtn.className = 'slack-icon-close-btn';
+        closeBtn.title = '關閉聊天視窗';
+        closeBtn.innerHTML = '×';
+        closeBtn.setAttribute('aria-label', '關閉聊天視窗');
+        
+        // 點擊關閉按鈕時關閉對應的聊天視窗並移除小圖示
+        closeBtn.addEventListener('click', (e) => {
+            e.preventDefault();
+            e.stopPropagation(); // 阻止事件冒泡，避免觸發圖示的點擊事件
+            
+            if (channelId) {
+                // 關閉聊天視窗
+                closeChatWindow(channelId);
+                // 移除小圖示
+                removeRecentChatIcon(channelId);
+            }
+        });
+        
+        // 將關閉按鈕添加到圖示中
+        iconElement.appendChild(closeBtn);
+    }
+
+    // 移除近期對話視窗小圖示
+    function removeRecentChatIcon(channelId) {
+        const iconBtn = recentChatIcons.get(channelId);
+        if (iconBtn && iconBtn.parentNode) {
+            iconBtn.parentNode.removeChild(iconBtn);
+            recentChatIcons.delete(channelId);
+        }
+    }
+
+    // 更新近期對話視窗小圖示狀態（當視窗開啟時）
+    function updateRecentChatIconState(channelId, isActive) {
+        const iconBtn = recentChatIcons.get(channelId);
+        if (iconBtn) {
+            if (isActive) {
+                iconBtn.style.background = '#18a689';
+                iconBtn.style.boxShadow = '0 4px 12px rgba(26, 179, 148, 0.4)';
+            } else {
+                iconBtn.style.background = '#1ab394';
+                iconBtn.style.boxShadow = '0 3px 10px rgba(0, 0, 0, 0.15)';
+            }
+        }
+    }
+
+    // 點擊外部區域關閉頻道列表
+    document.addEventListener('click', (e) => {
+        if (!e.target.closest('.slack-channel-results') && 
+            !e.target.closest('.slack-channel-search') &&
+            !e.target.closest('.slack-load-channels')) {
+            document.querySelectorAll('.slack-channel-results').forEach(el => {
+                el.style.display = 'none';
+            });
+        }
+    });
+
+    // 初始化：載入頻道列表
+    loadChannels().then(() => {
+        // 啟動輪詢機制
+        startMessagePolling();
+    }).catch(error => {
+        console.error('初始化失敗', error);
+        // 即使失敗也啟動輪詢機制
+        startMessagePolling();
+    });
+    
+    // 頁面卸載時停止輪詢
+    window.addEventListener('beforeunload', () => {
+        stopMessagePolling();
+    });
+})();
+

@@ -53,5 +53,10 @@ namespace ERP.Web.Service.Service.Slack
         /// 開啟與指定使用者或多人對話，回傳對應的頻道資訊。
         /// </summary>
         Task<SlackConversationOpenResponse?> OpenConversationAsync(string token, IEnumerable<string> userIds, CancellationToken cancellationToken = default);
+
+        /// <summary>
+        /// 取得最近溝通的私人頻道清單（按最後更新時間排序）。
+        /// </summary>
+        Task<SlackConversationsListResponse?> GetRecentConversationsAsync(string token, string types = "im,mpim", int limit = 10, CancellationToken cancellationToken = default);
     }
 }

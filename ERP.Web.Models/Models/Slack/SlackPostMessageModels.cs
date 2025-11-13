@@ -166,6 +166,9 @@ namespace ERP.Web.Models.Models.Slack
         [JsonPropertyName("id")]
         public string? Id { get; set; }
 
+        [JsonPropertyName("realname")]
+        public string? RealName { get; set; }
+
         [JsonPropertyName("name")]
         public string? Name { get; set; }
 
@@ -186,6 +189,30 @@ namespace ERP.Web.Models.Models.Slack
 
         [JsonPropertyName("num_members")]
         public int? MemberCount { get; set; }
+
+        /// <summary>
+        /// 最後讀取時間戳記（用於排序最近互動的對話）
+        /// </summary>
+        [JsonPropertyName("last_read")]
+        public string? LastRead { get; set; }
+
+        /// <summary>
+        /// 對話的最後更新時間戳記
+        /// </summary>
+        [JsonPropertyName("updated")]
+        public double? Updated { get; set; }
+
+        /// <summary>
+        /// 對話的優先級（用於排序）
+        /// </summary>
+        [JsonPropertyName("priority")]
+        public double? Priority { get; set; }
+
+        /// <summary>
+        /// 對話中最後一條訊息的時間戳記（用於排序最近互動的對話）
+        /// </summary>
+        [JsonPropertyName("latest")]
+        public string? Latest { get; set; }
     }
 
     public class SlackConversationsListRequest

@@ -1,0 +1,101 @@
+@using Microsoft.AspNetCore.Http
+@inject Microsoft.Extensions.Configuration.IConfiguration Configuration
+
+@{
+    var slackSection = Configuration.GetSection("Slack");
+    var sessionToken = Context.Session.GetString("Slack:BotToken");
+    var configuredBotToken = slackSection["BotToken"];
+    var hasToken = !string.IsNullOrWhiteSpace(sessionToken) || !string.IsNullOrWhiteSpace(configuredBotToken);
+    var authorizeUrl = Url.Action("Authorize", "SlackQuery");
+    var messageUrl = Url.Action("SendMessage", "SlackCommand");
+    var messagesUrl = Url.Action("GetMessages", "SlackQuery");
+    var channelsUrl = Url.Action("GetChannels", "SlackQuery");
+    var channelsAllUrl = Url.Action("GetAllChannels", "SlackQuery");
+    var channelsRefreshUrl = Url.Action("RefreshChannelsCache", "SlackCommand");
+    var defaultChannel = slackSection["DefaultChannel"] ?? string.Empty;
+    var currentUserId = Context.Session.GetString("Slack:UserId") ?? string.Empty;
+    // 檢查是否成功授權（從 TempData 取得）
+    var authSuccess = TempData["SlackAuthSuccess"]?.ToString() == "true";
+}
+
+<!-- Slack 聊天視窗容器 -->
+<div id="slack-chat-container" class="slack-chat-container" data-authorize-url="@authorizeUrl" data-message-url="@messageUrl" data-messages-url="@messagesUrl" data-channels-url="@channelsUrl" data-channels-all-url="@channelsAllUrl" data-channels-refresh-url="@channelsRefreshUrl" data-open-channel-url="@Url.Action("OpenChannel", "SlackCommand")" data-default-channel="@defaultChannel" data-has-token="@hasToken.ToString().ToLower()" data-user-id="@currentUserId" data-auth-success="@authSuccess.ToString().ToLower()">
+    <!-- 聊天視窗會動態加入此容器 -->
+</div>
+
+<!-- 聊天視窗模板（使用 template 標籤） -->
+<template id="slack-chat-window-template">
+<div class="small-chat-box fadeInRight animated slack-chat-box" data-channel-id="" data-channel-name="">
+    <div class="heading" draggable="true">
+        <div class="slack-heading-content">
+            <span class="slack-channel-title">Slack 即時通訊</span>
+            <!-- 搜尋頻道按鈕（點擊可展開搜尋欄） -->
+            <button type="button" class="btn btn-link btn-sm p-0 ml-2 slack-search-toggle" style="display: none; min-width: 20px; color: #666;" title="搜尋頻道">
+                <i class="fa fa-search"></i>
+            </button>
+            <!-- 頻道搜尋欄（點擊搜尋按鈕後顯示） -->
+            <div class="slack-channel-search-inline slack-channel-search-wrapper" style="display: none;" @(hasToken ? string.Empty : "hidden")>
+                <div class="input-group input-group-sm">
+                    <input type="text" class="form-control form-control-sm slack-channel-search" placeholder="搜尋頻道或使用者..." @(hasToken ? string.Empty : "disabled") />
+                    <div class="input-group-append">
+                        <button class="btn btn-outline-secondary btn-sm slack-load-channels" type="button" @(hasToken ? string.Empty : "disabled")>
+                            <i class="fa fa-search"></i>
+                        </button>
+                    </div>
+                </div>
+            </div>
+        </div>
+        <!-- 關閉按鈕 -->
+        <button type="button" class="slack-close-btn" title="關閉聊天視窗">
+            <i class="fa fa-times"></i>
+        </button>
+        <!-- 頻道列表（下拉選單，點擊後顯示結果） -->
+        <div class="slack-channel-results" style="display: none;">
+            <div class="text-muted small text-center py-2">請輸入頻道名稱</div>
+        </div>
+    </div>
+    <div class="content slack-chat-content">
+        <div class="alert alert-warning slack-authorize-alert" role="alert" @(hasToken ? "hidden" : string.Empty) style="display: none;">
+            請先授權 Slack Bot，請點擊
+            <a href="@authorizeUrl" class="alert-link">授權 Slack</a>
+            進行 OAuth 流程。
+        </div>
+        <div class="alert alert-info alert-dismissible fade show slack-status-message" role="alert" hidden style="margin-bottom: 8px; padding: 8px 12px; font-size: 13px; display: none;">
+            <span class="slack-status-text"></span>
+        </div>
+
+        <!-- 訊息列表容器 -->
+        <div class="slack-message-list">
+            <div class="text-center text-muted small slack-message-empty">請輸入訊息</div>
+        </div>
+    </div>
+    <div class="form-chat">
+        <form class="slack-chat-form" autocomplete="off">
+            <div class="form-group mb-0">
+                <textarea class="form-control slack-message-input" name="message" rows="3" maxlength="1000" placeholder="請輸入要發送的訊息（按 Enter 發送，Shift+Enter 換行）" @(hasToken ? string.Empty : "disabled")></textarea>
+            </div>
+        </form>
+    </div>
+</div>
+</template>
+
+<!-- 近期對話視窗小圖示容器 -->
+<div id="slack-recent-chat-icons" class="slack-recent-chat-icons">
+    <!-- 近期對話視窗的小圖示會動態加入這裡 -->
+</div>
+
+<!-- 新增聊天視窗按鈕 -->
+<div id="slack-new-chat-btn" class="slack-new-chat-btn" title="開啟新聊天視窗">
+    <i class="fa fa-plus"></i>
+</div>
+
+<!-- 引用外部 CSS -->
+<link rel="stylesheet" href="~/StaticFiles/css/SlackChat/slack-chat.css" />
+
+<!-- 引用外部 JavaScript（按順序載入） -->
+<script src="~/StaticFiles/js/SlackChat/slack-chat-core.js"></script>
+<script src="~/StaticFiles/js/SlackChat/slack-chat-window.js"></script>
+<script src="~/StaticFiles/js/SlackChat/slack-chat-channel.js"></script>
+<script src="~/StaticFiles/js/SlackChat/slack-chat-message.js"></script>
+<script src="~/StaticFiles/js/SlackChat/slack-chat-icons.js"></script>
+<script src="~/StaticFiles/js/SlackChat/slack-chat-init.js"></script>

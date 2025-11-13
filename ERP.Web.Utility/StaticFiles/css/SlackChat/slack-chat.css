@@ -1,0 +1,457 @@
+/* Slack 聊天視窗容器樣式 */
+.slack-chat-container {
+    position: fixed;
+    bottom: 45px;
+    right: 60px;
+    z-index: 1001;
+    display: flex;
+    flex-direction: row-reverse;
+    align-items: flex-end;
+    gap: 10px;
+    max-width: calc(100vw - 80px);
+    pointer-events: none;
+}
+
+.slack-chat-container > * {
+    pointer-events: auto;
+}
+
+.slack-chat-box,
+.small-chat-box.slack-chat-box {
+    width: 450px !important;
+    height: 600px !important; /* 固定高度 */
+    max-height: calc(100vh - 120px) !important;
+    min-height: 400px;
+    display: none !important;
+    flex-direction: column;
+    position: relative !important; /* 設為 relative，以便內部元素絕對定位 */
+    z-index: 1001 !important;
+    background: #fff;
+    border: 1px solid #e7eaec;
+    border-radius: 6px;
+    box-shadow: 0 4px 12px rgba(0, 0, 0, 0.15);
+}
+
+.slack-chat-box.active,
+.small-chat-box.slack-chat-box.active,
+.small-chat-box.active.slack-chat-box {
+    display: flex !important;
+}
+
+.slack-chat-box .heading {
+    position: relative;
+    background: #2f4050;
+    padding: 10px 15px;
+    font-weight: bold;
+    color: #fff;
+    border-radius: 6px 6px 0 0;
+    cursor: move;
+    display: flex;
+    justify-content: space-between;
+    align-items: center;
+}
+
+/* 關閉按鈕樣式 */
+.slack-chat-box .slack-close-btn {
+    background: transparent;
+    border: none;
+    color: #fff;
+    font-size: 18px;
+    cursor: pointer;
+    padding: 4px 8px;
+    margin-left: 10px;
+    opacity: 0.8;
+    transition: opacity 0.2s;
+}
+
+.slack-chat-box .slack-close-btn:hover {
+    opacity: 1;
+    color: #ff6b6b;
+}
+
+.slack-chat-box .heading:hover {
+    background: #34495e;
+}
+
+.slack-heading-content {
+    display: flex;
+    align-items: center;
+    gap: 10px;
+    flex-wrap: wrap;
+    padding: 4px 0;
+}
+
+.slack-heading-content #slack-channel-title {
+    flex: 0 0 auto;
+    min-width: 0;
+    overflow: hidden;
+    text-overflow: ellipsis;
+    white-space: nowrap;
+    margin-right: 10px;
+    font-size: 16px;
+    color: #fff;
+    font-weight: bold;
+}
+
+.slack-heading-content .slack-search-toggle {
+    flex: 0 0 auto;
+    cursor: pointer;
+    font-size: 16px;
+    padding: 4px;
+    color: #fff;
+    background: transparent;
+    border: none;
+    min-width: 20px;
+}
+
+.slack-heading-content .slack-search-toggle:hover {
+    color: #1ab394 !important;
+}
+
+.slack-channel-search-inline {
+    flex: 1 1 auto;
+    min-width: 0;
+    width: 100%;
+    max-width: 100%;
+}
+
+.slack-channel-search-inline .input-group {
+    width: 100%;
+    margin: 0;
+}
+
+.slack-channel-search-inline .form-control {
+    flex: 1 1 auto;
+    font-size: 14px;
+    padding: 6px 12px;
+    height: 32px;
+}
+
+.slack-channel-search-inline .btn {
+    padding: 6px 12px;
+    height: 32px;
+    line-height: 1.2;
+    font-size: 14px;
+}
+
+.slack-chat-box .content {
+    flex: 1 1 auto;
+    overflow-y: auto;
+    display: flex;
+    flex-direction: column;
+    padding: 12px 14px;
+    gap: 8px;
+    min-height: 0;
+}
+
+.slack-chat-box .form-chat {
+    flex: 0 0 auto;
+    padding: 12px 18px;
+    border-top: 1px solid #e7eaec;
+    background-color: #fff;
+}
+
+.slack-chat-box .form-chat .form-group {
+    margin-bottom: 0;
+}
+
+.slack-chat-box textarea {
+    min-height: 85px;
+    resize: vertical;
+    font-size: 15px;
+    padding: 10px 12px;
+    line-height: 1.6;
+}
+
+.slack-message-list {
+    flex: 1 1 auto;
+    overflow-y: auto;
+    min-height: 0;
+    max-height: none;
+    padding: 12px;
+    border: 1px solid #e7eaec;
+    border-radius: 6px;
+    background-color: #f9f9f9;
+}
+
+.slack-message-list.loading {
+    opacity: 0.6;
+}
+
+.slack-channel-results {
+    max-height: 180px;
+    overflow-y: auto;
+    border: 1px solid #e7eaec;
+    border-radius: 6px;
+    padding: 6px;
+    background-color: #fff;
+    margin-top: 6px;
+    font-size: 14px;
+    position: absolute;
+    top: 100%;
+    left: 0;
+    right: 0;
+    z-index: 1000;
+    box-shadow: 0 3px 10px rgba(0, 0, 0, 0.15);
+}
+
+.slack-channel-results .slack-channel-item {
+    display: block;
+    width: 100%;
+    text-align: left;
+    margin-bottom: 4px;
+    font-size: 14px;
+    padding: 6px 10px;
+    white-space: nowrap;
+    overflow: hidden;
+    text-overflow: ellipsis;
+    border-radius: 4px;
+}
+
+.slack-channel-results .slack-channel-item small {
+    font-size: 12px;
+    margin-left: 6px;
+}
+
+.slack-channel-results .slack-channel-item:last-child {
+    margin-bottom: 0;
+}
+
+.slack-channel-results .slack-channel-item.active {
+    background-color: #1ab394;
+    border-color: #1ab394;
+    color: #fff;
+}
+
+.slack-message-item {
+    background: #fff;
+    border-radius: 6px;
+    padding: 10px 12px;
+    margin-bottom: 10px;
+    border: 1px solid transparent;
+    box-shadow: 0 2px 4px rgba(0, 0, 0, 0.1);
+}
+
+.slack-message-item.me {
+    border-color: #1ab39433;
+    background-color: #e9f8f4;
+}
+
+.slack-message-item .slack-message-meta {
+    font-size: 13px;
+    color: #999;
+    display: flex;
+    justify-content: space-between;
+    margin-bottom: 8px;
+    font-weight: 500;
+}
+
+.slack-message-item .slack-message-text {
+    font-size: 15px;
+    color: #333;
+    word-wrap: break-word;
+    white-space: pre-wrap;
+    line-height: 1.6;
+}
+
+.slack-chat-trigger {
+    bottom: 20px;
+    right: 20px;
+    position: fixed;
+    z-index: 1000;
+    width: 50px;
+    height: 50px;
+    background: #2f4050;
+    color: #fff;
+    border-radius: 50%;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    cursor: pointer;
+    box-shadow: 0 4px 12px rgba(0, 0, 0, 0.15);
+    transition: all 0.3s;
+}
+
+.slack-chat-trigger:hover {
+    background: #34495e;
+    transform: scale(1.1);
+}
+
+.slack-chat-trigger .open-small-chat {
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    width: 100%;
+    height: 100%;
+    color: #fff;
+    text-decoration: none;
+}
+
+.slack-chat-trigger .open-small-chat:hover {
+    color: #fff;
+    text-decoration: none;
+}
+
+.slack-chat-trigger .open-small-chat i {
+    font-size: 24px;
+}
+
+/* 近期對話視窗小圖示容器樣式 */
+.slack-recent-chat-icons {
+    position: fixed;
+    bottom: 20px;
+    right: 70px;
+    z-index: 1000;
+    display: flex;
+    flex-direction: row-reverse;
+    gap: 10px;
+    align-items: center;
+    max-width: calc(100vw - 200px);
+    overflow-x: visible;
+    overflow-y: visible;
+}
+
+/* 近期對話視窗小圖示按鈕樣式 */
+.slack-recent-chat-icon {
+    width: 45px;
+    height: 45px;
+    background: #1ab394;
+    color: #fff;
+    border-radius: 50%;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    cursor: pointer;
+    box-shadow: 0 3px 10px rgba(0, 0, 0, 0.15);
+    transition: all 0.3s;
+    position: relative;
+    border: 2px solid #fff;
+}
+
+.slack-recent-chat-icon:hover {
+    background: #18a689;
+    transform: scale(1.1);
+    z-index: 1001;
+}
+
+.slack-recent-chat-icon i,
+.slack-recent-chat-icon span {
+    font-size: 18px;
+    font-weight: bold;
+    color: #fff;
+}
+
+/* 近期對話視窗小圖示上的未讀訊息標記 */
+.slack-recent-chat-icon .badge {
+    position: absolute;
+    top: -5px;
+    right: -5px;
+    background: #ff6b6b;
+    color: #fff;
+    border-radius: 50%;
+    width: 18px;
+    height: 18px;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    font-size: 10px;
+    font-weight: bold;
+    border: 2px solid #fff;
+}
+
+/* 近期對話視窗小圖示上的關閉按鈕 */
+.slack-recent-chat-icon .slack-icon-close-btn {
+    position: absolute;
+    top: -6px;
+    right: -6px;
+    background: #ff6b6b;
+    color: #fff;
+    border-radius: 50%;
+    width: 18px;
+    height: 18px;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    font-size: 10px;
+    font-weight: bold;
+    border: 2px solid #fff;
+    cursor: pointer;
+    opacity: 0;
+    transition: opacity 0.2s, transform 0.2s;
+    z-index: 1002;
+    line-height: 1;
+    padding: 0;
+}
+
+.slack-recent-chat-icon:hover .slack-icon-close-btn {
+    opacity: 1;
+}
+
+.slack-recent-chat-icon .slack-icon-close-btn:hover {
+    background: #ff5252;
+    transform: scale(1.1);
+}
+
+.slack-recent-chat-icon .slack-icon-close-btn:active {
+    transform: scale(0.95);
+}
+
+/* 新增聊天視窗按鈕樣式 */
+.slack-new-chat-btn {
+    bottom: 10px;
+    right: 10px;
+    position: fixed;
+    z-index: 1000;
+    width: 50px;
+    height: 50px;
+    background: #1ab394;
+    color: #fff;
+    border-radius: 50%;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    cursor: pointer;
+    box-shadow: 0 4px 12px rgba(0, 0, 0, 0.15);
+    transition: all 0.3s;
+}
+
+.slack-new-chat-btn:hover {
+    background: #18a689;
+    transform: scale(1.1);
+}
+
+.slack-new-chat-btn i {
+    font-size: 20px;
+}
+
+@media (max-width: 768px) {
+    .slack-chat-container {
+        bottom: 70px;
+        right: 20px;
+        flex-direction: column-reverse; /* 手機上改為垂直排列 */
+    }
+
+    .slack-chat-box,
+    .small-chat-box.slack-chat-box {
+        width: calc(100vw - 40px) !important;
+        max-height: calc(100vh - 120px);
+    }
+
+    .slack-chat-trigger {
+        bottom: 20px;
+        right: 20px;
+    }
+
+    .slack-new-chat-btn {
+        bottom: 20px;
+        right: 80px;
+    }
+
+    .slack-recent-chat-icons {
+        bottom: 20px;
+        right: 140px;
+        max-width: calc(100vw - 200px);
+        flex-wrap: wrap-reverse;
+    }
+}
+

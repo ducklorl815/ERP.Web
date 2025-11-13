@@ -42,5 +42,52 @@ namespace ERP.Web.Models.Models.Slack
 
         [JsonPropertyName("subtype")]
         public string? Subtype { get; set; }
+
+        /// <summary>
+        /// 頻道類型（im = 直接訊息, mpim = 多人直接訊息, channel = 公開頻道, group = 私人頻道）
+        /// </summary>
+        [JsonPropertyName("channel_type")]
+        public string? ChannelType { get; set; }
+    }
+
+    /// <summary>
+    /// Slack 未讀訊息通知模型
+    /// </summary>
+    public class SlackUnreadMessage
+    {
+        /// <summary>
+        /// 頻道 ID
+        /// </summary>
+        public string ChannelId { get; set; } = string.Empty;
+
+        /// <summary>
+        /// 發送者使用者 ID
+        /// </summary>
+        public string? SenderUserId { get; set; }
+
+        /// <summary>
+        /// 發送者顯示名稱
+        /// </summary>
+        public string? SenderDisplayName { get; set; }
+
+        /// <summary>
+        /// 訊息內容
+        /// </summary>
+        public string? Text { get; set; }
+
+        /// <summary>
+        /// 訊息時間戳記
+        /// </summary>
+        public string? Timestamp { get; set; }
+
+        /// <summary>
+        /// 接收時間（伺服器時間）
+        /// </summary>
+        public DateTime ReceivedAt { get; set; } = DateTime.UtcNow;
+
+        /// <summary>
+        /// 是否已讀
+        /// </summary>
+        public bool IsRead { get; set; }
     }
 }

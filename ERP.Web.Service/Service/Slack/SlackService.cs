@@ -575,5 +575,104 @@ namespace ERP.Web.Service.Service.Slack
                 throw;
             }
         }
+
+        /// <summary>
+        /// 取得最近溝通的私人頻道清單（按最後更新時間排序）
+        /// </summary>
+        public async Task<SlackConversationsListResponse?> GetRecentConversationsAsync(string token, string types = "im", int limit = 10, CancellationToken cancellationToken = default)
+        {
+            if (string.IsNullOrWhiteSpace(token))
+            {
+                throw new ArgumentException("Slack token 不可為空白。", nameof(token));
+            }
+
+            // 使用 users.conversations API，並通過排序獲取最近溝通的頻道
+            // 注意：Slack API 的 users.conversations 預設會按最後活動時間排序
+            var query = new Dictionary<string, string?>
+            {
+                ["types"] = types,
+                ["exclude_archived"] = "true",
+                ["limit"] = Math.Clamp(limit, 1, 100).ToString() // 限制最多 100 個
+            };
+
+            var requestUri = QueryHelpers.AddQueryString("users.conversations", query!);
+            
+            // 記錄實際的 API 請求 URL 和完整參數（用於調試）
+            _logger.LogInformation("Slack GetRecentConversationsAsync 請求：{RequestUri}", requestUri);
+            _logger.LogInformation("Slack GetRecentConversationsAsync 參數：types={Types}, limit={Limit}, exclude_archived=true", types, limit);
+            _logger.LogInformation("Slack GetRecentConversationsAsync Token 類型：{TokenType} (前10個字元)", token?.Length > 10 ? token.Substring(0, 10) : "N/A");
+
+            using var httpRequest = new HttpRequestMessage(HttpMethod.Get, requestUri);
+            httpRequest.Headers.Authorization = new AuthenticationHeaderValue("Bearer", token);
+
+            using var response = await _httpClient.SendAsync(httpRequest, cancellationToken);
+            var responseBody = await response.Content.ReadAsStringAsync(cancellationToken);
+
+            // 記錄完整的 API 回應（用於調試）
+            _logger.LogInformation("Slack GetRecentConversationsAsync 回應狀態碼：{StatusCode}", response.StatusCode);
+            _logger.LogInformation("Slack GetRecentConversationsAsync 完整回應內容：{ResponseBody}", responseBody);
+
+            if (!response.IsSuccessStatusCode)
+            {
+                _logger.LogWarning("Slack 取得最近溝通頻道失敗，狀態碼：{StatusCode}，回應：{Body}", response.StatusCode, responseBody);
+                return null;
+            }
+
+            try
+            {
+                var result = JsonSerializer.Deserialize<SlackConversationsListResponse>(responseBody, JsonOptions);
+                
+                // 記錄實際返回的頻道數量和類型（用於調試）
+                if (result?.Channels != null)
+                {
+                    // 檢查是否有更多結果（分頁）
+                    var nextCursor = result.ResponseMetadata?.NextCursor;
+                    _logger.LogInformation("Slack GetRecentConversationsAsync 分頁資訊：next_cursor={NextCursor}, 是否有更多結果={HasMore}", 
+                        nextCursor ?? "無", 
+                        !string.IsNullOrWhiteSpace(nextCursor));
+                    
+                    var channelTypes = result.Channels
+                        .Select(ch => new { 
+                            Id = ch?.Id, 
+                            IsIm = ch?.IsIm ?? false, 
+                            IsMpim = ch?.IsMpim ?? false, 
+                            IsPrivate = ch?.IsPrivate ?? false,
+                            IsChannel = ch?.IsChannel ?? false,
+                            Name = ch?.Name,
+                            LastRead = ch?.LastRead,
+                            Updated = ch?.Updated,
+                            Priority = ch?.Priority,
+                            Latest = ch?.Latest
+                        })
+                        .ToList();
+                    
+                    _logger.LogInformation("Slack GetRecentConversationsAsync 回應：共 {Count} 個頻道，類型：{ChannelTypes}", 
+                        result.Channels.Count, 
+                        string.Join(", ", channelTypes.Select(ct => $"Id={ct.Id}, IsIm={ct.IsIm}, IsMpim={ct.IsMpim}, IsPrivate={ct.IsPrivate}, IsChannel={ct.IsChannel}, Name={ct.Name}, LastRead={ct.LastRead}, Updated={ct.Updated}, Priority={ct.Priority}, Latest={ct.Latest}")));
+                    
+                    // 保持 Slack API 的原始順序（不進行額外排序）
+                    // 注意：如果需要根據未讀訊息數量排序，應該在 Controller 層處理
+                    _logger.LogInformation("Slack GetRecentConversationsAsync：保持 API 原始順序，共 {Count} 個頻道", 
+                        result.Channels.Count);
+                    
+                    // 確保只返回指定數量的頻道（雖然 API 可能返回更多）
+                    if (result.Channels.Count > limit)
+                    {
+                        result.Channels = result.Channels.Take(limit).ToList();
+                    }
+                }
+                else
+                {
+                    _logger.LogWarning("Slack GetRecentConversationsAsync 回應：Channels 為 null");
+                }
+                
+                return result;
+            }
+            catch (JsonException ex)
+            {
+                _logger.LogError(ex, "解析 Slack 最近溝通頻道回應失敗：{Body}", responseBody);
+                throw;
+            }
+        }
     }
 }
