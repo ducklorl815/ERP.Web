@@ -31,19 +31,19 @@
     }
 
     .exam-title {
-        font-size: 18px;
-        margin-top: 8px;
-        margin-bottom: 8px;
+        font-size: 16px;
+        margin-top: 5px;
+        margin-bottom: 5px;
         font-weight: bold;
-        padding: 20px 20px 20px 20px;
+        padding: 10px 10px 10px 10px;
     }
 
     .exam-section {
-        font-size: 18px;
-        margin-top: 8px;
-        margin-bottom: 8px;
+        font-size: 16px;
+        margin-top: 5px;
+        margin-bottom: 5px;
         font-weight: bold;
-                padding: 20px 20px 20px 20px;
+        padding: 10px 10px 10px 10px;
     }
 
     /* 水平排列的題目格式 */
@@ -78,22 +78,22 @@
     /* 題目容器 - 簡潔無樣式 */
     .question-container {
         width: 100%;
-        margin-bottom: 20px;
+        margin-bottom: 10px; /* 減少間距，讓題目更緊密 */
     }
     
     /* 題目行 - 題號和題目在同一行 */
-    /* 調整 margin-bottom 可以控制題目行和運算空間之間的間距 */
+    /* 調整 margin-bottom 可以控制題目行和計算空間之間的間距 */
     .question-line {
         font-size: 20px;
         font-family: 'Courier New', Courier, monospace;
-        margin-bottom: 15px; /* 調整此值可改變題目行和運算空間的間距 */
-        line-height: 1.5;
+        margin-bottom: 8px; /* 適當間距，區分題目和計算空間 */
+        line-height: 1.3; /* 適當行高 */
     }
     
-    /* 運算空間 - 無樣式留白 */
-    /* 調整 min-height 可以控制運算空間的最小高度 */
+    /* 運算空間 - 計算空間留白 */
+    /* 調整 min-height 可以控制計算空間的最小高度 */
     .answer-space {
-        min-height: 100px; /* 調整此值可改變運算空間的高度 */
+        min-height: 80px; /* 確保每題下方有足夠的計算空間 */
         width: 100%;
         flex: 1; /* 自動填滿剩餘空間 */
     }
@@ -131,7 +131,7 @@
     }
 
     .mb-4 {
-        margin-bottom: 2.5rem !important;
+        margin-bottom: 0.5rem !important; /* 減少間距，讓題目更緊密 */
     }
 </style>
 @Html.Raw(@"
@@ -158,37 +158,42 @@
                 flex: 0 0 auto !important;
                 width: 33.33% !important;
                 max-width: 33.33% !important;
-                padding-left: 8px !important;
-                padding-right: 8px !important;
-                margin-bottom: 1.8rem !important;  /* 行間距 */
+                padding-left: 6px !important;
+                padding-right: 6px !important;
+                margin-bottom: 0 !important;  /* 移除行間距，確保不超出頁面 */
             }
-            /* 列印時題目框 - 6題均勻分配A4空間（3題一行，2行） */
+            /* 列印時題目容器 */
+            .question-container {
+                margin-bottom: 0 !important; /* 移除底部間距，確保不超出 */
+            }
+            /* 列印時題目框 - 15題均勻分配A4空間（3題一行，5行） */
             /* 調整此處的 mm 值可以控制列印時每個題目框的高度占比 */
             .question-box {
                 /* 說明：
-                   - A4 紙張高度約 297mm，扣除邊距後約 277mm
-                   - 2行分配，每題約 110mm
-                   - 調整此值可改變題目框的高度（例如：改為 100mm 會更小，改為 120mm 會更大）
+                   - A4 紙張高度約 297mm，扣除邊距（上下各0.8cm = 16mm）和標題後約 260mm
+                   - 5行分配，每題約 48mm（包含題目和計算空間）
+                   - 確保不超出頁面範圍
                 */
-                min-height: 50mm !important; /* 調整此值可改變列印時題目框的高度占比 */
+                min-height: 48mm !important; /* 平均分配高度，每題48mm，確保不超出 */
                 display: flex !important;
                 flex-direction: column !important;
             }
             /* 列印時題目行 */
             .question-line {
-                font-size: 18px !important;
-                margin-bottom: 10px !important; /* 調整此值可改變題目行和運算空間的間距 */
-                line-height: 0.25 !important;
+                font-size: 18px !important; /* 適中字體大小 */
+                margin-bottom: 2px !important; /* 減少間距，確保不超出頁面 */
+                line-height: 1.1 !important; /* 稍微緊密行高 */
             }
-            /* 列印時運算空間 - 無樣式留白 */
-            /* 調整此處的 mm 值可以控制列印時運算空間的高度占比 */
+            /* 列印時運算空間 - 計算空間留白 */
+            /* 調整此處的 mm 值可以控制列印時計算空間的高度占比 */
             .answer-space {
                 /* 說明：
-                   - 運算空間約 90mm，確保6題能完整顯示在一頁
-                   - 調整此值可改變運算空間的高度（例如：改為 80mm 會更小，改為 100mm 會更大）
-                   - 題目框高度 (110mm) + 運算空間高度 (90mm) = 約 200mm，確保不會超出頁面
+                   - 15題一頁，平均分配A4空間
+                   - 每題總高度約 48mm，題目約 5mm，計算空間約 40mm
+                   - 確保每題下方有足夠的計算空間，同時不超出頁面
                 */
-                min-height: 65mm !important; /* 調整此值可改變列印時運算空間的高度占比 */
+                min-height: 48mm !important; /* 計算空間高度，確保不超出頁面 */
+                max-height: 48mm !important; /* 限制最大高度，避免超出 */
                 flex: 1 !important; /* 自動填滿剩餘空間 */
             }
             /* 列印時除法題目樣式 */
@@ -209,8 +214,21 @@
                 font-size: 16px !important;
                 padding: 50px 10px !important;
             }
+            /* 列印時標題區域優化 */
+            .exam-title {
+                font-size: 14px !important; /* 適中標題字體大小 */
+                margin-top: 2px !important;
+                margin-bottom: 2px !important;
+                padding: 4px 4px 4px 4px !important; /* 減少內距，節省空間 */
+            }
+            .exam-section {
+                font-size: 14px !important; /* 適中標題字體大小 */
+                margin-top: 2px !important;
+                margin-bottom: 2px !important;
+                padding: 4px 4px 4px 4px !important; /* 減少內距，節省空間 */
+            }
             @page {
-                margin: 1cm;
+                margin: 0.8cm; /* 適當邊距，確保15題平均分配 */
                 size: A4 portrait;
             }
         }
@@ -225,12 +243,10 @@
            ============================================
            說明：
            - itemsPerPage = 每頁顯示的題數
-           - 目前設定：6題一頁（3題一行 × 2行）
-           - 可調整為：9題（3題一行 × 3行）、12題（3題一行 × 4行）等
-           - 注意：調整後需要同時調整 CSS 中的行數分配
-             （例如：6題 = / 2，9題 = / 3，12題 = / 4）
+           - 目前設定：15題一頁（3題一行 × 5行）
+           - 每題下方有計算空間，平均分配A4紙張空間
         ============================================ */
-        int itemsPerPage = 9; // ← 調整此數值即可改變每頁題數（例如：改為 9 就是每頁9題）
+        int itemsPerPage = 15; // ← 每頁15題（3題一行 × 5行）
         int totalQuestions = Model.VocabularyList?.Count ?? 0;
         int totalPages = (int)Math.Ceiling((double)totalQuestions / itemsPerPage);
     }
@@ -264,56 +280,67 @@
                             if (question == null) continue;
                             bool isDivision = question.CategoryType == "Division";
                             
-                            // 將多行格式轉換為單行格式：712+854+155=
+                            // 處理題目格式：如果是橫式格式直接使用，如果是垂直格式則轉換為橫式
                             var questionText = "";
                             if (!isDivision && !string.IsNullOrEmpty(question.Question))
                             {
-                                var questionLines = question.Question.Split('\n');
-                                var parts = new List<string>();
-                                
-                                foreach (var line in questionLines)
+                                // 檢查是否已經是橫式格式（包含 = 號且沒有換行）
+                                if (question.Question.Contains("=") && !question.Question.Contains("\n"))
                                 {
-                                    var trimmedLine = line.Trim();
-                                    if (string.IsNullOrEmpty(trimmedLine)) continue;
+                                    // 已經是橫式格式，直接使用
+                                    questionText = question.Question;
+                                }
+                                else
+                                {
+                                    // 舊的垂直格式，轉換為橫式
+                                    var questionLines = question.Question.Split('\n');
+                                    var parts = new List<string>();
                                     
-                                    // 處理第一行（沒有運算符號）
-                                    if (parts.Count == 0)
+                                    foreach (var line in questionLines)
                                     {
-                                        parts.Add(trimmedLine);
-                                    }
-                                    else
-                                    {
-                                        // 處理有運算符號的行
-                                        if (trimmedLine.StartsWith("+"))
+                                        var trimmedLine = line.Trim();
+                                        if (string.IsNullOrEmpty(trimmedLine)) continue;
+                                        
+                                        // 處理第一行（沒有運算符號）
+                                        if (parts.Count == 0)
                                         {
-                                            parts.Add("+" + trimmedLine.Substring(1).Trim());
-                                        }
-                                        else if (trimmedLine.StartsWith("-"))
-                                        {
-                                            parts.Add("-" + trimmedLine.Substring(1).Trim());
-                                        }
-                                        else if (trimmedLine.StartsWith("*"))
-                                        {
-                                            parts.Add("×" + trimmedLine.Substring(1).Trim());
-                                        }
-                                        else if (trimmedLine.StartsWith("/"))
-                                        {
-                                            parts.Add("÷" + trimmedLine.Substring(1).Trim());
+                                            // 移除前導空格
+                                            parts.Add(trimmedLine.TrimStart());
                                         }
                                         else
                                         {
-                                            // 如果沒有運算符號，假設是加法
-                                            parts.Add("+" + trimmedLine);
+                                            // 處理有運算符號的行
+                                            if (trimmedLine.StartsWith("+"))
+                                            {
+                                                parts.Add("+" + trimmedLine.Substring(1).Trim());
+                                            }
+                                            else if (trimmedLine.StartsWith("-"))
+                                            {
+                                                parts.Add("-" + trimmedLine.Substring(1).Trim());
+                                            }
+                                            else if (trimmedLine.StartsWith("*") || trimmedLine.StartsWith("×"))
+                                            {
+                                                parts.Add("×" + trimmedLine.Substring(1).Trim());
+                                            }
+                                            else if (trimmedLine.StartsWith("/") || trimmedLine.StartsWith("÷"))
+                                            {
+                                                parts.Add("÷" + trimmedLine.Substring(1).Trim());
+                                            }
+                                            else
+                                            {
+                                                // 如果沒有運算符號，假設是加法
+                                                parts.Add("+" + trimmedLine.Trim());
+                                            }
                                         }
                                     }
-                                }
-                                
-                                questionText = string.Join("", parts);
-                                
-                                // 確保最後有等號
-                                if (!string.IsNullOrEmpty(questionText) && !questionText.EndsWith("="))
-                                {
-                                    questionText += "=";
+                                    
+                                    questionText = string.Join("", parts);
+                                    
+                                    // 確保最後有等號
+                                    if (!string.IsNullOrEmpty(questionText) && !questionText.EndsWith("="))
+                                    {
+                                        questionText += "=";
+                                    }
                                 }
                             }
 
@@ -361,56 +388,67 @@
                             if (question == null) continue;
                             bool isDivision = question.CategoryType == "Division";
                             
-                            // 將多行格式轉換為單行格式：712+854+155=
+                            // 處理題目格式：如果是橫式格式直接使用，如果是垂直格式則轉換為橫式
                             var questionText = "";
                             if (!isDivision && !string.IsNullOrEmpty(question.Question))
                             {
-                                var questionLines = question.Question.Split('\n');
-                                var parts = new List<string>();
-                                
-                                foreach (var line in questionLines)
+                                // 檢查是否已經是橫式格式（包含 = 號且沒有換行）
+                                if (question.Question.Contains("=") && !question.Question.Contains("\n"))
                                 {
-                                    var trimmedLine = line.Trim();
-                                    if (string.IsNullOrEmpty(trimmedLine)) continue;
+                                    // 已經是橫式格式，直接使用
+                                    questionText = question.Question;
+                                }
+                                else
+                                {
+                                    // 舊的垂直格式，轉換為橫式
+                                    var questionLines = question.Question.Split('\n');
+                                    var parts = new List<string>();
                                     
-                                    // 處理第一行（沒有運算符號）
-                                    if (parts.Count == 0)
+                                    foreach (var line in questionLines)
                                     {
-                                        parts.Add(trimmedLine);
-                                    }
-                                    else
-                                    {
-                                        // 處理有運算符號的行
-                                        if (trimmedLine.StartsWith("+"))
+                                        var trimmedLine = line.Trim();
+                                        if (string.IsNullOrEmpty(trimmedLine)) continue;
+                                        
+                                        // 處理第一行（沒有運算符號）
+                                        if (parts.Count == 0)
                                         {
-                                            parts.Add("+" + trimmedLine.Substring(1).Trim());
-                                        }
-                                        else if (trimmedLine.StartsWith("-"))
-                                        {
-                                            parts.Add("-" + trimmedLine.Substring(1).Trim());
-                                        }
-                                        else if (trimmedLine.StartsWith("*"))
-                                        {
-                                            parts.Add("×" + trimmedLine.Substring(1).Trim());
-                                        }
-                                        else if (trimmedLine.StartsWith("/"))
-                                        {
-                                            parts.Add("÷" + trimmedLine.Substring(1).Trim());
+                                            // 移除前導空格
+                                            parts.Add(trimmedLine.TrimStart());
                                         }
                                         else
                                         {
-                                            // 如果沒有運算符號，假設是加法
-                                            parts.Add("+" + trimmedLine);
+                                            // 處理有運算符號的行
+                                            if (trimmedLine.StartsWith("+"))
+                                            {
+                                                parts.Add("+" + trimmedLine.Substring(1).Trim());
+                                            }
+                                            else if (trimmedLine.StartsWith("-"))
+                                            {
+                                                parts.Add("-" + trimmedLine.Substring(1).Trim());
+                                            }
+                                            else if (trimmedLine.StartsWith("*") || trimmedLine.StartsWith("×"))
+                                            {
+                                                parts.Add("×" + trimmedLine.Substring(1).Trim());
+                                            }
+                                            else if (trimmedLine.StartsWith("/") || trimmedLine.StartsWith("÷"))
+                                            {
+                                                parts.Add("÷" + trimmedLine.Substring(1).Trim());
+                                            }
+                                            else
+                                            {
+                                                // 如果沒有運算符號，假設是加法
+                                                parts.Add("+" + trimmedLine.Trim());
+                                            }
                                         }
                                     }
-                                }
-                                
-                                questionText = string.Join("", parts);
-                                
-                                // 確保最後有等號
-                                if (!string.IsNullOrEmpty(questionText) && !questionText.EndsWith("="))
-                                {
-                                    questionText += "=";
+                                    
+                                    questionText = string.Join("", parts);
+                                    
+                                    // 確保最後有等號
+                                    if (!string.IsNullOrEmpty(questionText) && !questionText.EndsWith("="))
+                                    {
+                                        questionText += "=";
+                                    }
                                 }
                             }
 

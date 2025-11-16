@@ -849,17 +849,20 @@ namespace ERP.Web.Service.Service.Exam
                     }
                 }
 
-                // 產生垂直排列的題目格式
-                var questionLines = new List<string>();
-                int maxWidth = Math.Max(digitCount, sum.ToString().Length);
-
+                // 產生橫式排列的題目格式：123+234+456=
+                var questionParts = new List<string>();
                 for (int j = 0; j < numbers.Count; j++)
                 {
-                    string prefix = (j == 0) ? "  " : "+ ";
-                    questionLines.Add($"{prefix}{numbers[j].ToString().PadLeft(maxWidth)}");
+                    if (j == 0)
+                    {
+                        questionParts.Add(numbers[j].ToString());
+                    }
+                    else
+                    {
+                        questionParts.Add($"+{numbers[j]}");
+                    }
                 }
-
-                var questionText = string.Join("\n", questionLines);
+                var questionText = string.Join("", questionParts) + "=";
 
                 // 建立題目物件
                 var entry = new Vocabulary
@@ -1008,17 +1011,20 @@ namespace ERP.Web.Service.Service.Exam
                     }
                 }
 
-                // 產生垂直排列的題目格式
-                var questionLines = new List<string>();
-                int maxWidth = Math.Max(digitCount, Math.Abs(difference).ToString().Length + (difference < 0 ? 1 : 0));
-
+                // 產生橫式排列的題目格式：999-234-123=
+                var questionParts = new List<string>();
                 for (int j = 0; j < numbers.Count; j++)
                 {
-                    string prefix = (j == 0) ? "  " : "- ";
-                    questionLines.Add($"{prefix}{numbers[j].ToString().PadLeft(maxWidth)}");
+                    if (j == 0)
+                    {
+                        questionParts.Add(numbers[j].ToString());
+                    }
+                    else
+                    {
+                        questionParts.Add($"-{numbers[j]}");
+                    }
                 }
-
-                var questionText = string.Join("\n", questionLines);
+                var questionText = string.Join("", questionParts) + "=";
 
                 // 建立題目物件
                 var entry = new Vocabulary
@@ -1156,15 +1162,8 @@ namespace ERP.Web.Service.Service.Exam
                     product = multiplicand * multiplier;
                 }
 
-                // 產生垂直排列的題目格式
-                var questionLines = new List<string>();
-                int maxWidth = Math.Max(multiplicand.ToString().Length, 
-                                       Math.Max(multiplier.ToString().Length, product.ToString().Length));
-
-                questionLines.Add($"  {multiplicand.ToString().PadLeft(maxWidth)}");
-                questionLines.Add($"× {multiplier.ToString().PadLeft(maxWidth)}");
-
-                var questionText = string.Join("\n", questionLines);
+                // 產生橫式排列的題目格式：3×8=
+                var questionText = $"{multiplicand}×{multiplier}=";
 
                 // 建立題目物件
                 var entry = new Vocabulary
