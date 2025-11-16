@@ -759,13 +759,15 @@ namespace ERP.Web.Service.Service.Exam
         /// </summary>
         /// <param name="KidID">學生ID</param>
         /// <param name="questionCount">題數</param>
-        /// <param name="digitCount">數字位數</param>
+        /// <param name="firstNumberDigits">第一個數位數（被加數）</param>
+        /// <param name="addendDigits">其他加數位數</param>
         /// <param name="numberCount">加數數量</param>
         /// <param name="resultDigitCount">結果位數限制</param>
         public async Task<ExamDataViewModel_result> GenerateAdditionQuestions(
             string KidID,
             int questionCount,
-            int digitCount,
+            int firstNumberDigits,
+            int addendDigits,
             int numberCount,
             int resultDigitCount)
         {
@@ -778,7 +780,7 @@ namespace ERP.Web.Service.Service.Exam
 
             var entries = new List<Vocabulary>();
             var rnd = new Random();
-            var ClassName = $"Addition_{digitCount}digit_{DateTime.Now:yyyyMMdd_HHmmss}";
+            var ClassName = $"Addition_{firstNumberDigits}x{addendDigits}digit_{DateTime.Now:yyyyMMdd_HHmmss}";
             var TestType = "Math";
 
             // 建立課程ID
@@ -799,9 +801,11 @@ namespace ERP.Web.Service.Service.Exam
             // 建立新的測驗索引
             Guid NewKidTestID = await _examRepo.InsertKidTestIndex(LessionID, KidID);
 
-            // 數字範圍
-            int minNumber = (int)Math.Pow(10, digitCount - 1);
-            int maxNumber = (int)Math.Pow(10, digitCount) - 1;
+            // 數字範圍：第一個數（被加數）和其他加數使用不同的位數範圍
+            int minFirstNumber = firstNumberDigits == 1 ? 1 : (int)Math.Pow(10, firstNumberDigits - 1);
+            int maxFirstNumber = (int)Math.Pow(10, firstNumberDigits) - 1;
+            int minAddend = addendDigits == 1 ? 1 : (int)Math.Pow(10, addendDigits - 1);
+            int maxAddend = (int)Math.Pow(10, addendDigits) - 1;
             int maxResult = (int)Math.Pow(10, resultDigitCount) - 1;
 
             // 產生題目
@@ -818,12 +822,17 @@ namespace ERP.Web.Service.Service.Exam
                     numbers.Clear();
                     sum = 0;
 
-                    // 產生指定數量的加數
-                    for (int j = 0; j < numberCount; j++)
+                    // 第一個數（被加數）使用 firstNumberDigits 位數
+                    int firstNumber = rnd.Next(minFirstNumber, maxFirstNumber + 1);
+                    numbers.Add(firstNumber);
+                    sum = firstNumber;
+
+                    // 產生其他加數（使用 addendDigits 位數）
+                    for (int j = 1; j < numberCount; j++)
                     {
-                        int number = rnd.Next(minNumber, maxNumber + 1);
-                        numbers.Add(number);
-                        sum += number;
+                        int addend = rnd.Next(minAddend, maxAddend + 1);
+                        numbers.Add(addend);
+                        sum += addend;
                     }
 
                     // 檢查結果是否符合位數限制
@@ -840,12 +849,21 @@ namespace ERP.Web.Service.Service.Exam
                 {
                     numbers.Clear();
                     sum = 0;
-                    int reducedMax = maxResult / numberCount;
-                    for (int j = 0; j < numberCount; j++)
+                    
+                    // 第一個數使用較小的範圍
+                    int reducedMaxFirst = Math.Min(maxFirstNumber, maxResult / numberCount);
+                    int firstNumber = rnd.Next(minFirstNumber, reducedMaxFirst + 1);
+                    numbers.Add(firstNumber);
+                    sum = firstNumber;
+                    
+                    // 其他加數使用較小的範圍
+                    int remainingResult = maxResult - firstNumber;
+                    int reducedMaxAddend = Math.Min(maxAddend, remainingResult / (numberCount - 1));
+                    for (int j = 1; j < numberCount; j++)
                     {
-                        int number = rnd.Next(minNumber, Math.Min(maxNumber, reducedMax) + 1);
-                        numbers.Add(number);
-                        sum += number;
+                        int addend = rnd.Next(minAddend, reducedMaxAddend + 1);
+                        numbers.Add(addend);
+                        sum += addend;
                     }
                 }
 
@@ -896,7 +914,7 @@ namespace ERP.Web.Service.Service.Exam
 
             result.VocabularyList = entries;
             await CalculateScore(result.VocabularyList, result);
-            result.Title = $"加法運算 - {digitCount}位數 {numberCount}個加數";
+            result.Title = $"加法運算 - {firstNumberDigits}位數 + {addendDigits}位數 × {numberCount - 1}個加數";
 
             return result;
         }
@@ -906,14 +924,16 @@ namespace ERP.Web.Service.Service.Exam
         /// </summary>
         /// <param name="KidID">學生ID</param>
         /// <param name="questionCount">題數</param>
-        /// <param name="digitCount">數字位數</param>
+        /// <param name="minuendDigits">被減數位數</param>
+        /// <param name="subtrahendDigits">減數位數</param>
         /// <param name="numberCount">減數數量</param>
         /// <param name="resultDigitCount">結果位數限制</param>
         /// <param name="allowNegative">是否允許負數結果</param>
         public async Task<ExamDataViewModel_result> GenerateSubtractionQuestions(
             string KidID,
             int questionCount,
-            int digitCount,
+            int minuendDigits,
+            int subtrahendDigits,
             int numberCount,
             int resultDigitCount,
             bool allowNegative = false)
@@ -927,7 +947,7 @@ namespace ERP.Web.Service.Service.Exam
 
             var entries = new List<Vocabulary>();
             var rnd = new Random();
-            var ClassName = $"Subtraction_{digitCount}digit_{DateTime.Now:yyyyMMdd_HHmmss}";
+            var ClassName = $"Subtraction_{minuendDigits}x{subtrahendDigits}digit_{DateTime.Now:yyyyMMdd_HHmmss}";
             var TestType = "Math";
 
             // 建立課程ID
@@ -947,9 +967,11 @@ namespace ERP.Web.Service.Service.Exam
             // 建立新的測驗索引
             Guid NewKidTestID = await _examRepo.InsertKidTestIndex(LessionID, KidID);
 
-            // 數字範圍
-            int minNumber = (int)Math.Pow(10, digitCount - 1);
-            int maxNumber = (int)Math.Pow(10, digitCount) - 1;
+            // 數字範圍：被減數和減數使用不同的位數範圍
+            int minMinuend = minuendDigits == 1 ? 1 : (int)Math.Pow(10, minuendDigits - 1);
+            int maxMinuend = (int)Math.Pow(10, minuendDigits) - 1;
+            int minSubtrahend = subtrahendDigits == 1 ? 1 : (int)Math.Pow(10, subtrahendDigits - 1);
+            int maxSubtrahend = (int)Math.Pow(10, subtrahendDigits) - 1;
             int maxResult = (int)Math.Pow(10, resultDigitCount) - 1;
             int minResult = allowNegative ? -(int)Math.Pow(10, resultDigitCount) + 1 : 0;
 
@@ -966,15 +988,15 @@ namespace ERP.Web.Service.Service.Exam
                 {
                     numbers.Clear();
 
-                    // 第一個數字（被減數）
-                    int firstNumber = rnd.Next(minNumber, maxNumber + 1);
-                    numbers.Add(firstNumber);
-                    difference = firstNumber;
+                    // 第一個數字（被減數）使用 minuendDigits 位數
+                    int minuend = rnd.Next(minMinuend, maxMinuend + 1);
+                    numbers.Add(minuend);
+                    difference = minuend;
 
-                    // 產生減數
+                    // 產生減數（使用 subtrahendDigits 位數）
                     for (int j = 1; j < numberCount; j++)
                     {
-                        int subtrahend = rnd.Next(minNumber, maxNumber + 1);
+                        int subtrahend = rnd.Next(minSubtrahend, maxSubtrahend + 1);
                         numbers.Add(subtrahend);
                         difference -= subtrahend;
                     }
@@ -992,19 +1014,19 @@ namespace ERP.Web.Service.Service.Exam
                 if (!validQuestion)
                 {
                     numbers.Clear();
-                    int firstNumber = rnd.Next(minNumber, maxNumber + 1);
-                    numbers.Add(firstNumber);
-                    difference = firstNumber;
+                    int minuend = rnd.Next(minMinuend, maxMinuend + 1);
+                    numbers.Add(minuend);
+                    difference = minuend;
 
                     // 確保結果為正數（如果不允許負數）
                     int remainingSubtract = allowNegative ? 
-                        firstNumber + maxResult : 
-                        Math.Min(firstNumber, maxNumber);
+                        minuend + maxResult : 
+                        Math.Min(minuend, maxMinuend);
 
                     for (int j = 1; j < numberCount; j++)
                     {
                         int maxSubtract = remainingSubtract / (numberCount - j);
-                        int subtrahend = rnd.Next(minNumber, Math.Min(maxNumber, maxSubtract) + 1);
+                        int subtrahend = rnd.Next(minSubtrahend, Math.Min(maxSubtrahend, maxSubtract) + 1);
                         numbers.Add(subtrahend);
                         difference -= subtrahend;
                         remainingSubtract -= subtrahend;
@@ -1057,7 +1079,7 @@ namespace ERP.Web.Service.Service.Exam
 
             result.VocabularyList = entries;
             await CalculateScore(result.VocabularyList, result);
-            result.Title = $"減法運算 - {digitCount}位數 {numberCount}個減數{(allowNegative ? " (含負數)" : "")}";
+            result.Title = $"減法運算 - {minuendDigits}位數 - {subtrahendDigits}位數 × {numberCount - 1}個減數{(allowNegative ? " (含負數)" : "")}";
 
             return result;
         }
@@ -1276,53 +1298,161 @@ namespace ERP.Web.Service.Service.Exam
                 int quotient = 0;
                 int dividend = 0;
                 int remainder = 0;
+                bool validQuestion = false;
 
-                // 避免除數為0
-                do
+                // 數字範圍
+                int minDividend = dividendDigits == 1 ? 1 : (int)Math.Pow(10, dividendDigits - 1);
+                int maxDividend = (int)Math.Pow(10, dividendDigits) - 1;
+
+                // 重試機制，確保題目符合位數要求
+                int retryCount = 0;
+                while (!validQuestion && retryCount < 100)
                 {
-                    divisor = rnd.Next(minDivisor, maxDivisor + 1);
-                } while (divisor == 0);
-
-                if (isExactDivision)
-                {
-                    // 整除：先決定商，再計算被除數
-                    int minQuotient = (int)Math.Pow(10, dividendDigits - divisorDigits - 1);
-                    int maxQuotient = (int)Math.Pow(10, dividendDigits - divisorDigits);
-                    
-                    if (minQuotient < 1) minQuotient = 1;
-                    if (maxQuotient < minQuotient) maxQuotient = minQuotient * 10;
-
-                    quotient = rnd.Next(minQuotient, maxQuotient);
-                    dividend = divisor * quotient;
-                    remainder = 0;
-                }
-                else
-                {
-                    // 有餘數：產生被除數，計算商和餘數
-                    int minDividend = (int)Math.Pow(10, dividendDigits - 1);
-                    int maxDividend = (int)Math.Pow(10, dividendDigits) - 1;
-                    
-                    dividend = rnd.Next(minDividend, maxDividend + 1);
-                    quotient = dividend / divisor;
-                    remainder = dividend % divisor;
-
-                    // 確保有餘數
-                    int retryCount = 0;
-                    while (remainder == 0 && retryCount < 50)
+                    // 避免除數為0
+                    do
                     {
+                        divisor = rnd.Next(minDivisor, maxDivisor + 1);
+                    } while (divisor == 0);
+
+                    if (isExactDivision)
+                    {
+                        // 整除：先決定商，再計算被除數，確保被除數符合位數要求
+                        // 計算商的合理範圍：被除數 = 除數 × 商
+                        // 被除數範圍：[minDividend, maxDividend]
+                        // 商範圍：[minDividend / maxDivisor, maxDividend / minDivisor]
+                        int minQuotient = Math.Max(1, minDividend / maxDivisor);
+                        int maxQuotient = maxDividend / divisor;
+                        
+                        // 如果商範圍不合理，調整
+                        if (minQuotient < 1) minQuotient = 1;
+                        if (maxQuotient < minQuotient)
+                        {
+                            // 如果被除數位數小於等於除數位數，商只能是1（或0，但0不合理）
+                            minQuotient = 1;
+                            maxQuotient = 1;
+                        }
+
+                        quotient = rnd.Next(minQuotient, maxQuotient + 1);
+                        dividend = divisor * quotient;
+                        remainder = 0;
+
+                        // 檢查被除數是否符合位數要求
+                        if (dividend >= minDividend && dividend <= maxDividend)
+                        {
+                            validQuestion = true;
+                        }
+                    }
+                    else
+                    {
+                        // 有餘數：產生被除數，計算商和餘數，確保有餘數且符合位數要求
                         dividend = rnd.Next(minDividend, maxDividend + 1);
                         quotient = dividend / divisor;
                         remainder = dividend % divisor;
-                        retryCount++;
+
+                        // 確保有餘數且商不為0（如果被除數 >= 除數）
+                        if (remainder > 0 && quotient > 0)
+                        {
+                            validQuestion = true;
+                        }
+                        else if (dividend < divisor)
+                        {
+                            // 如果被除數 < 除數，商為0，餘數 = 被除數，這也算有餘數
+                            quotient = 0;
+                            remainder = dividend;
+                            validQuestion = true;
+                        }
                     }
 
-                    // 如果還是沒有餘數，手動加上餘數
-                    if (remainder == 0 && dividend + 1 <= maxDividend)
+                    retryCount++;
+                }
+
+                // 如果仍然無法生成有效題目，使用更保守的策略
+                if (!validQuestion)
+                {
+                    // 避免除數為0
+                    do
                     {
-                        int addRemainder = rnd.Next(1, Math.Min(divisor, maxDividend - dividend + 1));
-                        dividend += addRemainder;
+                        divisor = rnd.Next(minDivisor, maxDivisor + 1);
+                    } while (divisor == 0);
+
+                    if (isExactDivision)
+                    {
+                        // 整除：使用最小的合理值
+                        if (dividendDigits >= divisorDigits)
+                        {
+                            // 被除數位數 >= 除數位數，可以使用商 >= 1
+                            quotient = Math.Max(1, minDividend / divisor);
+                            if (quotient < 1) quotient = 1;
+                        }
+                        else
+                        {
+                            // 被除數位數 < 除數位數，只能嘗試商 = 1（如果可能）
+                            if (divisor <= maxDividend)
+                            {
+                                quotient = 1;
+                            }
+                            else
+                            {
+                                // 無法整除，改為有餘數題目
+                                quotient = 0;
+                            }
+                        }
+                        
+                        dividend = divisor * quotient;
+                        
+                        // 如果被除數超出範圍，調整
+                        if (dividend > maxDividend)
+                        {
+                            // 調整為最大的合理被除數
+                            dividend = (maxDividend / divisor) * divisor;
+                            quotient = dividend / divisor;
+                        }
+                        
+                        if (dividend < minDividend)
+                        {
+                            dividend = Math.Max(minDividend, divisor);
+                            quotient = dividend / divisor;
+                            remainder = dividend % divisor;
+                            // 如果無法整除，改為有餘數
+                            if (remainder > 0)
+                            {
+                                isExactDivision = false;
+                            }
+                        }
+                        
+                        remainder = 0;
+                        validQuestion = true;
+                    }
+                    else
+                    {
+                        // 有餘數：確保被除數不是除數的倍數
+                        dividend = rnd.Next(minDividend, maxDividend + 1);
+                        
+                        // 確保不是整除
+                        while (dividend % divisor == 0 && dividend < maxDividend)
+                        {
+                            dividend++;
+                        }
+                        
+                        // 如果達到最大值仍整除，減1
+                        if (dividend % divisor == 0 && dividend > minDividend)
+                        {
+                            dividend--;
+                        }
+                        
                         quotient = dividend / divisor;
                         remainder = dividend % divisor;
+                        
+                        // 如果還是整除（極端情況），手動添加餘數
+                        if (remainder == 0 && dividend < maxDividend)
+                        {
+                            int addRemainder = rnd.Next(1, Math.Min(divisor, maxDividend - dividend));
+                            dividend += addRemainder;
+                            quotient = dividend / divisor;
+                            remainder = dividend % divisor;
+                        }
+                        
+                        validQuestion = true;
                     }
                 }
 

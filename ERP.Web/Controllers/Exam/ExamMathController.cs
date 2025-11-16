@@ -117,12 +117,13 @@ namespace ERP.Web.Controllers.Exam
         public async Task<IActionResult> GenerateAdditionQuestions(
             string KidID,
             int questionCount,
-            int digitCount,
+            int firstNumberDigits,
+            int addendDigits,
             int numberCount,
             int resultDigitCount)
         {
             var result = await _examService.GenerateAdditionQuestions(
-                KidID, questionCount, digitCount, numberCount, resultDigitCount);
+                KidID, questionCount, firstNumberDigits, addendDigits, numberCount, resultDigitCount);
             return View("~/Views/Exam/_ArithmeticTest.cshtml", result);
         }
 
@@ -150,13 +151,14 @@ namespace ERP.Web.Controllers.Exam
         public async Task<IActionResult> GenerateSubtractionQuestions(
             string KidID,
             int questionCount,
-            int digitCount,
+            int minuendDigits,
+            int subtrahendDigits,
             int numberCount,
             int resultDigitCount,
             bool allowNegative = false)
         {
             var result = await _examService.GenerateSubtractionQuestions(
-                KidID, questionCount, digitCount, numberCount, resultDigitCount, allowNegative);
+                KidID, questionCount, minuendDigits, subtrahendDigits, numberCount, resultDigitCount, allowNegative);
             return View("~/Views/Exam/_ArithmeticTest.cshtml", result);
         }
 
