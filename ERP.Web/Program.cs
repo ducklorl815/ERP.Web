@@ -62,6 +62,8 @@ builder.Services.AddSingleton<ToolsRespo>();
 builder.Services.Configure<DBList>(builder.Configuration.GetSection("ConnectionStrings"));
 builder.Services.Configure<SlackOptions>(builder.Configuration.GetSection("Slack"));
 
+// HttpClient 服務註冊（用於 YouTube API 等外部 API 呼叫）
+builder.Services.AddHttpClient();
 builder.Services.AddHttpClient<ISlackService, SlackService>();
 
 // SignalR 服務註冊（用於即時通知）

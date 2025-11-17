@@ -78,12 +78,18 @@
 
                                 <div class="mb-3">
                                     <label asp-for="URLTimeString" class="form-label"></label>
-                                    <input asp-for="URLTimeString" class="form-control" 
-                                           placeholder="例如: 10:30 或 00:10:30" 
-                                           id="urlTimeString" />
+                                    <div class="input-group">
+                                        <input asp-for="URLTimeString" class="form-control" 
+                                               placeholder="例如: 10:30 或 00:10:30" 
+                                               id="urlTimeString" />
+                                        <button type="button" class="btn btn-outline-secondary" id="btnFetchDuration" onclick="fetchVideoDuration()">
+                                            <i class="fas fa-sync-alt"></i> 自動取得
+                                        </button>
+                                    </div>
                                     <span asp-validation-for="URLTimeString" class="text-danger"></span>
                                     <small class="form-text text-muted">
                                         格式：HH:MM:SS（如 01:30:45）或 MM:SS（如 90:45）
+                                        <span id="durationStatus" class="ms-2"></span>
                                     </small>
                                 </div>
 
@@ -288,6 +294,90 @@
             previewDiv.scrollIntoView({ behavior: 'smooth', block: 'nearest' });
         }
 
+        // 自動取得影片長度
+        async function fetchVideoDuration() {
+            const url = document.getElementById('youtubeUrl').value;
+            const durationInput = document.getElementById('urlTimeString');
+            const statusSpan = document.getElementById('durationStatus');
+            const btnFetch = document.getElementById('btnFetchDuration');
+
+            if (!url) {
+                Swal.fire({
+                    title: '提示',
+                    text: '請先輸入 YouTube URL',
+                    icon: 'warning',
+                    confirmButtonText: '確定'
+                });
+                return;
+            }
+
+            const videoId = extractVideoId(url);
+            if (!videoId) {
+                Swal.fire({
+                    title: '錯誤',
+                    text: '無法識別 YouTube URL，請確認格式正確',
+                    icon: 'error',
+                    confirmButtonText: '確定'
+                });
+                return;
+            }
+
+            // 顯示載入狀態
+            btnFetch.disabled = true;
+            btnFetch.innerHTML = '<i class="fas fa-spinner fa-spin"></i> 取得中...';
+            statusSpan.innerHTML = '<i class="fas fa-spinner fa-spin"></i> 正在取得影片資訊...';
+            statusSpan.className = 'ms-2 text-info';
+
+            try {
+                const response = await fetch('@Url.Action("GetYouTubeVideoInfo", "Lession")', {
+                    method: 'POST',
+                    headers: {
+                        'Content-Type': 'application/json'
+                    },
+                    body: JSON.stringify({ url: url })
+                });
+
+                const data = await response.json();
+
+                if (data.success) {
+                    durationInput.value = data.duration;
+                    statusSpan.innerHTML = '<i class="fas fa-check-circle text-success"></i> 已自動填入';
+                    statusSpan.className = 'ms-2 text-success';
+                    
+                    Swal.fire({
+                        title: '成功',
+                        text: `已自動取得影片長度：${data.duration}`,
+                        icon: 'success',
+                        timer: 2000,
+                        showConfirmButton: false
+                    });
+                } else {
+                    statusSpan.innerHTML = '<i class="fas fa-exclamation-triangle text-warning"></i> ' + data.message;
+                    statusSpan.className = 'ms-2 text-warning';
+                    
+                    Swal.fire({
+                        title: '無法取得',
+                        text: data.message || '無法取得影片長度，請手動輸入',
+                        icon: 'warning',
+                        confirmButtonText: '確定'
+                    });
+                }
+            } catch (error) {
+                statusSpan.innerHTML = '<i class="fas fa-times-circle text-danger"></i> 發生錯誤';
+                statusSpan.className = 'ms-2 text-danger';
+                
+                Swal.fire({
+                    title: '錯誤',
+                    text: '無法連線到伺服器，請稍後再試',
+                    icon: 'error',
+                    confirmButtonText: '確定'
+                });
+            } finally {
+                btnFetch.disabled = false;
+                btnFetch.innerHTML = '<i class="fas fa-sync-alt"></i> 自動取得';
+            }
+        }
+
         // URL 輸入時自動驗證
         document.getElementById('youtubeUrl')?.addEventListener('blur', function() {
             const url = this.value;
@@ -301,6 +391,13 @@
                         timer: 3000,
                         showConfirmButton: false
                     });
+                } else {
+                    // 清除之前的狀態
+                    const statusSpan = document.getElementById('durationStatus');
+                    if (statusSpan) {
+                        statusSpan.innerHTML = '';
+                        statusSpan.className = 'ms-2';
+                    }
                 }
             }
         });

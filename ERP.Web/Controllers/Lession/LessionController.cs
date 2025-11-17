@@ -2,6 +2,7 @@ using ERP.Web.Models.Models;
 using ERP.Web.Service.Service.Lession;
 using Microsoft.AspNetCore.Mvc;
 using System.ComponentModel.DataAnnotations;
+using System.Text.Json;
 
 namespace ERP.Web.Controllers.Lession
 {
@@ -12,10 +13,14 @@ namespace ERP.Web.Controllers.Lession
     public class LessionController : Controller
     {
         private readonly LessionService _lessionService;
+        private readonly IConfiguration _configuration;
+        private readonly HttpClient _httpClient;
 
-        public LessionController(LessionService lessionService)
+        public LessionController(LessionService lessionService, IConfiguration configuration, IHttpClientFactory httpClientFactory)
         {
             _lessionService = lessionService;
+            _configuration = configuration;
+            _httpClient = httpClientFactory.CreateClient();
         }
 
         /// <summary>
@@ -298,6 +303,152 @@ namespace ERP.Web.Controllers.Lession
         }
 
         /// <summary>
+        /// 從 YouTube URL 取得影片資訊（API endpoint）
+        /// </summary>
+        [HttpPost]
+        [IgnoreAntiforgeryToken]
+        public async Task<IActionResult> GetYouTubeVideoInfo([FromBody] GetYouTubeVideoInfoRequest request)
+        {
+            try
+            {
+                if (string.IsNullOrEmpty(request.Url))
+                {
+                    return Json(new { success = false, message = "請提供 YouTube URL" });
+                }
+
+                var videoId = ExtractVideoId(request.Url);
+                if (string.IsNullOrEmpty(videoId))
+                {
+                    return Json(new { success = false, message = "無法識別 YouTube URL 格式" });
+                }
+
+                // 取得 YouTube API Key
+                var apiKey = _configuration["YouTube:ApiKey"];
+                if (string.IsNullOrEmpty(apiKey))
+                {
+                    return Json(new { success = false, message = "YouTube API Key 未設定，請手動輸入影片時長" });
+                }
+
+                // 呼叫 YouTube Data API v3
+                var apiUrl = $"https://www.googleapis.com/youtube/v3/videos?id={videoId}&key={apiKey}&part=contentDetails";
+                var response = await _httpClient.GetAsync(apiUrl);
+
+                if (!response.IsSuccessStatusCode)
+                {
+                    return Json(new { success = false, message = $"無法取得影片資訊：{response.StatusCode}" });
+                }
+
+                var jsonContent = await response.Content.ReadAsStringAsync();
+                var jsonDoc = JsonDocument.Parse(jsonContent);
+
+                // 檢查是否有找到影片
+                if (!jsonDoc.RootElement.TryGetProperty("items", out var items) || items.GetArrayLength() == 0)
+                {
+                    return Json(new { success = false, message = "找不到該影片，請確認 URL 是否正確" });
+                }
+
+                // 取得影片長度（ISO 8601 格式，例如：PT1H30M45S）
+                var contentDetails = items[0].GetProperty("contentDetails");
+                var duration = contentDetails.GetProperty("duration").GetString();
+
+                if (string.IsNullOrEmpty(duration))
+                {
+                    return Json(new { success = false, message = "無法取得影片長度資訊" });
+                }
+
+                // 將 ISO 8601 格式轉換為秒數
+                var totalSeconds = ParseISO8601Duration(duration);
+                if (totalSeconds <= 0)
+                {
+                    return Json(new { success = false, message = "無法解析影片長度" });
+                }
+
+                // 轉換為 HH:MM:SS 或 MM:SS 格式
+                var timeString = FormatTimeSpan(totalSeconds);
+
+                return Json(new
+                {
+                    success = true,
+                    duration = timeString,
+                    totalSeconds = totalSeconds
+                });
+            }
+            catch (Exception ex)
+            {
+                return Json(new { success = false, message = $"發生錯誤：{ex.Message}" });
+            }
+        }
+
+        /// <summary>
+        /// 解析 ISO 8601 時間格式（例如：PT1H30M45S）為秒數
+        /// </summary>
+        private int ParseISO8601Duration(string duration)
+        {
+            // ISO 8601 格式：PT1H30M45S (1小時30分45秒)
+            // 移除 PT 前綴
+            if (!duration.StartsWith("PT"))
+                return 0;
+
+            duration = duration.Substring(2);
+            int totalSeconds = 0;
+
+            // 解析小時
+            var hourIndex = duration.IndexOf('H');
+            if (hourIndex != -1)
+            {
+                if (int.TryParse(duration.Substring(0, hourIndex), out int hours))
+                {
+                    totalSeconds += hours * 3600;
+                }
+                duration = duration.Substring(hourIndex + 1);
+            }
+
+            // 解析分鐘
+            var minuteIndex = duration.IndexOf('M');
+            if (minuteIndex != -1)
+            {
+                if (int.TryParse(duration.Substring(0, minuteIndex), out int minutes))
+                {
+                    totalSeconds += minutes * 60;
+                }
+                duration = duration.Substring(minuteIndex + 1);
+            }
+
+            // 解析秒數
+            var secondIndex = duration.IndexOf('S');
+            if (secondIndex != -1)
+            {
+                if (int.TryParse(duration.Substring(0, secondIndex), out int seconds))
+                {
+                    totalSeconds += seconds;
+                }
+            }
+
+            return totalSeconds;
+        }
+
+        /// <summary>
+        /// 將秒數轉換為時間字串格式（HH:MM:SS 或 MM:SS）
+        /// </summary>
+        private string FormatTimeSpan(int totalSeconds)
+        {
+            var hours = totalSeconds / 3600;
+            var minutes = (totalSeconds % 3600) / 60;
+            var seconds = totalSeconds % 60;
+
+            // 如果超過 1 小時，使用 HH:MM:SS 格式
+            if (hours > 0)
+            {
+                return $"{hours:D2}:{minutes:D2}:{seconds:D2}";
+            }
+            // 否則使用 MM:SS 格式
+            else
+            {
+                return $"{minutes:D2}:{seconds:D2}";
+            }
+        }
+
+        /// <summary>
         /// 從 YouTube URL 中提取 Video ID
         /// </summary>
         private string ExtractVideoId(string url)
@@ -464,6 +615,14 @@ namespace ERP.Web.Controllers.Lession
         [Display(Name = "分頁編號 (Page)")]
         [Range(1, int.MaxValue, ErrorMessage = "分頁編號必須大於 0")]
         public int Page { get; set; } = 1;
+    }
+
+    /// <summary>
+    /// 取得 YouTube 影片資訊請求
+    /// </summary>
+    public class GetYouTubeVideoInfoRequest
+    {
+        public string Url { get; set; } = string.Empty;
     }
 }
 
