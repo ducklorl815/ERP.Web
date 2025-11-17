@@ -3,10 +3,12 @@ using ERP.Web.Models.Respository;
 using ERP.Web.Models.Respository.Account;
 using ERP.Web.Models.Respository.ControllerSetting;
 using ERP.Web.Models.Respository.Exam;
+using ERP.Web.Models.Respository.Lession;
 using ERP.Web.Models.Respository.Tools;
 using ERP.Web.Service.Service;
 using ERP.Web.Service.Service.ControllerSetting;
 using ERP.Web.Service.Service.Exam;
+using ERP.Web.Service.Service.Lession;
 using ERP.Web.Service.Service.Slack;
 using ERP.Web.Utility.Models;
 using ERP.Web.Utility.Services;
@@ -47,12 +49,14 @@ builder.Services.AddSingleton<ChartsService>();
 builder.Services.AddSingleton<SeatMapService>();
 builder.Services.AddSingleton<ExamService>();
 builder.Services.AddSingleton<ToolsService>();
+builder.Services.AddSingleton<LessionService>();
 
 // Repository
 builder.Services.AddSingleton<ControllerSettingRepo>();
 builder.Services.AddSingleton<ChartsRespo>();
 builder.Services.AddSingleton<SeatMapRespo>();
 builder.Services.AddSingleton<ExamRespo>();
+builder.Services.AddSingleton<LessionRepository>();
 builder.Services.AddSingleton<ToolsRespo>();
 
 builder.Services.Configure<DBList>(builder.Configuration.GetSection("ConnectionStrings"));

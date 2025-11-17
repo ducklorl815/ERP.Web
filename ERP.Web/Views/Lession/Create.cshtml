@@ -1,0 +1,327 @@
+@model ERP.Web.Controllers.Lession.LessionCreateViewModel
+@{
+    ViewData["Title"] = "新增 YouTube 課程";
+}
+
+<div class="container-fluid">
+    <div class="row">
+        <div class="col-12">
+            <h2>新增 YouTube 課程</h2>
+            <hr />
+        </div>
+    </div>
+
+    @if (TempData["SuccessMessage"] != null)
+    {
+        <div class="alert alert-success alert-dismissible fade show" role="alert">
+            <i class="fas fa-check-circle"></i> @TempData["SuccessMessage"]
+            <button type="button" class="btn-close" data-bs-dismiss="alert" aria-label="Close"></button>
+        </div>
+    }
+
+    <div class="row">
+        <div class="col-lg-8 col-md-12">
+            <div class="card">
+                <div class="card-header">
+                    <h5 class="mb-0"><i class="fas fa-plus-circle"></i> 課程資訊</h5>
+                </div>
+                <div class="card-body">
+                    <form asp-action="Create" method="post" id="createForm">
+                        @Html.AntiForgeryToken()
+
+                        <div asp-validation-summary="ModelOnly" class="text-danger mb-3"></div>
+
+                        <!-- 基本資訊 -->
+                        <div class="row mb-3">
+                            <div class="col-md-6">
+                                <label asp-for="MyModal" class="form-label"></label>
+                                <input asp-for="MyModal" class="form-control" placeholder="例如: segment1" />
+                                <span asp-validation-for="MyModal" class="text-danger"></span>
+                                <small class="form-text text-muted">片段唯一識別碼，用於區分不同片段</small>
+                            </div>
+                            <div class="col-md-6">
+                                <label asp-for="Page" class="form-label"></label>
+                                <input asp-for="Page" class="form-control" type="number" min="1" />
+                                <span asp-validation-for="Page" class="text-danger"></span>
+                                <small class="form-text text-muted">相同 Page 編號的片段會顯示在同一個播放清單</small>
+                            </div>
+                        </div>
+
+                        <div class="mb-3">
+                            <label asp-for="Title" class="form-label"></label>
+                            <input asp-for="Title" class="form-control" placeholder="例如: 第一章 - 基礎介紹" />
+                            <span asp-validation-for="Title" class="text-danger"></span>
+                        </div>
+
+                        <div class="mb-3">
+                            <label asp-for="Content" class="form-label"></label>
+                            <textarea asp-for="Content" class="form-control" rows="3" placeholder="課程內容描述..."></textarea>
+                            <span asp-validation-for="Content" class="text-danger"></span>
+                        </div>
+
+                        <!-- YouTube 影片資訊 -->
+                        <div class="card mb-3">
+                            <div class="card-header bg-primary text-white">
+                                <h6 class="mb-0"><i class="fab fa-youtube"></i> YouTube 影片資訊</h6>
+                            </div>
+                            <div class="card-body">
+                                <div class="mb-3">
+                                    <label asp-for="URL" class="form-label"></label>
+                                    <input asp-for="URL" class="form-control" 
+                                           placeholder="https://www.youtube.com/watch?v=VIDEO_ID 或 https://youtu.be/VIDEO_ID" 
+                                           id="youtubeUrl" />
+                                    <span asp-validation-for="URL" class="text-danger"></span>
+                                    <small class="form-text text-muted">
+                                        支援格式：youtube.com/watch?v=, youtu.be/, youtube.com/embed/
+                                    </small>
+                                </div>
+
+                                <div class="mb-3">
+                                    <label asp-for="URLTimeString" class="form-label"></label>
+                                    <input asp-for="URLTimeString" class="form-control" 
+                                           placeholder="例如: 10:30 或 00:10:30" 
+                                           id="urlTimeString" />
+                                    <span asp-validation-for="URLTimeString" class="text-danger"></span>
+                                    <small class="form-text text-muted">
+                                        格式：HH:MM:SS（如 01:30:45）或 MM:SS（如 90:45）
+                                    </small>
+                                </div>
+
+                                <!-- 預覽區域 -->
+                                <div id="videoPreview" class="mb-3" style="display: none;">
+                                    <div class="card">
+                                        <div class="card-body">
+                                            <h6 class="card-title">影片預覽</h6>
+                                            <div class="embed-responsive embed-responsive-16by9" style="position: relative; padding-bottom: 56.25%; height: 0; overflow: hidden;">
+                                                <iframe id="previewIframe" 
+                                                        style="position: absolute; top: 0; left: 0; width: 100%; height: 100%;"
+                                                        frameborder="0" 
+                                                        allow="accelerometer; autoplay; clipboard-write; encrypted-media; gyroscope; picture-in-picture" 
+                                                        allowfullscreen>
+                                                </iframe>
+                                            </div>
+                                        </div>
+                                    </div>
+                                </div>
+                            </div>
+                        </div>
+
+                        <!-- 樣式設定 -->
+                        <div class="card mb-3">
+                            <div class="card-header">
+                                <h6 class="mb-0"><i class="fas fa-paint-brush"></i> 樣式設定（選填）</h6>
+                            </div>
+                            <div class="card-body">
+                                <div class="row">
+                                    <div class="col-md-6 mb-3">
+                                        <label asp-for="TitleStyle" class="form-label"></label>
+                                        <input asp-for="TitleStyle" class="form-control" placeholder="例如: color: red; font-size: 20px;" />
+                                        <span asp-validation-for="TitleStyle" class="text-danger"></span>
+                                    </div>
+                                    <div class="col-md-6 mb-3">
+                                        <label asp-for="ContentStyle" class="form-label"></label>
+                                        <input asp-for="ContentStyle" class="form-control" placeholder="例如: color: blue; font-size: 14px;" />
+                                        <span asp-validation-for="ContentStyle" class="text-danger"></span>
+                                    </div>
+                                </div>
+                                <div class="row">
+                                    <div class="col-md-6 mb-3">
+                                        <label asp-for="URLStyle" class="form-label"></label>
+                                        <input asp-for="URLStyle" class="form-control" placeholder="例如: width: 100%; height: auto;" />
+                                        <span asp-validation-for="URLStyle" class="text-danger"></span>
+                                    </div>
+                                    <div class="col-md-6 mb-3">
+                                        <label asp-for="ImgStyle" class="form-label"></label>
+                                        <input asp-for="ImgStyle" class="form-control" placeholder="例如: width: 100%; height: 200px;" />
+                                        <span asp-validation-for="ImgStyle" class="text-danger"></span>
+                                    </div>
+                                </div>
+                            </div>
+                        </div>
+
+                        <!-- 圖片設定 -->
+                        <div class="card mb-3">
+                            <div class="card-header">
+                                <h6 class="mb-0"><i class="fas fa-image"></i> 圖片設定（選填）</h6>
+                            </div>
+                            <div class="card-body">
+                                <div class="mb-3">
+                                    <label asp-for="Img" class="form-label"></label>
+                                    <input asp-for="Img" class="form-control" placeholder="https://example.com/image.jpg" />
+                                    <span asp-validation-for="Img" class="text-danger"></span>
+                                    <small class="form-text text-muted">課程列表顯示的封面圖片</small>
+                                </div>
+                            </div>
+                        </div>
+
+                        <!-- 操作按鈕 -->
+                        <div class="d-flex justify-content-between">
+                            <a href="@Url.Action("Index", "Lession")" class="btn btn-secondary">
+                                <i class="fas fa-arrow-left"></i> 返回列表
+                            </a>
+                            <div>
+                                <button type="button" class="btn btn-info" onclick="previewVideo()">
+                                    <i class="fas fa-eye"></i> 預覽影片
+                                </button>
+                                <button type="submit" class="btn btn-primary">
+                                    <i class="fas fa-save"></i> 儲存
+                                </button>
+                            </div>
+                        </div>
+                    </form>
+                </div>
+            </div>
+        </div>
+
+        <!-- 右側：說明 -->
+        <div class="col-lg-4 col-md-12">
+            <div class="card">
+                <div class="card-header">
+                    <h5 class="mb-0"><i class="fas fa-info-circle"></i> 使用說明</h5>
+                </div>
+                <div class="card-body">
+                    <h6>填寫說明：</h6>
+                    <ul class="list-unstyled">
+                        <li class="mb-2">
+                            <strong>片段識別碼 (MyModal)：</strong><br>
+                            <small>每個片段的唯一識別碼，建議使用有意義的名稱，如：segment1, chapter1 等</small>
+                        </li>
+                        <li class="mb-2">
+                            <strong>分頁編號 (Page)：</strong><br>
+                            <small>相同 Page 編號的片段會顯示在同一個播放清單中，可以建立多個片段組成一個完整課程</small>
+                        </li>
+                        <li class="mb-2">
+                            <strong>YouTube URL：</strong><br>
+                            <small>支援多種格式：<br>
+                            • https://www.youtube.com/watch?v=VIDEO_ID<br>
+                            • https://youtu.be/VIDEO_ID<br>
+                            • https://www.youtube.com/embed/VIDEO_ID</small>
+                        </li>
+                        <li class="mb-2">
+                            <strong>影片時長：</strong><br>
+                            <small>格式：HH:MM:SS（如 01:30:45）或 MM:SS（如 90:45）</small>
+                        </li>
+                        <li class="mb-2">
+                            <strong>樣式設定：</strong><br>
+                            <small>可選填 CSS 樣式，用於自訂顯示效果</small>
+                        </li>
+                    </ul>
+
+                    <hr />
+
+                    <h6>範例：</h6>
+                    <div class="alert alert-light">
+                        <strong>片段識別碼：</strong> segment1<br>
+                        <strong>標題：</strong> 第一章 - 基礎介紹<br>
+                        <strong>分頁編號：</strong> 1<br>
+                        <strong>YouTube URL：</strong> https://www.youtube.com/watch?v=dQw4w9WgXcQ<br>
+                        <strong>影片時長：</strong> 10:30
+                    </div>
+                </div>
+            </div>
+        </div>
+    </div>
+</div>
+
+@section Scripts {
+    <script src="https://cdn.jsdelivr.net/npm/sweetalert2@11"></script>
+    <script>
+        // 從 YouTube URL 提取 Video ID
+        function extractVideoId(url) {
+            if (!url) return '';
+
+            let videoId = '';
+            
+            if (url.includes('youtube.com/watch?v=')) {
+                const startIndex = url.indexOf('watch?v=') + 8;
+                const endIndex = url.indexOf('&', startIndex);
+                videoId = endIndex === -1 
+                    ? url.substring(startIndex) 
+                    : url.substring(startIndex, endIndex);
+            } else if (url.includes('youtu.be/')) {
+                const startIndex = url.indexOf('youtu.be/') + 9;
+                const endIndex = url.indexOf('?', startIndex);
+                videoId = endIndex === -1 
+                    ? url.substring(startIndex) 
+                    : url.substring(startIndex, endIndex);
+            } else if (url.includes('youtube.com/embed/')) {
+                const startIndex = url.indexOf('embed/') + 6;
+                const endIndex = url.indexOf('?', startIndex);
+                videoId = endIndex === -1 
+                    ? url.substring(startIndex) 
+                    : url.substring(startIndex, endIndex);
+            }
+
+            return videoId;
+        }
+
+        // 預覽影片
+        function previewVideo() {
+            const url = document.getElementById('youtubeUrl').value;
+            if (!url) {
+                Swal.fire({
+                    title: '提示',
+                    text: '請先輸入 YouTube URL',
+                    icon: 'warning',
+                    confirmButtonText: '確定'
+                });
+                return;
+            }
+
+            const videoId = extractVideoId(url);
+            if (!videoId) {
+                Swal.fire({
+                    title: '錯誤',
+                    text: '無法識別 YouTube URL，請確認格式正確',
+                    icon: 'error',
+                    confirmButtonText: '確定'
+                });
+                return;
+            }
+
+            const previewDiv = document.getElementById('videoPreview');
+            const iframe = document.getElementById('previewIframe');
+            iframe.src = `https://www.youtube.com/embed/${videoId}?enablejsapi=1`;
+            previewDiv.style.display = 'block';
+
+            // 滾動到預覽區域
+            previewDiv.scrollIntoView({ behavior: 'smooth', block: 'nearest' });
+        }
+
+        // URL 輸入時自動驗證
+        document.getElementById('youtubeUrl')?.addEventListener('blur', function() {
+            const url = this.value;
+            if (url) {
+                const videoId = extractVideoId(url);
+                if (!videoId) {
+                    Swal.fire({
+                        title: '警告',
+                        text: '無法識別 YouTube URL 格式，請確認輸入正確',
+                        icon: 'warning',
+                        timer: 3000,
+                        showConfirmButton: false
+                    });
+                }
+            }
+        });
+
+        // 表單提交前驗證
+        document.getElementById('createForm')?.addEventListener('submit', function(e) {
+            const url = document.getElementById('youtubeUrl').value;
+            if (url) {
+                const videoId = extractVideoId(url);
+                if (!videoId) {
+                    e.preventDefault();
+                    Swal.fire({
+                        title: '錯誤',
+                        text: '無法識別 YouTube URL，請確認格式正確',
+                        icon: 'error',
+                        confirmButtonText: '確定'
+                    });
+                    return false;
+                }
+            }
+        });
+    </script>
+}
+

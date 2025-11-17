@@ -1,0 +1,506 @@
+@model ERP.Web.Controllers.Lession.LessionPlayViewModel
+@{
+    ViewData["Title"] = Model.TrainingInfo.Title;
+}
+
+<div class="container-fluid">
+    <div class="row">
+        <div class="col-12">
+            <h2 style="@Model.TrainingInfo.TitleStyle">@Model.TrainingInfo.Title</h2>
+            <hr />
+        </div>
+    </div>
+
+    <div class="row">
+        <div class="col-12">
+            <div class="card">
+                <div class="card-body">
+                    <p class="card-text" style="@Model.TrainingInfo.ContentStyle">@Model.TrainingInfo.Content</p>
+                    
+                    <!-- YouTube 影片嵌入 -->
+                    <div class="embed-responsive embed-responsive-16by9 mb-3" style="@Model.TrainingInfo.URLStyle">
+                        <iframe id="youtubePlayer" 
+                                class="embed-responsive-item" 
+                                src="@GetYouTubeEmbedUrl(Model.TrainingInfo.URL)" 
+                                allow="accelerometer; autoplay; clipboard-write; encrypted-media; gyroscope; picture-in-picture" 
+                                allowfullscreen>
+                        </iframe>
+                    </div>
+
+                    <!-- 進度顯示 -->
+                    <div class="mb-3">
+                        <div class="d-flex justify-content-between align-items-center mb-2">
+                            <span>觀看進度</span>
+                            <span id="progressText">0%</span>
+                        </div>
+                        <div class="progress" style="height: 20px;">
+                            <div id="progressBar" class="progress-bar" role="progressbar" 
+                                 style="width: 0%" 
+                                 aria-valuenow="0" 
+                                 aria-valuemin="0" 
+                                 aria-valuemax="100">
+                            </div>
+                        </div>
+                        <div class="mt-2">
+                            <small class="text-muted">
+                                已觀看：<span id="watchedTime">00:00</span> / 
+                                總時長：<span id="totalTime">@Model.TrainingInfo.URLTime.ToString(@"mm\:ss")</span>
+                            </small>
+                        </div>
+                    </div>
+
+                    <!-- 倒數計時顯示 -->
+                    <div class="mb-3">
+                        <div class="card">
+                            <div class="card-body">
+                                <h6 class="card-title">剩餘觀看時間</h6>
+                                <div class="d-flex justify-content-center align-items-center">
+                                    <span id="countdown_Hours" class="fs-3 fw-bold">00</span>
+                                    <span class="fs-3 mx-2">:</span>
+                                    <span id="countdown_Minutes" class="fs-3 fw-bold">00</span>
+                                    <span class="fs-3 mx-2">:</span>
+                                    <span id="countdown_Seconds" class="fs-3 fw-bold">00</span>
+                                </div>
+                            </div>
+                        </div>
+                    </div>
+
+                    <!-- 完成狀態 -->
+                    <div class="mb-3">
+                        <div class="form-check">
+                            <input class="form-check-input" type="checkbox" id="isCompleted" @(Model.IsCompleted ? "checked" : "")>
+                            <label class="form-check-label" for="isCompleted">
+                                標記為已完成
+                            </label>
+                        </div>
+                    </div>
+
+                    <!-- 操作按鈕 -->
+                    <div class="mb-3">
+                        <button type="button" class="btn btn-warning" onclick="resetProgress()">
+                            <i class="fas fa-redo"></i> 重看此影片
+                        </button>
+                        <a href="@Url.Action("Index", "Lession", new { employeeMainID = Model.EmployeeMainID })" 
+                           class="btn btn-secondary">
+                            <i class="fas fa-arrow-left"></i> 返回課程列表
+                        </a>
+                    </div>
+                </div>
+            </div>
+        </div>
+    </div>
+</div>
+
+@functions {
+    /// <summary>
+    /// 將 YouTube URL 轉換為嵌入 URL
+    /// </summary>
+    string GetYouTubeEmbedUrl(string url)
+    {
+        if (string.IsNullOrEmpty(url))
+            return string.Empty;
+
+        // 處理各種 YouTube URL 格式
+        // https://www.youtube.com/watch?v=VIDEO_ID
+        // https://youtu.be/VIDEO_ID
+        // https://www.youtube.com/embed/VIDEO_ID
+        
+        string videoId = string.Empty;
+        
+        if (url.Contains("youtube.com/watch?v="))
+        {
+            // 從 watch?v= 後面取得 video ID
+            var startIndex = url.IndexOf("watch?v=") + 8;
+            var endIndex = url.IndexOf("&", startIndex);
+            if (endIndex == -1) endIndex = url.Length;
+            videoId = url.Substring(startIndex, endIndex - startIndex);
+        }
+        else if (url.Contains("youtu.be/"))
+        {
+            // 從 youtu.be/ 後面取得 video ID
+            var startIndex = url.IndexOf("youtu.be/") + 9;
+            var endIndex = url.IndexOf("?", startIndex);
+            if (endIndex == -1) endIndex = url.Length;
+            videoId = url.Substring(startIndex, endIndex - startIndex);
+        }
+        else if (url.Contains("youtube.com/embed/"))
+        {
+            // 從 embed/ 後面取得 video ID
+            var startIndex = url.IndexOf("embed/") + 6;
+            var endIndex = url.IndexOf("?", startIndex);
+            if (endIndex == -1) endIndex = url.Length;
+            videoId = url.Substring(startIndex, endIndex - startIndex);
+        }
+        else
+        {
+            // 如果已經是嵌入 URL 格式，直接返回
+            return url;
+        }
+
+        if (string.IsNullOrEmpty(videoId))
+            return string.Empty;
+
+        // 構建嵌入 URL，支援從指定時間開始播放
+        var embedUrl = $"https://www.youtube.com/embed/{videoId}";
+        
+        // 如果有已觀看時間，從該時間點開始播放
+        if (Model.WatchedTime.TotalSeconds > 0)
+        {
+            embedUrl += $"?start={(int)Model.WatchedTime.TotalSeconds}&enablejsapi=1";
+        }
+        else
+        {
+            embedUrl += "?enablejsapi=1";
+        }
+
+        return embedUrl;
+    }
+}
+
+@section Scripts {
+    <script src="https://cdn.jsdelivr.net/npm/sweetalert2@11"></script>
+    <script>
+        // 全域變數
+        var player;
+        var updateInterval;
+        var autoSaveInterval;
+        var employeeMainID = '@Model.EmployeeMainID';
+        var trainingInfoMainID = '@Model.TrainingInfo.ID';
+        var videoUrl = '@Model.TrainingInfo.URL';
+        var totalTime = @Model.TrainingInfo.URLTime.TotalSeconds;
+        var watchedTime = @Model.WatchedTime.TotalSeconds;
+        var lastUpdateTime = 0;
+        var countdownTimer = null;
+
+        // 倒數計時類別
+        class Countdown {
+            constructor(totalSeconds) {
+                this.totalSeconds = totalSeconds;
+                this.intervalId = null;
+                this.isRunning = false;
+                this.hoursLabel = document.getElementById('countdown_Hours');
+                this.minutesLabel = document.getElementById('countdown_Minutes');
+                this.secondsLabel = document.getElementById('countdown_Seconds');
+            }
+
+            toggle() {
+                if (!this.isRunning) {
+                    this.start();
+                } else {
+                    this.stop();
+                }
+            }
+
+            start() {
+                this.stop();
+                this.isRunning = true;
+                this.intervalId = setInterval(() => this.setTime(), 1000);
+            }
+
+            stop() {
+                this.isRunning = false;
+                if (this.intervalId) {
+                    clearInterval(this.intervalId);
+                    this.intervalId = null;
+                }
+            }
+
+            setTime() {
+                if (player && player.getCurrentTime) {
+                    var currentTime = Math.floor(player.getCurrentTime());
+                    var remainingTime = Math.max(0, totalTime - currentTime);
+                    this.totalSeconds = remainingTime;
+                } else {
+                    this.totalSeconds--;
+                }
+
+                if (this.totalSeconds < 0) {
+                    this.totalSeconds = 0;
+                }
+
+                this.hoursLabel.innerHTML = this.pad(parseInt(this.totalSeconds / 3600));
+                this.minutesLabel.innerHTML = this.pad(parseInt((this.totalSeconds / 60) % 60));
+                this.secondsLabel.innerHTML = this.pad(this.totalSeconds % 60);
+            }
+
+            pad(val) {
+                return val.toString().padStart(2, '0');
+            }
+
+            getFormattedTime() {
+                const hours = Math.floor(this.totalSeconds / 3600);
+                const minutes = Math.floor((this.totalSeconds % 3600) / 60);
+                const seconds = this.totalSeconds % 60;
+                return `${this.pad(hours)}:${this.pad(minutes)}:${this.pad(seconds)}`;
+            }
+        }
+
+        // 初始化倒數計時器
+        var remainingTime = Math.max(0, totalTime - watchedTime);
+        countdownTimer = new Countdown(remainingTime);
+        countdownTimer.setTime(); // 初始化顯示
+
+        // YouTube IFrame API 載入
+        var tag = document.createElement('script');
+        tag.src = "https://www.youtube.com/iframe_api";
+        var firstScriptTag = document.getElementsByTagName('script')[0];
+        firstScriptTag.parentNode.insertBefore(tag, firstScriptTag);
+
+        function onYouTubeIframeAPIReady() {
+            player = new YT.Player('youtubePlayer', {
+                width: '100%',
+                height: '576',
+                playerVars: {
+                    'playsinline': 1,
+                    'start': parseInt(watchedTime),
+                    'controls': 1,
+                    'disablekb': 0,
+                    'rel': 0,
+                    'enablejsapi': 1
+                },
+                events: {
+                    'onReady': onPlayerReady,
+                    'onStateChange': onPlayerStateChange
+                }
+            });
+        }
+
+        function onPlayerReady(event) {
+            // 如果有已觀看時間，從該時間點開始播放
+            if (watchedTime > 0) {
+                event.target.seekTo(watchedTime, true);
+            }
+            
+            // 開始定期更新進度（每 1 秒更新 UI）
+            updateInterval = setInterval(updateProgress, 1000);
+            
+            // 開始自動儲存（每 30 秒）
+            autoSaveInterval = setInterval(autoSaveProgress, 30000);
+        }
+
+        function onPlayerStateChange(event) {
+            if (event.data == YT.PlayerState.PLAYING) {
+                // 開始播放時啟動倒數計時
+                if (countdownTimer) {
+                    countdownTimer.start();
+                }
+            } else if (event.data == YT.PlayerState.PAUSED || event.data == YT.PlayerState.ENDED) {
+                // 暫停或結束時停止倒數計時
+                if (countdownTimer) {
+                    countdownTimer.stop();
+                }
+                
+                // 儲存進度
+                if (player && player.getCurrentTime) {
+                    var currentTime = Math.floor(player.getCurrentTime());
+                    saveVideoTime(currentTime);
+                }
+            }
+
+            // 影片播放完畢
+            if (event.data == YT.PlayerState.ENDED) {
+                markAsCompleted();
+            }
+        }
+
+        function updateProgress() {
+            if (player && player.getCurrentTime) {
+                var currentTime = Math.floor(player.getCurrentTime());
+                watchedTime = currentTime;
+                
+                // 更新 UI
+                updateProgressUI();
+                
+                // 更新倒數計時
+                if (countdownTimer) {
+                    countdownTimer.setTime();
+                }
+            }
+        }
+
+        function updateProgressUI() {
+            var percentage = totalTime > 0 ? Math.floor((watchedTime / totalTime) * 100) : 0;
+            if (percentage > 100) percentage = 100;
+            
+            document.getElementById('progressBar').style.width = percentage + '%';
+            document.getElementById('progressBar').setAttribute('aria-valuenow', percentage);
+            document.getElementById('progressText').textContent = percentage + '%';
+            
+            var hours = Math.floor(watchedTime / 3600);
+            var minutes = Math.floor((watchedTime % 3600) / 60);
+            var seconds = Math.floor(watchedTime % 60);
+            document.getElementById('watchedTime').textContent = 
+                formatTime(hours, minutes, seconds);
+        }
+
+        function formatTime(hours, minutes, seconds) {
+            return `${hours.toString().padStart(2, '0')}:${minutes.toString().padStart(2, '0')}:${seconds.toString().padStart(2, '0')}`;
+        }
+
+        function markAsCompleted() {
+            if (player && player.getCurrentTime) {
+                var currentTime = Math.floor(player.getCurrentTime());
+                sendProgressToServer(currentTime, true);
+                document.getElementById('isCompleted').checked = true;
+            }
+        }
+
+        // 自動儲存進度（每 30 秒）
+        function autoSaveProgress() {
+            if (player && player.getCurrentTime) {
+                var currentTime = Math.floor(player.getCurrentTime());
+                saveVideoTime(currentTime);
+            }
+        }
+
+        // 使用 FormData 儲存（相容舊版 API）
+        function saveVideoTime(watchedTimeSeconds) {
+            var hours = Math.floor(watchedTimeSeconds / 3600);
+            var minutes = Math.floor((watchedTimeSeconds % 3600) / 60);
+            var seconds = watchedTimeSeconds % 60;
+            var urlTime = formatTime(hours, minutes, seconds);
+            
+            var mainTime = countdownTimer ? countdownTimer.getFormattedTime() : '00:00:00';
+            
+            const data = new FormData();
+            data.append('time', mainTime);
+            data.append('EmpID', employeeMainID);
+            data.append('UrlTime', urlTime);
+            data.append('VideoUrl', videoUrl);
+            
+            // 使用 sendBeacon 確保在頁面關閉時也能發送
+            navigator.sendBeacon('@Url.Action("SaveTime", "Lession")', data);
+        }
+
+        // 使用 JSON 發送進度（新版本）
+        function sendProgressToServer(watchedTimeSeconds, isCompleted) {
+            fetch('@Url.Action("UpdateProgress", "Lession")', {
+                method: 'POST',
+                headers: {
+                    'Content-Type': 'application/json',
+                },
+                body: JSON.stringify({
+                    employeeMainID: employeeMainID,
+                    trainingInfoMainID: trainingInfoMainID,
+                    watchedTime: watchedTimeSeconds,
+                    isCompleted: isCompleted
+                })
+            })
+            .then(response => response.json())
+            .then(data => {
+                if (data.success) {
+                    console.log('進度已更新');
+                }
+            })
+            .catch(error => {
+                console.error('更新進度時發生錯誤:', error);
+            });
+        }
+
+        // 重置觀看進度（重看功能）
+        function resetProgress() {
+            Swal.fire({
+                title: '提示',
+                text: "確定要重看該片段嗎？",
+                icon: 'warning',
+                showCancelButton: true,
+                confirmButtonColor: '#3085d6',
+                cancelButtonColor: '#d33',
+                confirmButtonText: '確定',
+                cancelButtonText: '取消'
+            }).then(result => {
+                if (result.isConfirmed) {
+                    fetch('@Url.Action("UpdateDetl", "Lession")', {
+                        method: 'POST',
+                        headers: {
+                            'Content-Type': 'application/x-www-form-urlencoded',
+                        },
+                        body: 'EMTrainingInfoMainID=' + trainingInfoMainID
+                    })
+                    .then(response => response.json())
+                    .then(data => {
+                        if (data.IsSuccess) {
+                            Swal.fire({
+                                title: '成功',
+                                text: data.Msg,
+                                icon: 'success',
+                                timer: 1500,
+                                showConfirmButton: false
+                            }).then(() => {
+                                window.location.reload();
+                            });
+                        } else {
+                            Swal.fire({
+                                title: "錯誤",
+                                text: data.Msg,
+                                icon: "error",
+                                showConfirmButton: true
+                            });
+                        }
+                    })
+                    .catch(error => {
+                        Swal.fire({
+                            title: "錯誤",
+                            text: "請求失敗",
+                            icon: "error",
+                            showConfirmButton: true
+                        });
+                    });
+                }
+            });
+        }
+
+        // 監聽完成狀態變更
+        document.getElementById('isCompleted').addEventListener('change', function() {
+            if (this.checked && player && player.getCurrentTime) {
+                var currentTime = Math.floor(player.getCurrentTime());
+                sendProgressToServer(currentTime, true);
+            }
+        });
+
+        // 頁面可見性處理
+        document.addEventListener('visibilitychange', () => {
+            if (document.hidden) {
+                // 頁面隱藏時暫停影片和倒數計時
+                if (player && player.pauseVideo) {
+                    player.pauseVideo();
+                }
+                if (countdownTimer) {
+                    countdownTimer.stop();
+                }
+                // 儲存進度
+                if (player && player.getCurrentTime) {
+                    var currentTime = Math.floor(player.getCurrentTime());
+                    saveVideoTime(currentTime);
+                }
+            } else {
+                // 頁面顯示時可選擇是否繼續播放（這裡不自動播放，讓使用者手動控制）
+                // 如果需要自動播放，可以取消註解以下程式碼
+                // if (player && player.getPlayerState() === YT.PlayerState.PAUSED) {
+                //     player.playVideo();
+                // }
+                // if (countdownTimer) {
+                //     countdownTimer.start();
+                // }
+            }
+        });
+
+        // 頁面卸載時更新進度
+        window.addEventListener('beforeunload', function() {
+            if (player && player.getCurrentTime) {
+                var currentTime = Math.floor(player.getCurrentTime());
+                saveVideoTime(currentTime);
+                sendProgressToServer(currentTime, document.getElementById('isCompleted').checked);
+            }
+            
+            // 清理計時器
+            if (updateInterval) clearInterval(updateInterval);
+            if (autoSaveInterval) clearInterval(autoSaveInterval);
+            if (countdownTimer) countdownTimer.stop();
+        });
+
+        // 初始化 UI
+        updateProgressUI();
+    </script>
+}
+

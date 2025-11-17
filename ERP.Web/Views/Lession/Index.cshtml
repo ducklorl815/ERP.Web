@@ -1,0 +1,118 @@
+@model ERP.Web.Controllers.Lession.LessionIndexViewModel
+@{
+    ViewData["Title"] = "課程列表";
+}
+
+<div class="container-fluid">
+    <div class="row mb-3">
+        <div class="col-12 d-flex justify-content-between align-items-center">
+            <h2 class="mb-0">課程列表</h2>
+            <a href="@Url.Action("Create", "Lession")" class="btn btn-primary">
+                <i class="fas fa-plus"></i> 新增課程
+            </a>
+        </div>
+    </div>
+    <hr />
+
+    <div class="row">
+        @foreach (var training in Model.TrainingInfoList)
+        {
+            var progress = Model.ProgressDict.ContainsKey(training.ID) 
+                ? Model.ProgressDict[training.ID] 
+                : null;
+
+            <div class="col-md-6 col-lg-4 mb-4">
+                <div class="card h-100">
+                    @if (!string.IsNullOrEmpty(training.Img))
+                    {
+                        <img src="@training.Img" class="card-img-top" alt="@training.Title" style="@training.ImgStyle" />
+                    }
+                    <div class="card-body">
+                        <h5 class="card-title" style="@training.TitleStyle">@training.Title</h5>
+                        <p class="card-text" style="@training.ContentStyle">@training.Content</p>
+                        
+                        @if (progress != null)
+                        {
+                            <div class="mb-2">
+                                <small class="text-muted">觀看進度：@progress.ProgressPercentage%</small>
+                                <div class="progress" style="height: 8px;">
+                                    <div class="progress-bar" role="progressbar" 
+                                         style="width: @progress.ProgressPercentage%" 
+                                         aria-valuenow="@progress.ProgressPercentage" 
+                                         aria-valuemin="0" 
+                                         aria-valuemax="100">
+                                    </div>
+                                </div>
+                            </div>
+                            
+                            @if (progress.IsCompleted)
+                            {
+                                <span class="badge bg-success mb-2">已完成</span>
+                            }
+                            else
+                            {
+                                <span class="badge bg-warning mb-2">進行中</span>
+                            }
+                        }
+                        else
+                        {
+                            <span class="badge bg-secondary mb-2">未開始</span>
+                        }
+                    </div>
+                    <div class="card-footer">
+                        @{
+                            // 檢查是否有相同 Page 的其他片段
+                            var samePageSegments = Model.TrainingInfoList.Where(t => t.Page == training.Page).ToList();
+                            var hasMultipleSegments = samePageSegments.Count > 1;
+                        }
+                        
+                        @if (hasMultipleSegments)
+                        {
+                            <a href="@Url.Action("PlayMultiSegment", "Lession", new { page = training.Page, employeeMainID = Model.EmployeeMainID })" 
+                               class="btn btn-primary">
+                                @if (progress?.IsCompleted == true)
+                                {
+                                    <i class="fas fa-redo">重新觀看（@samePageSegments.Count 個片段）</i> 
+                                }
+                                else if (progress != null)
+                                {
+                                    <i class="fas fa-play">繼續觀看（@samePageSegments.Count 個片段）</i> 
+                                }
+                                else
+                                {
+                                    <i class="fas fa-play">開始觀看（@samePageSegments.Count 個片段）</i> 
+                                }
+                            </a>
+                        }
+                        else
+                        {
+                            <a href="@Url.Action("Play", "Lession", new { id = training.ID, employeeMainID = Model.EmployeeMainID })" 
+                               class="btn btn-primary">
+                                @if (progress?.IsCompleted == true)
+                                {
+                                    <i class="fas fa-redo">重新觀看</i> 
+                                }
+                                else if (progress != null)
+                                {
+                                    <i class="fas fa-play">繼續觀看</i> 
+                                }
+                                else
+                                {
+                                    <i class="fas fa-play">開始觀看</i> 
+                                }
+                            </a>
+                        }
+                    </div>
+                </div>
+            </div>
+        }
+    </div>
+
+    @if (!Model.TrainingInfoList.Any())
+    {
+        <div class="alert alert-info">
+            <i class="fas fa-info-circle"></i> 目前沒有可用的課程。
+        </div>
+    }
+</div>
+
