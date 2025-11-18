@@ -15,33 +15,39 @@
     <hr />
 
     <div class="row">
-        @foreach (var training in Model.TrainingInfoList)
+        @foreach (var lessionMainProgress in Model.LessionMainProgressList)
         {
-            var progress = Model.ProgressDict.ContainsKey(training.ID) 
-                ? Model.ProgressDict[training.ID] 
-                : null;
+            var progress = lessionMainProgress;
+            var lessionMain = progress.LessionMain;
 
             <div class="col-md-6 col-lg-4 mb-4">
                 <div class="card h-100">
-                    @if (!string.IsNullOrEmpty(training.Img))
-                    {
-                        <img src="@training.Img" class="card-img-top" alt="@training.Title" style="@training.ImgStyle" />
-                    }
                     <div class="card-body">
-                        <h5 class="card-title" style="@training.TitleStyle">@training.Title</h5>
-                        <p class="card-text" style="@training.ContentStyle">@training.Content</p>
+                        <h5 class="card-title">@lessionMain.LessionName</h5>
+                        <p class="card-text text-muted small">
+                            <i class="fas fa-list"></i> 共 @progress.TotalSegments 個片段
+                        </p>
                         
-                        @if (progress != null)
+                        @if (progress.TotalSegments > 0)
                         {
                             <div class="mb-2">
-                                <small class="text-muted">觀看進度：@progress.ProgressPercentage%</small>
+                                <div class="d-flex justify-content-between align-items-center mb-1">
+                                    <small class="text-muted">觀看進度</small>
+                                    <small class="text-muted">@progress.ProgressPercentage%</small>
+                                </div>
                                 <div class="progress" style="height: 8px;">
-                                    <div class="progress-bar" role="progressbar" 
+                                    <div class="progress-bar @(progress.IsCompleted ? "bg-success" : "bg-primary")" 
+                                         role="progressbar" 
                                          style="width: @progress.ProgressPercentage%" 
                                          aria-valuenow="@progress.ProgressPercentage" 
                                          aria-valuemin="0" 
                                          aria-valuemax="100">
                                     </div>
+                                </div>
+                                <div class="mt-1">
+                                    <small class="text-muted">
+                                        已完成：@progress.CompletedSegments / @progress.TotalSegments 個片段
+                                    </small>
                                 </div>
                             </div>
                             
@@ -49,50 +55,32 @@
                             {
                                 <span class="badge bg-success mb-2">已完成</span>
                             }
-                            else
+                            else if (progress.ProgressPercentage > 0)
                             {
                                 <span class="badge bg-warning mb-2">進行中</span>
+                            }
+                            else
+                            {
+                                <span class="badge bg-secondary mb-2">未開始</span>
                             }
                         }
                         else
                         {
-                            <span class="badge bg-secondary mb-2">未開始</span>
+                            <div class="alert alert-warning mb-2" style="padding: 0.5rem;">
+                                <small><i class="fas fa-exclamation-triangle"></i> 此課程尚未設定片段</small>
+                            </div>
                         }
                     </div>
                     <div class="card-footer">
-                        @{
-                            // 檢查是否有相同 Page 的其他片段
-                            var samePageSegments = Model.TrainingInfoList.Where(t => t.Page == training.Page).ToList();
-                            var hasMultipleSegments = samePageSegments.Count > 1;
-                        }
-                        
-                        @if (hasMultipleSegments)
+                        @if (progress.TotalSegments > 0)
                         {
-                            <a href="@Url.Action("PlayMultiSegment", "Lession", new { page = training.Page, employeeMainID = Model.EmployeeMainID })" 
-                               class="btn btn-primary">
-                                @if (progress?.IsCompleted == true)
-                                {
-                                    <i class="fas fa-redo">重新觀看（@samePageSegments.Count 個片段）</i> 
-                                }
-                                else if (progress != null)
-                                {
-                                    <i class="fas fa-play">繼續觀看（@samePageSegments.Count 個片段）</i> 
-                                }
-                                else
-                                {
-                                    <i class="fas fa-play">開始觀看（@samePageSegments.Count 個片段）</i> 
-                                }
-                            </a>
-                        }
-                        else
-                        {
-                            <a href="@Url.Action("Play", "Lession", new { id = training.ID, employeeMainID = Model.EmployeeMainID })" 
-                               class="btn btn-primary">
-                                @if (progress?.IsCompleted == true)
+                            <a href="@Url.Action("PlayMultiSegment", "Lession", new { lessionMainID = lessionMain.ID, employeeMainID = Model.EmployeeMainID })" 
+                               class="btn btn-primary w-100">
+                                @if (progress.IsCompleted)
                                 {
                                     <i class="fas fa-redo">重新觀看</i> 
                                 }
-                                else if (progress != null)
+                                else if (progress.ProgressPercentage > 0)
                                 {
                                     <i class="fas fa-play">繼續觀看</i> 
                                 }
@@ -102,17 +90,22 @@
                                 }
                             </a>
                         }
+                        else
+                        {
+                            <button class="btn btn-secondary w-100" disabled>
+                                <i class="fas fa-lock"></i> 無法觀看（無片段）
+                            </button>
+                        }
                     </div>
                 </div>
             </div>
         }
     </div>
 
-    @if (!Model.TrainingInfoList.Any())
+    @if (!Model.LessionMainProgressList.Any())
     {
         <div class="alert alert-info">
             <i class="fas fa-info-circle"></i> 目前沒有可用的課程。
         </div>
     }
 </div>
-

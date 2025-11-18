@@ -1,8 +1,10 @@
 using ERP.Web.Models.Models;
 using ERP.Web.Service.Service.Lession;
 using Microsoft.AspNetCore.Mvc;
+using Microsoft.AspNetCore.Mvc.Rendering;
 using System.ComponentModel.DataAnnotations;
 using System.Text.Json;
+using LessionMainProgress = ERP.Web.Service.Service.Lession.LessionMainProgress;
 
 namespace ERP.Web.Controllers.Lession
 {
@@ -24,7 +26,7 @@ namespace ERP.Web.Controllers.Lession
         }
 
         /// <summary>
-        /// 課程列表頁面
+        /// 課程列表頁面（顯示 LessionMain 列表）
         /// </summary>
         public async Task<IActionResult> Index(Guid? employeeMainID)
         {
@@ -36,13 +38,12 @@ namespace ERP.Web.Controllers.Lession
                 employeeMainID = Guid.Parse("70D9291B-3D3B-481E-B33A-F4699685C9BB");
             }
 
-            var trainingInfoList = await _lessionService.GetTrainingInfoListAsync();
-            var progressDict = await _lessionService.GetTrainingProgressAsync(employeeMainID.Value);
+            // 取得所有 LessionMain 列表及其進度
+            var lessionMainProgressDict = await _lessionService.GetLessionMainProgressAsync(employeeMainID.Value);
 
             var viewModel = new LessionIndexViewModel
             {
-                TrainingInfoList = trainingInfoList,
-                ProgressDict = progressDict,
+                LessionMainProgressList = lessionMainProgressDict.Values.ToList(),
                 EmployeeMainID = employeeMainID.Value
             };
 
@@ -73,7 +74,7 @@ namespace ERP.Web.Controllers.Lession
             {
                 TrainingInfo = trainingInfo,
                 EmployeeMainID = employeeMainID.Value,
-                WatchedTime = detl?.Time ?? TimeSpan.Zero,
+                WatchedTime = detl?.Time ?? 0, // 直接使用秒數（int）
                 IsCompleted = detl?.State ?? false
             };
 
@@ -81,9 +82,9 @@ namespace ERP.Web.Controllers.Lession
         }
 
         /// <summary>
-        /// 多片段課程播放頁面（根據 Page 分組顯示所有片段）
+        /// 多片段課程播放頁面（根據 LessionMain ID 顯示所有片段）
         /// </summary>
-        public async Task<IActionResult> PlayMultiSegment(int page, Guid? employeeMainID)
+        public async Task<IActionResult> PlayMultiSegment(Guid lessionMainID, Guid? employeeMainID)
         {
             // TODO: 從 Session 或認證系統取得 EmployeeMainID
             if (!employeeMainID.HasValue)
@@ -91,10 +92,16 @@ namespace ERP.Web.Controllers.Lession
                 employeeMainID = Guid.Parse("70D9291B-3D3B-481E-B33A-F4699685C9BB");
             }
 
-            // 取得該分頁的所有訓練資訊（片段）
-            var trainingInfoList = await _lessionService.GetTrainingInfoListAsync();
-            var segments = trainingInfoList.Where(t => t.Page == page).OrderBy(t => t.Seq).ToList();
+            // 取得 LessionMain
+            var lessionMain = await _lessionService.GetLessionMainByIdAsync(lessionMainID);
+            if (lessionMain == null)
+            {
+                return NotFound();
+            }
 
+            // 根據 ParagraphJson 取得所有相關的 LessionInfo（片段）
+            var segments = await _lessionService.GetTrainingInfoByLessionMainIdAsync(lessionMainID);
+            
             if (!segments.Any())
             {
                 return NotFound();
@@ -110,7 +117,8 @@ namespace ERP.Web.Controllers.Lession
 
             var viewModel = new LessionMultiSegmentViewModel
             {
-                Page = page,
+                LessionMainID = lessionMainID,
+                LessionMainName = lessionMain.LessionName,
                 Segments = segments,
                 ProgressDict = progressDict,
                 EmployeeMainID = employeeMainID.Value
@@ -183,7 +191,7 @@ namespace ERP.Web.Controllers.Lession
             var watchedTimeSeconds = hours * 3600 + minutes * 60 + seconds;
 
             // 判斷是否完成（如果觀看時間接近總時長）
-            var isCompleted = watchedTimeSeconds >= (trainingInfo.URLTime.TotalSeconds * 0.95);
+            var isCompleted = watchedTimeSeconds >= (trainingInfo.URLTime * 0.95);
 
             var result = await _lessionService.UpdateVideoProgressAsync(
                 employeeMainID,
@@ -234,12 +242,15 @@ namespace ERP.Web.Controllers.Lession
         [HttpGet]
         public async Task<IActionResult> Create()
         {
-            // 取得最大 Page 編號，預設為下一個
-            var maxPage = await _lessionService.GetMaxPageAsync();
+            // 取得所有 LessionMain 列表供選擇
+            var lessionMainList = await _lessionService.GetLessionMainListAsync();
             var viewModel = new LessionCreateViewModel
             {
-                Page = maxPage + 1,
-                MyModal = Guid.NewGuid().ToString("N").Substring(0, 8) // 產生唯一識別碼
+                LessionMainList = lessionMainList.Select(lm => new SelectListItem
+                {
+                    Value = lm.ID.ToString(),
+                    Text = lm.LessionName
+                }).ToList()
             };
 
             return View(viewModel);
@@ -252,6 +263,14 @@ namespace ERP.Web.Controllers.Lession
         [ValidateAntiForgeryToken]
         public async Task<IActionResult> Create(LessionCreateViewModel model)
         {
+            // 重新載入 LessionMain 列表（用於驗證失敗時顯示）
+            var lessionMainList = await _lessionService.GetLessionMainListAsync();
+            model.LessionMainList = lessionMainList.Select(lm => new SelectListItem
+            {
+                Value = lm.ID.ToString(),
+                Text = lm.LessionName
+            }).ToList();
+
             if (!ModelState.IsValid)
             {
                 return View(model);
@@ -261,45 +280,115 @@ namespace ERP.Web.Controllers.Lession
             var currentUserID = Guid.Parse("00000000-0000-0000-0000-000000000000");
             var currentDeptID = Guid.Parse("00000000-0000-0000-0000-000000000000");
 
-            // 解析時間字串 (格式: HH:MM:SS 或 MM:SS)
-            TimeSpan urlTime;
-            if (!TryParseTimeSpan(model.URLTimeString, out urlTime))
+            // 解析時間字串 (格式: HH:MM:SS 或 MM:SS) 轉換為秒數
+            int urlTimeSeconds;
+            if (!TryParseTimeToSeconds(model.URLTimeString, out urlTimeSeconds))
             {
                 ModelState.AddModelError("URLTimeString", "時間格式錯誤，請使用 HH:MM:SS 或 MM:SS 格式");
                 return View(model);
             }
 
+            Guid lessionMainID;
+
+            // 判斷是新增新課程還是選擇現有課程
+            // 從表單傳來的值可能是字串 "true"/"false"，需要正確處理
+            bool isNewLessionMain = model.IsNewLessionMain;
+            if (Request.Form.ContainsKey("IsNewLessionMain"))
+            {
+                var formValue = Request.Form["IsNewLessionMain"].ToString();
+                isNewLessionMain = formValue == "true";
+            }
+
+            if (isNewLessionMain)
+            {
+                // 新增新的 LessionMain
+                if (string.IsNullOrWhiteSpace(model.NewLessionMainName))
+                {
+                    ModelState.AddModelError("NewLessionMainName", "新課程名稱為必填");
+                    return View(model);
+                }
+
+                var newLessionMain = new LessionMain
+                {
+                    LessionName = model.NewLessionMainName,
+                    ParagraphJson = string.Empty, // 初始為空，新增片段後會更新
+                    ModifyUser = currentUserID,
+                    ModifyDept = currentDeptID
+                };
+
+                var createLessionMainID = await _lessionService.CreateLessionMainAsync(newLessionMain);
+                if (createLessionMainID == Guid.Empty)
+                {
+                    ModelState.AddModelError("", "建立新課程失敗，請稍後再試");
+                    return View(model);
+                }
+
+                lessionMainID = createLessionMainID;
+            }
+            else
+            {
+                // 使用現有的 LessionMain
+                if (!model.LessionMainID.HasValue)
+                {
+                    ModelState.AddModelError("LessionMainID", "請選擇課程或建立新課程");
+                    return View(model);
+                }
+
+                lessionMainID = model.LessionMainID.Value;
+            }
+
+            // 新增 LessionInfo（片段）
             var trainingInfo = new EMTrainingInfo
             {
-                MyModal = model.MyModal,
                 Title = model.Title,
                 Content = model.Content ?? string.Empty,
                 URL = model.URL,
-                URLTime = urlTime,
-                URLStyle = model.URLStyle ?? string.Empty,
-                TitleStyle = model.TitleStyle ?? string.Empty,
-                ContentStyle = model.ContentStyle ?? string.Empty,
+                URLTime = urlTimeSeconds, // 使用秒數（int）
                 Img = model.Img,
-                ImgStyle = model.ImgStyle ?? string.Empty,
-                Page = model.Page,
-                CreateUser = currentUserID,
-                CreateDept = currentDeptID,
+                Page = 0, // Page 不再使用，設為 0
                 ModifyUser = currentUserID,
                 ModifyDept = currentDeptID
             };
 
-            var result = await _lessionService.CreateTrainingInfoAsync(trainingInfo);
-
-            if (result)
+            var createTrainingInfoGuid = await _lessionService.CreateTrainingInfoAsync(trainingInfo);
+            if (createTrainingInfoGuid == Guid.Empty)
             {
-                TempData["SuccessMessage"] = "課程新增成功！";
-                return RedirectToAction(nameof(Index));
-            }
-            else
-            {
-                ModelState.AddModelError("", "新增失敗，請稍後再試");
+                ModelState.AddModelError("", "新增片段失敗，請稍後再試");
                 return View(model);
             }
+            trainingInfo.ID = createTrainingInfoGuid;
+            // 更新 LessionMain 的 ParagraphJson，將新的片段加入
+            var lessionMain = await _lessionService.GetLessionMainByIdAsync(lessionMainID);
+            if (lessionMain == null)
+            {
+                ModelState.AddModelError("", "找不到對應的課程，請重新選擇");
+                return View(model);
+            }
+
+            // 解析現有的 ParagraphJson
+            var paragraphs = _lessionService.ParseParagraphJson(lessionMain.ParagraphJson);
+            
+            // 新增新的片段到段落列表
+            paragraphs.Add(new ParagraphInfo
+            {
+                LessionInfoID = trainingInfo.ID,
+                Paragraph = model.Title // 使用標題作為段落描述
+            });
+
+            // 更新 ParagraphJson
+            lessionMain.ParagraphJson = _lessionService.SerializeParagraphJson(paragraphs);
+            lessionMain.ModifyUser = currentUserID;
+            lessionMain.ModifyDept = currentDeptID;
+
+            var updateLessionMainResult = await _lessionService.UpdateLessionMainAsync(lessionMain);
+            if (!updateLessionMainResult)
+            {
+                ModelState.AddModelError("", "更新課程資訊失敗，但片段已新增");
+                return View(model);
+            }
+
+            TempData["SuccessMessage"] = "課程片段新增成功！";
+            return RedirectToAction(nameof(Index));
         }
 
         /// <summary>
@@ -482,11 +571,11 @@ namespace ERP.Web.Controllers.Lession
         }
 
         /// <summary>
-        /// 解析時間字串為 TimeSpan
+        /// 解析時間字串為秒數（int）
         /// </summary>
-        private bool TryParseTimeSpan(string timeString, out TimeSpan result)
+        private bool TryParseTimeToSeconds(string timeString, out int result)
         {
-            result = TimeSpan.Zero;
+            result = 0;
             if (string.IsNullOrWhiteSpace(timeString))
                 return false;
 
@@ -499,7 +588,7 @@ namespace ERP.Web.Controllers.Lession
                     int.TryParse(parts[1], out int minutes) &&
                     int.TryParse(parts[2], out int seconds))
                 {
-                    result = new TimeSpan(hours, minutes, seconds);
+                    result = hours * 3600 + minutes * 60 + seconds;
                     return true;
                 }
             }
@@ -509,7 +598,7 @@ namespace ERP.Web.Controllers.Lession
                 if (int.TryParse(parts[0], out int minutes) &&
                     int.TryParse(parts[1], out int seconds))
                 {
-                    result = new TimeSpan(0, minutes, seconds);
+                    result = minutes * 60 + seconds;
                     return true;
                 }
             }
@@ -518,7 +607,7 @@ namespace ERP.Web.Controllers.Lession
                 // 純秒數
                 if (int.TryParse(parts[0], out int totalSeconds))
                 {
-                    result = TimeSpan.FromSeconds(totalSeconds);
+                    result = totalSeconds;
                     return true;
                 }
             }
@@ -532,8 +621,7 @@ namespace ERP.Web.Controllers.Lession
     /// </summary>
     public class LessionIndexViewModel
     {
-        public List<EMTrainingInfo> TrainingInfoList { get; set; } = new();
-        public Dictionary<Guid, TrainingProgress> ProgressDict { get; set; } = new();
+        public List<LessionMainProgress> LessionMainProgressList { get; set; } = new();
         public Guid EmployeeMainID { get; set; }
     }
 
@@ -544,7 +632,7 @@ namespace ERP.Web.Controllers.Lession
     {
         public EMTrainingInfo TrainingInfo { get; set; } = null!;
         public Guid EmployeeMainID { get; set; }
-        public TimeSpan WatchedTime { get; set; }
+        public int WatchedTime { get; set; } // 已觀看時間（秒）
         public bool IsCompleted { get; set; }
     }
 
@@ -564,7 +652,8 @@ namespace ERP.Web.Controllers.Lession
     /// </summary>
     public class LessionMultiSegmentViewModel
     {
-        public int Page { get; set; }
+        public Guid LessionMainID { get; set; }
+        public string LessionMainName { get; set; } = string.Empty;
         public List<EMTrainingInfo> Segments { get; set; } = new();
         public Dictionary<Guid, EMTrainingDetl?> ProgressDict { get; set; } = new();
         public Guid EmployeeMainID { get; set; }
@@ -575,12 +664,19 @@ namespace ERP.Web.Controllers.Lession
     /// </summary>
     public class LessionCreateViewModel
     {
-        [Required(ErrorMessage = "片段識別碼為必填")]
-        [Display(Name = "片段識別碼 (MyModal)")]
-        public string MyModal { get; set; } = string.Empty;
+        [Display(Name = "選擇課程")]
+        public Guid? LessionMainID { get; set; }
+
+        [Display(Name = "建立新課程")]
+        public bool IsNewLessionMain { get; set; }
+
+        [Display(Name = "新課程名稱")]
+        public string? NewLessionMainName { get; set; }
+
+        public List<SelectListItem> LessionMainList { get; set; } = new();
 
         [Required(ErrorMessage = "標題為必填")]
-        [Display(Name = "標題")]
+        [Display(Name = "片段標題")]
         public string Title { get; set; } = string.Empty;
 
         [Display(Name = "內容描述")]
@@ -595,26 +691,9 @@ namespace ERP.Web.Controllers.Lession
         [Display(Name = "影片時長 (格式: HH:MM:SS 或 MM:SS)")]
         public string URLTimeString { get; set; } = string.Empty;
 
-        [Display(Name = "URL 樣式 (CSS)")]
-        public string? URLStyle { get; set; }
-
-        [Display(Name = "標題樣式 (CSS)")]
-        public string? TitleStyle { get; set; }
-
-        [Display(Name = "內容樣式 (CSS)")]
-        public string? ContentStyle { get; set; }
-
         [Display(Name = "圖片網址")]
         [Url(ErrorMessage = "請輸入有效的 URL")]
         public string? Img { get; set; }
-
-        [Display(Name = "圖片樣式 (CSS)")]
-        public string? ImgStyle { get; set; }
-
-        [Required(ErrorMessage = "分頁編號為必填")]
-        [Display(Name = "分頁編號 (Page)")]
-        [Range(1, int.MaxValue, ErrorMessage = "分頁編號必須大於 0")]
-        public int Page { get; set; } = 1;
     }
 
     /// <summary>

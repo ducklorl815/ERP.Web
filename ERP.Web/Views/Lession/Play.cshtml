@@ -6,7 +6,7 @@
 <div class="container-fluid">
     <div class="row">
         <div class="col-12">
-            <h2 style="@Model.TrainingInfo.TitleStyle">@Model.TrainingInfo.Title</h2>
+            <h2>@Model.TrainingInfo.Title</h2>
             <hr />
         </div>
     </div>
@@ -15,10 +15,10 @@
         <div class="col-12">
             <div class="card">
                 <div class="card-body">
-                    <p class="card-text" style="@Model.TrainingInfo.ContentStyle">@Model.TrainingInfo.Content</p>
+                    <p class="card-text">@Model.TrainingInfo.Content</p>
                     
                     <!-- YouTube 影片嵌入 -->
-                    <div class="embed-responsive embed-responsive-16by9 mb-3" style="@Model.TrainingInfo.URLStyle">
+                    <div class="embed-responsive embed-responsive-16by9 mb-3">
                         <iframe id="youtubePlayer" 
                                 class="embed-responsive-item" 
                                 src="@GetYouTubeEmbedUrl(Model.TrainingInfo.URL)" 
@@ -44,7 +44,7 @@
                         <div class="mt-2">
                             <small class="text-muted">
                                 已觀看：<span id="watchedTime">00:00</span> / 
-                                總時長：<span id="totalTime">@Model.TrainingInfo.URLTime.ToString(@"mm\:ss")</span>
+                                總時長：<span id="totalTime">@FormatSeconds(Model.TrainingInfo.URLTime)</span>
                             </small>
                         </div>
                     </div>
@@ -92,6 +92,25 @@
 </div>
 
 @functions {
+    /// <summary>
+    /// 將秒數格式化為時間字串（MM:SS 或 HH:MM:SS）
+    /// </summary>
+    string FormatSeconds(int totalSeconds)
+    {
+        var hours = totalSeconds / 3600;
+        var minutes = (totalSeconds % 3600) / 60;
+        var seconds = totalSeconds % 60;
+        
+        if (hours > 0)
+        {
+            return $"{hours:D2}:{minutes:D2}:{seconds:D2}";
+        }
+        else
+        {
+            return $"{minutes:D2}:{seconds:D2}";
+        }
+    }
+
     /// <summary>
     /// 將 YouTube URL 轉換為嵌入 URL
     /// </summary>
@@ -144,9 +163,9 @@
         var embedUrl = $"https://www.youtube.com/embed/{videoId}";
         
         // 如果有已觀看時間，從該時間點開始播放
-        if (Model.WatchedTime.TotalSeconds > 0)
+        if (Model.WatchedTime > 0)
         {
-            embedUrl += $"?start={(int)Model.WatchedTime.TotalSeconds}&enablejsapi=1";
+            embedUrl += $"?start={Model.WatchedTime}&enablejsapi=1";
         }
         else
         {
@@ -167,8 +186,8 @@
         var employeeMainID = '@Model.EmployeeMainID';
         var trainingInfoMainID = '@Model.TrainingInfo.ID';
         var videoUrl = '@Model.TrainingInfo.URL';
-        var totalTime = @Model.TrainingInfo.URLTime.TotalSeconds;
-        var watchedTime = @Model.WatchedTime.TotalSeconds;
+        var totalTime = @Model.TrainingInfo.URLTime; // 直接使用秒數（int）
+        var watchedTime = @Model.WatchedTime; // 直接使用秒數（int）
         var lastUpdateTime = 0;
         var countdownTimer = null;
 

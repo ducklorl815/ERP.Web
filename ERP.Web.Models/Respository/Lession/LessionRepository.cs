@@ -3,6 +3,7 @@ using ERP.Web.Models.Models;
 using ERP.Web.Utility.Models;
 using Microsoft.Data.SqlClient;
 using Microsoft.Extensions.Options;
+using System.Text.Json;
 
 namespace ERP.Web.Models.Respository.Lession
 {
@@ -28,12 +29,11 @@ namespace ERP.Web.Models.Respository.Lession
         {
             var sql = @"
                 SELECT 
-                    ID, Seq, myModal, Title, Content, URL, URLTime, 
-                    URLStyle, TitleStyle, ContentStyle, Img, ImgStyle, Page,
-                    CreateDate, CreateUser, CreateDept, 
+                    ID, Seq, Title, Content, URL, URLTime, 
+                    Img, Page,
                     ModifyDate, ModifyUser, ModifyDept, 
                     Enabled, Deleted
-                FROM dbo.EMTrainingInfo
+                FROM [Lession].[dbo].[LessionInfo]
                 WHERE Enabled = 1 AND Deleted = 0
                 ORDER BY Page ASC, Seq ASC
             ";
@@ -60,12 +60,11 @@ namespace ERP.Web.Models.Respository.Lession
 
             var sql = @"
                 SELECT 
-                    ID, Seq, myModal, Title, Content, URL, URLTime, 
-                    URLStyle, TitleStyle, ContentStyle, Img, ImgStyle, Page,
-                    CreateDate, CreateUser, CreateDept, 
+                    ID, Seq, Title, Content, URL, URLTime, 
+                    Img, Page,
                     ModifyDate, ModifyUser, ModifyDept, 
                     Enabled, Deleted
-                FROM dbo.EMTrainingInfo
+                FROM [Lession].[dbo].[LessionInfo]
                 WHERE ID = @ID AND Enabled = 1 AND Deleted = 0
             ";
 
@@ -84,24 +83,16 @@ namespace ERP.Web.Models.Respository.Lession
         /// <summary>
         /// 新增訓練資訊
         /// </summary>
-        public async Task<bool> InsertTrainingInfoAsync(EMTrainingInfo trainingInfo)
+        public async Task<Guid> InsertTrainingInfoAsync(EMTrainingInfo trainingInfo)
         {
             var sqlparam = new DynamicParameters();
             sqlparam.Add("ID", Guid.NewGuid());
-            sqlparam.Add("MyModal", trainingInfo.MyModal);
             sqlparam.Add("Title", trainingInfo.Title);
             sqlparam.Add("Content", trainingInfo.Content);
             sqlparam.Add("URL", trainingInfo.URL);
             sqlparam.Add("URLTime", trainingInfo.URLTime);
-            sqlparam.Add("URLStyle", trainingInfo.URLStyle ?? string.Empty);
-            sqlparam.Add("TitleStyle", trainingInfo.TitleStyle ?? string.Empty);
-            sqlparam.Add("ContentStyle", trainingInfo.ContentStyle ?? string.Empty);
-            sqlparam.Add("Img", trainingInfo.Img ?? (object)DBNull.Value);
-            sqlparam.Add("ImgStyle", trainingInfo.ImgStyle ?? string.Empty);
+            sqlparam.Add("Img", trainingInfo.Img);
             sqlparam.Add("Page", trainingInfo.Page);
-            sqlparam.Add("CreateDate", DateTime.Now);
-            sqlparam.Add("CreateUser", trainingInfo.CreateUser);
-            sqlparam.Add("CreateDept", trainingInfo.CreateDept);
             sqlparam.Add("ModifyDate", DateTime.Now);
             sqlparam.Add("ModifyUser", trainingInfo.ModifyUser);
             sqlparam.Add("ModifyDept", trainingInfo.ModifyDept);
@@ -109,16 +100,15 @@ namespace ERP.Web.Models.Respository.Lession
             sqlparam.Add("Deleted", false);
 
             var sql = @"
-                INSERT INTO dbo.EMTrainingInfo 
-                (ID, myModal, Title, Content, URL, URLTime, 
-                 URLStyle, TitleStyle, ContentStyle, Img, ImgStyle, Page,
-                 CreateDate, CreateUser, CreateDept, 
+                INSERT INTO [Lession].[dbo].[LessionInfo] 
+                (ID, Title, Content, URL, URLTime, 
+                 Img, Page,
                  ModifyDate, ModifyUser, ModifyDept, 
                  Enabled, Deleted)
+                OUTPUT INSERTED.ID
                 VALUES 
-                (@ID, @MyModal, @Title, @Content, @URL, @URLTime, 
-                 @URLStyle, @TitleStyle, @ContentStyle, @Img, @ImgStyle, @Page,
-                 @CreateDate, @CreateUser, @CreateDept, 
+                (@ID, @Title, @Content, @URL, @URLTime, 
+                 @Img, @Page,
                  @ModifyDate, @ModifyUser, @ModifyDept, 
                  @Enabled, @Deleted)
             ";
@@ -126,12 +116,12 @@ namespace ERP.Web.Models.Respository.Lession
             using var conn = new SqlConnection(_dBList.erp);
             try
             {
-                var result = await conn.ExecuteAsync(sql, sqlparam);
-                return result > 0;
+                var result = await conn.ExecuteScalarAsync<Guid>(sql, sqlparam);
+                return result;
             }
             catch
             {
-                return false;
+                return Guid.Empty;
             }
         }
 
@@ -142,33 +132,23 @@ namespace ERP.Web.Models.Respository.Lession
         {
             var sqlparam = new DynamicParameters();
             sqlparam.Add("ID", trainingInfo.ID);
-            sqlparam.Add("MyModal", trainingInfo.MyModal);
             sqlparam.Add("Title", trainingInfo.Title);
-            sqlparam.Add("Content", trainingInfo.Content);
+            sqlparam.Add("Content", trainingInfo.Content ?? (object)DBNull.Value);
             sqlparam.Add("URL", trainingInfo.URL);
             sqlparam.Add("URLTime", trainingInfo.URLTime);
-            sqlparam.Add("URLStyle", trainingInfo.URLStyle ?? string.Empty);
-            sqlparam.Add("TitleStyle", trainingInfo.TitleStyle ?? string.Empty);
-            sqlparam.Add("ContentStyle", trainingInfo.ContentStyle ?? string.Empty);
             sqlparam.Add("Img", trainingInfo.Img ?? (object)DBNull.Value);
-            sqlparam.Add("ImgStyle", trainingInfo.ImgStyle ?? string.Empty);
             sqlparam.Add("Page", trainingInfo.Page);
             sqlparam.Add("ModifyDate", DateTime.Now);
             sqlparam.Add("ModifyUser", trainingInfo.ModifyUser);
             sqlparam.Add("ModifyDept", trainingInfo.ModifyDept);
 
             var sql = @"
-                UPDATE dbo.EMTrainingInfo
-                SET myModal = @MyModal,
-                    Title = @Title,
+                UPDATE [Lession].[dbo].[LessionInfo]
+                SET Title = @Title,
                     Content = @Content,
                     URL = @URL,
                     URLTime = @URLTime,
-                    URLStyle = @URLStyle,
-                    TitleStyle = @TitleStyle,
-                    ContentStyle = @ContentStyle,
                     Img = @Img,
-                    ImgStyle = @ImgStyle,
                     Page = @Page,
                     ModifyDate = @ModifyDate,
                     ModifyUser = @ModifyUser,
@@ -195,7 +175,7 @@ namespace ERP.Web.Models.Respository.Lession
         {
             var sql = @"
                 SELECT ISNULL(MAX(Page), 0) 
-                FROM dbo.EMTrainingInfo
+                FROM [Lession].[dbo].[LessionInfo]
                 WHERE Enabled = 1 AND Deleted = 0
             ";
 
@@ -227,10 +207,9 @@ namespace ERP.Web.Models.Respository.Lession
             var sql = @"
                 SELECT 
                     ID, Seq, EmployeeMainID, EMTrainingInfoMainID, Time, State,
-                    CreateDate, CreateUser, CreateDept, 
                     ModifyDate, ModifyUser, ModifyDept, 
                     Enabled, Deleted
-                FROM dbo.EMTrainingDetl
+                FROM [Lession].[dbo].[LessionTrainingDetl]
                 WHERE EmployeeMainID = @EmployeeMainID 
                     AND EMTrainingInfoMainID = @EMTrainingInfoMainID
                     AND Enabled = 1 AND Deleted = 0
@@ -259,13 +238,12 @@ namespace ERP.Web.Models.Respository.Lession
             var sql = @"
                 SELECT 
                     ID, Seq, EmployeeMainID, EMTrainingInfoMainID, Time, State,
-                    CreateDate, CreateUser, CreateDept, 
                     ModifyDate, ModifyUser, ModifyDept, 
                     Enabled, Deleted
-                FROM dbo.EMTrainingDetl
+                FROM [Lession].[dbo].[LessionTrainingDetl]
                 WHERE EmployeeMainID = @EmployeeMainID
                     AND Enabled = 1 AND Deleted = 0
-                ORDER BY CreateDate DESC
+                ORDER BY ModifyDate DESC
             ";
 
 
@@ -301,7 +279,7 @@ namespace ERP.Web.Models.Respository.Lession
                 sqlparam.Add("ModifyDept", detl.ModifyDept);
 
                 var sql = @"
-                    UPDATE dbo.EMTrainingDetl
+                    UPDATE [Lession].[dbo].[LessionTrainingDetl]
                     SET Time = @Time,
                         State = @State,
                         ModifyDate = @ModifyDate,
@@ -331,9 +309,6 @@ namespace ERP.Web.Models.Respository.Lession
                 sqlparam.Add("EMTrainingInfoMainID", detl.EMTrainingInfoMainID);
                 sqlparam.Add("Time", detl.Time);
                 sqlparam.Add("State", detl.State);
-                sqlparam.Add("CreateDate", DateTime.Now);
-                sqlparam.Add("CreateUser", detl.CreateUser);
-                sqlparam.Add("CreateDept", detl.CreateDept);
                 sqlparam.Add("ModifyDate", DateTime.Now);
                 sqlparam.Add("ModifyUser", detl.ModifyUser);
                 sqlparam.Add("ModifyDept", detl.ModifyDept);
@@ -341,14 +316,12 @@ namespace ERP.Web.Models.Respository.Lession
                 sqlparam.Add("Deleted", false);
 
                 var sql = @"
-                    INSERT INTO dbo.EMTrainingDetl 
+                    INSERT INTO [Lession].[dbo].[LessionTrainingDetl] 
                     (ID, EmployeeMainID, EMTrainingInfoMainID, Time, State,
-                     CreateDate, CreateUser, CreateDept, 
                      ModifyDate, ModifyUser, ModifyDept, 
                      Enabled, Deleted)
                     VALUES 
                     (@ID, @EmployeeMainID, @EMTrainingInfoMainID, @Time, @State,
-                     @CreateDate, @CreateUser, @CreateDept, 
                      @ModifyDate, @ModifyUser, @ModifyDept, 
                      @Enabled, @Deleted)
                 ";
@@ -485,6 +458,140 @@ namespace ERP.Web.Models.Respository.Lession
                 {
                     return false;
                 }
+            }
+        }
+
+        #endregion
+
+        #region LessionMain 相關方法
+
+        /// <summary>
+        /// 取得所有啟用的主要課程清單
+        /// </summary>
+        public async Task<List<LessionMain>> GetLessionMainListAsync()
+        {
+            var sql = @"
+                SELECT 
+                    ID, Seq, LessionName, ParagraphJson,
+                    ModifyDate, ModifyUser, ModifyDept, 
+                    Enabled, Deleted
+                FROM [Lession].[dbo].[LessionMain]
+                WHERE Enabled = 1 AND Deleted = 0
+                ORDER BY ModifyDate DESC
+            ";
+
+            using var conn = new SqlConnection(_dBList.erp);
+            try
+            {
+                var result = await conn.QueryAsync<LessionMain>(sql);
+                return result.ToList();
+            }
+            catch
+            {
+                return new List<LessionMain>();
+            }
+        }
+
+        /// <summary>
+        /// 根據 ID 取得主要課程
+        /// </summary>
+        public async Task<LessionMain?> GetLessionMainByIdAsync(Guid id)
+        {
+            var sqlparam = new DynamicParameters();
+            sqlparam.Add("ID", id);
+
+            var sql = @"
+                SELECT 
+                    ID, Seq, LessionName, ParagraphJson,
+                    ModifyDate, ModifyUser, ModifyDept, 
+                    Enabled, Deleted
+                FROM [Lession].[dbo].[LessionMain]
+                WHERE ID = @ID AND Enabled = 1 AND Deleted = 0
+            ";
+
+            using var conn = new SqlConnection(_dBList.erp);
+            try
+            {
+                var result = await conn.QueryFirstOrDefaultAsync<LessionMain>(sql, sqlparam);
+                return result;
+            }
+            catch
+            {
+                return null;
+            }
+        }
+
+        /// <summary>
+        /// 新增主要課程
+        /// </summary>
+        public async Task<Guid> InsertLessionMainAsync(LessionMain lessionMain)
+        {
+            var sqlparam = new DynamicParameters();
+            sqlparam.Add("ID", Guid.NewGuid());
+            sqlparam.Add("LessionName", lessionMain.LessionName);
+            sqlparam.Add("ParagraphJson", lessionMain.ParagraphJson ?? (object)DBNull.Value);
+            sqlparam.Add("ModifyDate", DateTime.Now);
+            sqlparam.Add("ModifyUser", lessionMain.ModifyUser);
+            sqlparam.Add("ModifyDept", lessionMain.ModifyDept);
+            sqlparam.Add("Enabled", true);
+            sqlparam.Add("Deleted", false);
+
+            var sql = @"
+                INSERT INTO [Lession].[dbo].[LessionMain] 
+                (ID, LessionName, ParagraphJson,
+                 ModifyDate, ModifyUser, ModifyDept, 
+                 Enabled, Deleted)
+                OUTPUT Inserted.ID
+                VALUES 
+                (@ID, @LessionName, @ParagraphJson,
+                 @ModifyDate, @ModifyUser, @ModifyDept, 
+                 @Enabled, @Deleted)
+            ";
+
+            using var conn = new SqlConnection(_dBList.erp);
+            try
+            {
+                var result = await conn.ExecuteScalarAsync<Guid>(sql, sqlparam);
+                return result;
+            }
+            catch
+            {
+                return Guid.Empty;
+            }
+        }
+
+        /// <summary>
+        /// 更新主要課程
+        /// </summary>
+        public async Task<bool> UpdateLessionMainAsync(LessionMain lessionMain)
+        {
+            var sqlparam = new DynamicParameters();
+            sqlparam.Add("ID", lessionMain.ID);
+            sqlparam.Add("LessionName", lessionMain.LessionName);
+            sqlparam.Add("ParagraphJson", lessionMain.ParagraphJson ?? (object)DBNull.Value);
+            sqlparam.Add("ModifyDate", DateTime.Now);
+            sqlparam.Add("ModifyUser", lessionMain.ModifyUser);
+            sqlparam.Add("ModifyDept", lessionMain.ModifyDept);
+
+            var sql = @"
+                UPDATE [Lession].[dbo].[LessionMain]
+                SET LessionName = @LessionName,
+                    ParagraphJson = @ParagraphJson,
+                    ModifyDate = @ModifyDate,
+                    ModifyUser = @ModifyUser,
+                    ModifyDept = @ModifyDept
+                WHERE ID = @ID
+            ";
+
+            using var conn = new SqlConnection(_dBList.erp);
+            try
+            {
+                var result = await conn.ExecuteAsync(sql, sqlparam);
+                return result > 0;
+            }
+            catch
+            {
+                return false;
             }
         }
 

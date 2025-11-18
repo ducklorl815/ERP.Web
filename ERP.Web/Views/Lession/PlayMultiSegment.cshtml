@@ -1,12 +1,12 @@
 @model ERP.Web.Controllers.Lession.LessionMultiSegmentViewModel
 @{
-    ViewData["Title"] = $"課程分頁 {Model.Page} - 多片段播放";
+    ViewData["Title"] = $"{Model.LessionMainName} - 多片段播放";
 }
 
 <div class="container-fluid">
     <div class="row mb-3">
         <div class="col-12">
-            <h2>課程分頁 @Model.Page - 多片段播放</h2>
+            <h2>@Model.LessionMainName</h2>
             <hr />
         </div>
     </div>
@@ -22,8 +22,8 @@
                             var firstSegment = Model.Segments.First();
                             var firstProgress = Model.ProgressDict.ContainsKey(firstSegment.ID) ? Model.ProgressDict[firstSegment.ID] : null;
                         }
-                        <h5 class="card-title" id="currentTitle" style="@firstSegment.TitleStyle">@firstSegment.Title</h5>
-                        <p class="card-text" id="currentContent" style="@firstSegment.ContentStyle">@firstSegment.Content</p>
+                        <h5 class="card-title" id="currentTitle">@firstSegment.Title</h5>
+                        <p class="card-text" id="currentContent">@firstSegment.Content</p>
                     </div>
 
                     <!-- YouTube 影片播放器容器（只顯示一個） -->
@@ -115,21 +115,21 @@
                         {
                             var segment = Model.Segments[i];
                             var progress = Model.ProgressDict.ContainsKey(segment.ID) ? Model.ProgressDict[segment.ID] : null;
-                            var watchedTime = progress?.Time ?? TimeSpan.Zero;
+                            var watchedTimeSeconds = progress?.Time ?? 0; // 直接使用秒數（int）
                             var isCompleted = progress?.State ?? false;
-                            var watchedTimeSeconds = (int)watchedTime.TotalSeconds;
-                            var totalTimeSeconds = (int)segment.URLTime.TotalSeconds;
+                            var totalTimeSeconds = segment.URLTime; // 直接使用秒數（int）
                             var progressPercentage = totalTimeSeconds > 0 ? (int)((watchedTimeSeconds / (double)totalTimeSeconds) * 100) : 0;
                             var isActive = i == 0;
-                            var playerId = $"VideoPlayer_{segment.MyModal}";
-                            var timeSpanId = $"TimeSpan_myModal{segment.MyModal}";
-                            var videoBarId = $"vedioBar_myModal{segment.MyModal}";
+                            var segmentIdStr = segment.ID.ToString("N").Substring(0, 8);
+                            var playerId = $"VideoPlayer_{segmentIdStr}";
+                            var timeSpanId = $"TimeSpan_{segmentIdStr}";
+                            var videoBarId = $"vedioBar_{segmentIdStr}";
 
                             <div class="list-group-item list-group-item-action playlist-item @(isActive ? "active" : "")" 
                                  data-segment-index="@i"
                                  data-segment-id="@segment.ID"
-                                 data-my-modal="@segment.MyModal"
-                                 onclick="switchToSegment(@i, '@segment.ID', '@segment.MyModal')"
+                                 data-segment-id-str="@segmentIdStr"
+                                 onclick="switchToSegment(@i, '@segment.ID', '@segmentIdStr')"
                                  style="cursor: pointer;">
                                 <div class="d-flex w-100 justify-content-between align-items-start">
                                     <div class="flex-grow-1">
@@ -146,9 +146,9 @@
                                             {
                                                 <i class="fas fa-circle text-secondary me-2"></i>
                                             }
-                                            <h6 class="mb-0" style="@segment.TitleStyle">@segment.Title</h6>
+                                            <h6 class="mb-0">@segment.Title</h6>
                                         </div>
-                                        <p class="mb-2 small text-muted" style="@segment.ContentStyle">@segment.Content</p>
+                                        <p class="mb-2 small text-muted">@segment.Content</p>
                                         <div class="progress mb-2" style="height: 4px;">
                                             <div class="progress-bar @(isCompleted ? "bg-success" : progress != null ? "bg-warning" : "bg-secondary")" 
                                                  role="progressbar" 
@@ -160,7 +160,7 @@
                                         </div>
                                         <small class="text-muted">
                                             <i class="fas fa-clock"></i> 
-                                            @segment.URLTime.ToString(@"mm\:ss") | 
+                                            @FormatSeconds(segment.URLTime) | 
                                             進度: @progressPercentage%
                                         </small>
                                     </div>
@@ -180,12 +180,12 @@
     {
         var segment = Model.Segments[i];
         var progress = Model.ProgressDict.ContainsKey(segment.ID) ? Model.ProgressDict[segment.ID] : null;
-        var watchedTime = progress?.Time ?? TimeSpan.Zero;
-        var watchedTimeSeconds = (int)watchedTime.TotalSeconds;
-        var totalTimeSeconds = (int)segment.URLTime.TotalSeconds;
-        var playerId = $"VideoPlayer_{segment.MyModal}";
-        var timeSpanId = $"TimeSpan_myModal{segment.MyModal}";
-        var videoBarId = $"vedioBar_myModal{segment.MyModal}";
+        var watchedTimeSeconds = progress?.Time ?? 0; // 直接使用秒數（int）
+        var totalTimeSeconds = segment.URLTime; // 直接使用秒數（int）
+        var segmentIdStr = segment.ID.ToString("N").Substring(0, 8);
+        var playerId = $"VideoPlayer_{segmentIdStr}";
+        var timeSpanId = $"TimeSpan_{segmentIdStr}";
+        var videoBarId = $"vedioBar_{segmentIdStr}";
 
         <div id="@playerId" 
              data-video="@GetYouTubeVideoId(segment.URL)" 
@@ -193,17 +193,34 @@
              data-urltimesec="@totalTimeSeconds"
              data-url="@segment.URL"
              data-segment-id="@segment.ID"
-             data-my-modal="@segment.MyModal"
+             data-segment-id-str="@segmentIdStr"
              data-title="@segment.Title"
              data-content="@segment.Content"
-             data-title-style="@segment.TitleStyle"
-             data-content-style="@segment.ContentStyle"
-             data-total-time="@segment.URLTime.ToString(@"hh\:mm\:ss")">
+             data-total-time="@FormatSeconds(segment.URLTime)">
         </div>
     }
 </div>
 
 @functions {
+    /// <summary>
+    /// 將秒數格式化為時間字串（MM:SS 或 HH:MM:SS）
+    /// </summary>
+    string FormatSeconds(int totalSeconds)
+    {
+        var hours = totalSeconds / 3600;
+        var minutes = (totalSeconds % 3600) / 60;
+        var seconds = totalSeconds % 60;
+        
+        if (hours > 0)
+        {
+            return $"{hours:D2}:{minutes:D2}:{seconds:D2}";
+        }
+        else
+        {
+            return $"{minutes:D2}:{seconds:D2}";
+        }
+    }
+
     /// <summary>
     /// 從 YouTube URL 中提取 Video ID
     /// </summary>
@@ -292,7 +309,7 @@
                     const currentTime = Math.floor(mainPlayerInstance.getCurrentTime());
                     const currentSegment = document.querySelector(`[data-segment-index="${currentSegmentIndex}"]`);
                     if (currentSegment) {
-                        const playerElement = document.getElementById(`VideoPlayer_${currentSegment.dataset.myModal}`);
+                        const playerElement = document.getElementById(`VideoPlayer_${currentSegment.dataset.segmentIdStr}`);
                         if (playerElement) {
                             const totalTime = parseInt(playerElement.dataset.urltimesec);
                             const remainingTime = Math.max(0, totalTime - currentTime);
@@ -372,7 +389,7 @@
         }
 
         // 切換到指定片段
-        function switchToSegment(index, segmentId, myModal) {
+        function switchToSegment(index, segmentId, segmentIdStr) {
             // 儲存當前片段的進度
             if (mainPlayerInstance && mainPlayerInstance.getCurrentTime) {
                 const currentTime = Math.floor(mainPlayerInstance.getCurrentTime());
@@ -391,7 +408,7 @@
             currentSegmentIndex = index;
 
             // 取得目標片段資料
-            const playerElement = document.getElementById(`VideoPlayer_${myModal}`);
+            const playerElement = document.getElementById(`VideoPlayer_${segmentIdStr}`);
             if (!playerElement) return;
 
             const videoId = playerElement.dataset.video;
@@ -399,8 +416,6 @@
             const totalTime = parseInt(playerElement.dataset.urltimesec);
             const title = playerElement.dataset.title;
             const content = playerElement.dataset.content;
-            const titleStyle = playerElement.dataset.titleStyle;
-            const contentStyle = playerElement.dataset.contentStyle;
             const totalTimeStr = playerElement.dataset.totalTime;
 
             // 更新標題和描述
@@ -408,11 +423,9 @@
             const currentContent = document.getElementById('currentContent');
             if (currentTitle) {
                 currentTitle.textContent = title;
-                currentTitle.setAttribute('style', titleStyle);
             }
             if (currentContent) {
                 currentContent.textContent = content;
-                currentContent.setAttribute('style', contentStyle);
             }
 
             // 更新總時長
@@ -489,7 +502,7 @@
             const currentSegment = document.querySelector(`[data-segment-index="${currentSegmentIndex}"]`);
             if (!currentSegment) return;
 
-            const playerElement = document.getElementById(`VideoPlayer_${currentSegment.dataset.myModal}`);
+            const playerElement = document.getElementById(`VideoPlayer_${currentSegment.dataset.segmentIdStr}`);
             if (!playerElement) return;
 
             const currentTime = Math.floor(mainPlayerInstance.getCurrentTime());
@@ -516,7 +529,7 @@
             {
                 const firstSegment = document.querySelector('[data-segment-index="0"]');
                 if (firstSegment) {
-                    switchToSegment(0, firstSegment.dataset.segmentId, firstSegment.dataset.myModal);
+                    switchToSegment(0, firstSegment.dataset.segmentId, firstSegment.dataset.segmentIdStr);
                 }
             }
         }
@@ -525,7 +538,7 @@
             const currentSegment = document.querySelector(`[data-segment-index="${currentSegmentIndex}"]`);
             if (!currentSegment) return;
 
-            const playerElement = document.getElementById(`VideoPlayer_${currentSegment.dataset.myModal}`);
+            const playerElement = document.getElementById(`VideoPlayer_${currentSegment.dataset.segmentIdStr}`);
             if (!playerElement) return;
 
             const watchtime = parseInt(playerElement.dataset.watchtime) || 0;
