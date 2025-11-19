@@ -23,8 +23,8 @@
             <div class="col-md-6 col-lg-4 mb-4">
                 <div class="card h-100">
                     <div class="card-body">
-                        <h5 class="card-title">@lessionMain.LessionName</h5>
-                        <p class="card-text text-muted small">
+                        <h5 class="card-title" style="font-size: 1.25rem; font-weight: 600;">@lessionMain.LessionName</h5>
+                        <p class="card-text text-muted" style="font-size: 0.95rem;">
                             <i class="fas fa-list"></i> 共 @progress.TotalSegments 個片段
                         </p>
                         
@@ -32,8 +32,8 @@
                         {
                             <div class="mb-2">
                                 <div class="d-flex justify-content-between align-items-center mb-1">
-                                    <small class="text-muted">觀看進度</small>
-                                    <small class="text-muted">@progress.ProgressPercentage%</small>
+                                    <small class="text-muted" style="font-size: 0.9rem;">觀看進度</small>
+                                    <small class="text-muted" style="font-size: 0.9rem;">@progress.ProgressPercentage%</small>
                                 </div>
                                 <div class="progress" style="height: 8px;">
                                     <div class="progress-bar @(progress.IsCompleted ? "bg-success" : "bg-primary")" 
@@ -45,7 +45,7 @@
                                     </div>
                                 </div>
                                 <div class="mt-1">
-                                    <small class="text-muted">
+                                    <small class="text-muted" style="font-size: 0.9rem;">
                                         已完成：@progress.CompletedSegments / @progress.TotalSegments 個片段
                                     </small>
                                 </div>
@@ -53,15 +53,15 @@
                             
                             @if (progress.IsCompleted)
                             {
-                                <span class="badge bg-success mb-2">已完成</span>
+                                <span class="badge bg-success mb-2" style="font-size: 0.9rem;">已完成</span>
                             }
                             else if (progress.ProgressPercentage > 0)
                             {
-                                <span class="badge bg-warning mb-2">進行中</span>
+                                <span class="badge bg-warning mb-2" style="font-size: 0.9rem;">進行中</span>
                             }
                             else
                             {
-                                <span class="badge bg-secondary mb-2">未開始</span>
+                                <span class="badge bg-secondary mb-2 text-white" style="font-size: 0.9rem;">未開始</span>
                             }
                         }
                         else
@@ -71,29 +71,29 @@
                             </div>
                         }
                     </div>
-                    <div class="card-footer">
+                    <div class="card-footer" style="padding: 1rem;">
                         @if (progress.TotalSegments > 0)
                         {
                             <a href="@Url.Action("PlayMultiSegment", "Lession", new { lessionMainID = lessionMain.ID, employeeMainID = Model.EmployeeMainID })" 
-                               class="btn btn-primary w-100">
+                               class="btn btn-primary w-100" style="font-size: 1rem; padding: 0.75rem;">
                                 @if (progress.IsCompleted)
                                 {
-                                    <i class="fas fa-redo">重新觀看</i> 
+                                    <i class="fas fa-redo me-2"></i><span>重新觀看</span>
                                 }
                                 else if (progress.ProgressPercentage > 0)
                                 {
-                                    <i class="fas fa-play">繼續觀看</i> 
+                                    <i class="fas fa-play me-2"></i><span>繼續觀看</span>
                                 }
                                 else
                                 {
-                                    <i class="fas fa-play">開始觀看</i> 
+                                    <i class="fas fa-play me-2"></i><span>開始觀看</span>
                                 }
                             </a>
                         }
                         else
                         {
-                            <button class="btn btn-secondary w-100" disabled>
-                                <i class="fas fa-lock"></i> 無法觀看（無片段）
+                            <button class="btn btn-secondary w-100" disabled style="font-size: 1rem; padding: 0.75rem;">
+                                <i class="fas fa-lock me-2"></i><span>無法觀看（無片段）</span>
                             </button>
                         }
                     </div>

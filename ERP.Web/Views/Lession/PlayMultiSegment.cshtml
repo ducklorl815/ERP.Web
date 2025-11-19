@@ -13,17 +13,16 @@
 
     <div class="row">
         <!-- 左側：主要播放區域 -->
-        <div class="col-lg-8 col-md-12 mb-4">
+        <div id="videoContainer" class="col-lg-9 col-md-12 mb-4">
             <div class="card">
                 <div class="card-body">
-                    <!-- 當前播放片段的標題和描述 -->
-                    <div id="currentSegmentInfo">
+                    <!-- 當前播放片段的標題 -->
+                    <div id="currentSegmentInfo" class="mb-3">
                         @{
                             var firstSegment = Model.Segments.First();
                             var firstProgress = Model.ProgressDict.ContainsKey(firstSegment.ID) ? Model.ProgressDict[firstSegment.ID] : null;
                         }
-                        <h5 class="card-title" id="currentTitle">@firstSegment.Title</h5>
-                        <p class="card-text" id="currentContent">@firstSegment.Content</p>
+                        <h3 class="fw-bold" id="currentTitle">@firstSegment.Title</h3>
                     </div>
 
                     <!-- YouTube 影片播放器容器（只顯示一個） -->
@@ -31,13 +30,9 @@
                         <div id="mainVideoPlayer" style="position: absolute; top: 0; left: 0; width: 100%; height: 100%;"></div>
                     </div>
 
-                    <!-- 進度條 -->
+                    <!-- 進度條（細小的一條） -->
                     <div class="mb-3">
-                        <div class="d-flex justify-content-between align-items-center mb-2">
-                            <span>觀看進度</span>
-                            <span id="mainProgressText">0%</span>
-                        </div>
-                        <div class="progress" style="height: 20px;">
+                        <div class="progress" style="height: 4px;">
                             <div id="mainVideoBar" 
                                  class="progress-bar" 
                                  role="progressbar" 
@@ -47,46 +42,23 @@
                                  aria-valuemax="100">
                             </div>
                         </div>
-                        <div class="mt-2">
-                            <small class="text-muted">
-                                已觀看：<span id="mainWatchedTime">00:00:00</span> / 
-                                總時長：<span id="mainTotalTime">00:00:00</span>
-                            </small>
-                        </div>
                     </div>
 
-                    <!-- 倒數計時 -->
+                    <!-- 重看此片段按鈕 -->
                     <div class="mb-3">
-                        <div class="card">
-                            <div class="card-body">
-                                <h6 class="card-title">剩餘觀看時間</h6>
-                                <div class="d-flex justify-content-center align-items-center">
-                                    <span id="mainCountdown_Hours" class="fs-3 fw-bold">00</span>
-                                    <span class="fs-3 mx-2">:</span>
-                                    <span id="mainCountdown_Minutes" class="fs-3 fw-bold">00</span>
-                                    <span class="fs-3 mx-2">:</span>
-                                    <span id="mainCountdown_Seconds" class="fs-3 fw-bold">00</span>
-                                </div>
-                            </div>
-                        </div>
-                    </div>
-
-                    <!-- 完成狀態和操作按鈕 -->
-                    <div class="mb-3 d-flex justify-content-between align-items-center">
-                        <div class="form-check">
-                            <input class="form-check-input" 
-                                   type="checkbox" 
-                                   id="mainIsCompleted">
-                            <label class="form-check-label" for="mainIsCompleted">
-                                標記為已完成
-                            </label>
-                        </div>
                         <button type="button" 
                                 class="btn btn-warning btn-sm" 
                                 id="mainResetBtn"
                                 onclick="resetCurrentProgress()">
                             <i class="fas fa-redo"></i> 重看此片段
                         </button>
+                    </div>
+
+                    <!-- 內容描述（HTML 格式顯示，保留換行） -->
+                    <div class="mt-4">
+                        <div id="currentContent" class="text-muted" style="white-space: pre-line;">
+                            @Html.Raw(firstSegment.Content ?? "")
+                        </div>
                     </div>
                 </div>
             </div>
@@ -101,13 +73,20 @@
         </div>
 
         <!-- 右側：播放清單 -->
-        <div class="col-lg-4 col-md-12">
+        <div id="playlistSidebar" class="col-lg-3 col-md-12">
             <div class="card">
-                <div class="card-header">
+                <div class="card-header d-flex justify-content-between align-items-center">
                     <h5 class="mb-0">
                         <i class="fas fa-list"></i> 播放清單
                         <span class="badge bg-primary ms-2">@Model.Segments.Count 個片段</span>
                     </h5>
+                    <button type="button" 
+                            class="btn btn-sm btn-outline-secondary" 
+                            id="togglePlaylistBtn"
+                            onclick="togglePlaylist()"
+                            title="收合播放清單">
+                        <i class="fas fa-chevron-right" id="togglePlaylistIcon"></i>
+                    </button>
                 </div>
                 <div class="card-body p-0">
                     <div class="list-group list-group-flush" id="playlistContainer" style="max-height: 80vh; overflow-y: auto;">
@@ -146,9 +125,8 @@
                                             {
                                                 <i class="fas fa-circle text-secondary me-2"></i>
                                             }
-                                            <h6 class="mb-0">@segment.Title</h6>
+                                            <h6 class="mb-0 text-dark" style="font-size: 1rem; font-weight: 500;">@segment.Title</h6>
                                         </div>
-                                        <p class="mb-2 small text-muted">@segment.Content</p>
                                         <div class="progress mb-2" style="height: 4px;">
                                             <div class="progress-bar @(isCompleted ? "bg-success" : progress != null ? "bg-warning" : "bg-secondary")" 
                                                  role="progressbar" 
@@ -158,7 +136,7 @@
                                                  aria-valuemax="100">
                                             </div>
                                         </div>
-                                        <small class="text-muted">
+                                        <small class="text-dark" style="font-size: 0.85rem;">
                                             <i class="fas fa-clock"></i> 
                                             @FormatSeconds(segment.URLTime) | 
                                             進度: @progressPercentage%
@@ -172,6 +150,16 @@
             </div>
         </div>
     </div>
+
+    <!-- 浮動展開播放清單按鈕（當播放清單收合時顯示） -->
+    <button type="button" 
+            class="btn btn-outline-secondary btn-sm rounded-circle" 
+            id="floatingPlaylistBtn"
+            onclick="togglePlaylist()"
+            title="展開播放清單"
+            style="display: none; position: fixed; right: 20px; top: 120px; z-index: 1000; width: 40px; height: 40px; box-shadow: 0 2px 4px rgba(0, 0, 0, 0.1);">
+        <i class="fas fa-chevron-left"></i>
+    </button>
 </div>
 
 <!-- 隱藏的播放器容器（所有片段） -->
@@ -262,6 +250,7 @@
     <style>
         .playlist-item {
             transition: background-color 0.2s;
+            padding: 0.75rem 1rem !important;
         }
         .playlist-item:hover {
             background-color: #f8f9fa;
@@ -270,76 +259,117 @@
             background-color: #e7f3ff;
             border-left: 4px solid #0d6efd;
         }
+        /* 播放清單標題樣式 */
+        .playlist-item h6 {
+            color: #000 !important;
+            font-size: 1rem !important;
+            font-weight: 500 !important;
+            line-height: 1.4;
+        }
+        /* 播放清單時間和進度文字 */
+        .playlist-item small {
+            color: #000 !important;
+            font-size: 0.85rem !important;
+        }
+        /* 播放清單圖示顏色調整 */
+        .playlist-item .text-success,
+        .playlist-item .text-warning,
+        .playlist-item .text-secondary {
+            color: #000 !important;
+            opacity: 0.7;
+        }
+        .playlist-item.active .text-success,
+        .playlist-item.active .text-warning,
+        .playlist-item.active .text-secondary {
+            opacity: 1;
+        }
+        /* 保留內容描述的換行格式 */
+        #currentContent {
+            white-space: pre-line;
+        }
+        /* 播放清單容器樣式 */
+        #playlistContainer {
+            max-height: 85vh;
+        }
+        /* 播放清單標題區域 */
+        .card-header h5 {
+            font-size: 1rem;
+            font-weight: 600;
+        }
+        /* 播放清單收合狀態 */
+        #playlistSidebar.collapsed {
+            display: none !important;
+        }
+        /* 影片區域展開狀態 */
+        #videoContainer.expanded {
+            width: 100% !important;
+        }
+        /* 浮動展開按鈕 */
+        #floatingPlaylistBtn {
+            position: fixed;
+            right: 20px;
+            top: 120px; /* 調整到播放清單標題的位置 */
+            z-index: 1000;
+            display: none !important;
+            box-shadow: 0 4px 6px rgba(0, 0, 0, 0.1);
+            width: 40px;
+            height: 40px;
+            padding: 0;
+        }
+        #floatingPlaylistBtn.show {
+            display: block !important;
+        }
+        /* 平滑過渡效果 */
+        #videoContainer,
+        #playlistSidebar {
+            transition: all 0.3s ease-in-out;
+        }
     </style>
     <script>
         // 全域變數
         const employeeMainID = '@Model.EmployeeMainID';
         const empsplitMainID = employeeMainID.split("-")[3];
-        const countdownTimers = [];
-        const videoPlayers = [];
-        let mainCountdown = null;
-        let currentPlayer = null;
         let currentSegmentIndex = 0;
         let mainPlayerInstance = null;
+        let isPlaylistCollapsed = false;
 
-        // 主要倒數計時器類別
-        class MainCountdown {
-            constructor(totalSeconds) {
-                this.totalSeconds = totalSeconds;
-                this.intervalId = null;
-                this.isRunning = false;
-            }
-
-            start() {
-                this.stop();
-                this.isRunning = true;
-                this.intervalId = setInterval(() => this.setTime(), 1000);
-            }
-
-            stop() {
-                this.isRunning = false;
-                if (this.intervalId) {
-                    clearInterval(this.intervalId);
-                    this.intervalId = null;
+        // 切換播放清單顯示/隱藏
+        function togglePlaylist() {
+            const playlistSidebar = document.getElementById('playlistSidebar');
+            const videoContainer = document.getElementById('videoContainer');
+            const toggleIcon = document.getElementById('togglePlaylistIcon');
+            const floatingBtn = document.getElementById('floatingPlaylistBtn');
+            
+            if (isPlaylistCollapsed) {
+                // 展開播放清單
+                playlistSidebar.classList.remove('collapsed');
+                videoContainer.classList.remove('expanded');
+                videoContainer.classList.remove('col-lg-12');
+                videoContainer.classList.add('col-lg-9');
+                if (toggleIcon) {
+                    toggleIcon.classList.remove('fa-chevron-left');
+                    toggleIcon.classList.add('fa-chevron-right');
                 }
-            }
-
-            setTime() {
-                if (mainPlayerInstance && mainPlayerInstance.getCurrentTime) {
-                    const currentTime = Math.floor(mainPlayerInstance.getCurrentTime());
-                    const currentSegment = document.querySelector(`[data-segment-index="${currentSegmentIndex}"]`);
-                    if (currentSegment) {
-                        const playerElement = document.getElementById(`VideoPlayer_${currentSegment.dataset.segmentIdStr}`);
-                        if (playerElement) {
-                            const totalTime = parseInt(playerElement.dataset.urltimesec);
-                            const remainingTime = Math.max(0, totalTime - currentTime);
-                            this.totalSeconds = remainingTime;
-                        }
-                    }
+                if (floatingBtn) {
+                    floatingBtn.classList.remove('show');
+                    floatingBtn.style.display = 'none';
                 }
-
-                if (this.totalSeconds < 0) {
-                    this.totalSeconds = 0;
+                isPlaylistCollapsed = false;
+            } else {
+                // 收合播放清單
+                playlistSidebar.classList.add('collapsed');
+                videoContainer.classList.add('expanded');
+                videoContainer.classList.remove('col-lg-9');
+                videoContainer.classList.add('col-lg-12');
+                if (toggleIcon) {
+                    toggleIcon.classList.remove('fa-chevron-right');
+                    toggleIcon.classList.add('fa-chevron-left');
                 }
-
-                const hoursLabel = document.getElementById('mainCountdown_Hours');
-                const minutesLabel = document.getElementById('mainCountdown_Minutes');
-                const secondsLabel = document.getElementById('mainCountdown_Seconds');
-                
-                if (hoursLabel) hoursLabel.innerHTML = this.pad(parseInt(this.totalSeconds / 3600));
-                if (minutesLabel) minutesLabel.innerHTML = this.pad(parseInt((this.totalSeconds / 60) % 60));
-                if (secondsLabel) secondsLabel.innerHTML = this.pad(this.totalSeconds % 60);
-            }
-
-            pad(val) {
-                return val.toString().padStart(2, '0');
-            }
-
-            getFormattedTime() {
-                const hours = Math.floor(this.totalSeconds / 3600);
-                const minutes = Math.floor((this.totalSeconds % 3600) / 60);
-                const seconds = this.totalSeconds % 60;
-                return `${this.pad(hours)}:${this.pad(minutes)}:${this.pad(seconds)}`;
+                if (floatingBtn) {
+                    floatingBtn.classList.add('show');
+                    floatingBtn.style.display = 'block';
+                }
+                isPlaylistCollapsed = true;
             }
         }
 
@@ -366,23 +396,6 @@
                     videoBar.style.width = `${Math.min(100, percentage)}%`;
                     videoBar.setAttribute('aria-valuenow', percentage);
                 }
-                
-                // 更新進度文字
-                const progressText = document.getElementById('mainProgressText');
-                if (progressText) {
-                    progressText.textContent = percentage + '%';
-                }
-                
-                // 更新已觀看時間
-                const watchedTimeElement = document.getElementById('mainWatchedTime');
-                if (watchedTimeElement) {
-                    watchedTimeElement.textContent = formatTime(currentTime);
-                }
-
-                // 更新倒數計時器
-                if (mainCountdown) {
-                    mainCountdown.setTime();
-                }
             } catch (error) {
                 console.error('更新進度條時發生錯誤:', error);
             }
@@ -399,9 +412,6 @@
             // 暫停當前播放器
             if (mainPlayerInstance) {
                 mainPlayerInstance.pauseVideo();
-            }
-            if (mainCountdown) {
-                mainCountdown.stop();
             }
 
             // 更新當前片段索引
@@ -425,13 +435,7 @@
                 currentTitle.textContent = title;
             }
             if (currentContent) {
-                currentContent.textContent = content;
-            }
-
-            // 更新總時長
-            const mainTotalTime = document.getElementById('mainTotalTime');
-            if (mainTotalTime) {
-                mainTotalTime.textContent = totalTimeStr;
+                currentContent.innerHTML = content || '';
             }
 
             // 更新播放清單中的活動狀態
@@ -470,29 +474,7 @@
                 });
             }
 
-            // 更新倒數計時器
-            const remainingTime = Math.max(0, totalTime - watchtime);
-            if (!mainCountdown) {
-                mainCountdown = new MainCountdown(remainingTime);
-            }
-            mainCountdown.totalSeconds = remainingTime;
-            mainCountdown.setTime();
-
-            // 更新完成狀態
-            const currentSegment = document.querySelector(`[data-segment-index="${index}"]`);
-            if (currentSegment) {
-                const checkbox = document.getElementById('mainIsCompleted');
-                const isCompleted = currentSegment.querySelector('.fa-check-circle') !== null;
-                if (checkbox) {
-                    checkbox.checked = isCompleted;
-                }
-
-                // 更新重看按鈕
-                const resetBtn = document.getElementById('mainResetBtn');
-                if (resetBtn) {
-                    resetBtn.setAttribute('onclick', `resetProgress('${segmentId}')`);
-                }
-            }
+            // 重看按鈕已經設定為 resetCurrentProgress()，會自動取得當前片段 ID
         }
 
         // 儲存當前片段進度
@@ -510,7 +492,7 @@
             const urlTime = formatTime(currentTime);
 
             const data = new FormData();
-            data.append('time', mainCountdown ? mainCountdown.getFormattedTime() : '00:00:00');
+            data.append('time', formatTime(currentTime));
             data.append('EmpID', employeeMainID);
             data.append('UrlTime', urlTime);
             data.append('VideoUrl', videoUrl);
@@ -551,31 +533,16 @@
         }
 
         function onMainPlayerStateChange(event) {
-            if (event.data === YT.PlayerState.PLAYING) {
-                // 啟動倒數計時
-                if (mainCountdown) {
-                    mainCountdown.start();
-                }
-            } else if (event.data === YT.PlayerState.PAUSED || event.data === YT.PlayerState.ENDED) {
-                // 停止倒數計時
-                if (mainCountdown) {
-                    mainCountdown.stop();
-                }
-
+            if (event.data === YT.PlayerState.PAUSED || event.data === YT.PlayerState.ENDED) {
                 // 儲存進度
                 saveCurrentSegmentProgress();
             }
 
             if (event.data === YT.PlayerState.ENDED) {
-                // 標記為完成
-                const checkbox = document.getElementById('mainIsCompleted');
-                if (checkbox) {
-                    checkbox.checked = true;
-                    // 更新完成狀態到伺服器
-                    const currentSegment = document.querySelector(`[data-segment-index="${currentSegmentIndex}"]`);
-                    if (currentSegment) {
-                        sendProgressToServer(currentSegment.dataset.segmentId, true);
-                    }
+                // 更新完成狀態到伺服器
+                const currentSegment = document.querySelector(`[data-segment-index="${currentSegmentIndex}"]`);
+                if (currentSegment) {
+                    sendProgressToServer(currentSegment.dataset.segmentId, true);
                 }
             }
         }
@@ -621,7 +588,7 @@
         function resetProgress(trainingInfoMainID) {
             Swal.fire({
                 title: '提示',
-                text: "確定要重看該片段嗎？",
+                text: "確定要重看該片段嗎？觀看進度將被重置為 0。",
                 icon: 'warning',
                 showCancelButton: true,
                 confirmButtonColor: '#3085d6',
@@ -630,15 +597,34 @@
                 cancelButtonText: '取消'
             }).then(result => {
                 if (result.isConfirmed) {
+                    // 傳遞 EmployeeMainID 和 EMTrainingInfoMainID
+                    const formData = new URLSearchParams();
+                    formData.append('EMTrainingInfoMainID', trainingInfoMainID);
+                    formData.append('EmployeeMainID', employeeMainID);
+                    
+                    // 除錯：記錄傳遞的參數
+                    console.log('重置進度參數:', {
+                        EMTrainingInfoMainID: trainingInfoMainID,
+                        EmployeeMainID: employeeMainID,
+                        formData: formData.toString()
+                    });
+
                     fetch('@Url.Action("UpdateDetl", "Lession")', {
                         method: 'POST',
                         headers: {
                             'Content-Type': 'application/x-www-form-urlencoded',
                         },
-                        body: 'EMTrainingInfoMainID=' + trainingInfoMainID
+                        body: formData.toString()
                     })
-                    .then(response => response.json())
+                    .then(response => {
+                        // 檢查回應狀態
+                        if (!response.ok) {
+                            throw new Error(`HTTP error! status: ${response.status}`);
+                        }
+                        return response.json();
+                    })
                     .then(data => {
+                        console.log('重置進度回應:', data);
                         if (data.IsSuccess) {
                             Swal.fire({
                                 title: '成功',
@@ -647,40 +633,36 @@
                                 timer: 1500,
                                 showConfirmButton: false
                             }).then(() => {
+                                // 重新載入頁面以更新進度顯示
                                 window.location.reload();
                             });
                         } else {
                             Swal.fire({
                                 title: "錯誤",
-                                text: data.Msg,
+                                text: data.Msg || "重置失敗，請稍後再試",
                                 icon: "error",
                                 showConfirmButton: true
                             });
                         }
+                    })
+                    .catch(error => {
+                        console.error('重置進度時發生錯誤:', error);
+                        Swal.fire({
+                            title: "錯誤",
+                            text: `重置失敗：${error.message || "請檢查瀏覽器主控台以查看詳細錯誤"}`,
+                            icon: "error",
+                            showConfirmButton: true
+                        });
                     });
                 }
             });
         }
-
-        // 監聽完成狀態變更
-        document.getElementById('mainIsCompleted')?.addEventListener('change', function() {
-            if (this.checked && mainPlayerInstance && mainPlayerInstance.getCurrentTime) {
-                const currentSegment = document.querySelector(`[data-segment-index="${currentSegmentIndex}"]`);
-                if (currentSegment) {
-                    sendProgressToServer(currentSegment.dataset.segmentId, true);
-                }
-            }
-        });
 
         // 頁面可見性處理
         document.addEventListener('visibilitychange', () => {
             if (document.hidden) {
                 if (mainPlayerInstance && mainPlayerInstance.pauseVideo) {
                     mainPlayerInstance.pauseVideo();
-                }
-
-                if (mainCountdown) {
-                    mainCountdown.stop();
                 }
 
                 saveCurrentSegmentProgress();
@@ -701,7 +683,8 @@
                 const currentSegment = document.querySelector(`[data-segment-index="${currentSegmentIndex}"]`);
                 if (currentSegment) {
                     const currentTime = Math.floor(mainPlayerInstance.getCurrentTime());
-                    const isCompleted = document.getElementById('mainIsCompleted')?.checked || false;
+                    const totalTime = mainPlayerInstance.getDuration ? Math.floor(mainPlayerInstance.getDuration()) : 1;
+                    const isCompleted = currentTime >= totalTime * 0.95; // 觀看超過 95% 視為完成
                     sendProgressToServer(currentSegment.dataset.segmentId, isCompleted);
                 }
             }

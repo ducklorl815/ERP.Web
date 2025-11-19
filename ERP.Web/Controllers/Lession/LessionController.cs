@@ -209,30 +209,51 @@ namespace ERP.Web.Controllers.Lession
         /// 重置觀看進度（重看功能）
         /// </summary>
         [HttpPost]
-        public async Task<IActionResult> UpdateDetl(Guid EMTrainingInfoMainID)
+        public async Task<IActionResult> UpdateDetl([FromForm] string EMTrainingInfoMainID, [FromForm] string EmployeeMainID = null)
         {
-            // TODO: 從 Session 或認證系統取得 EmployeeMainID, CurrentUserID, CurrentDeptID
-            var employeeMainID = Guid.Parse("00000000-0000-0000-0000-000000000000");
-            var currentUserID = Guid.Parse("00000000-0000-0000-0000-000000000000");
-            var currentDeptID = Guid.Parse("00000000-0000-0000-0000-000000000000");
-
-            // 重置觀看時間為 0，完成狀態為 false
-            var result = await _lessionService.UpdateVideoProgressAsync(
-                employeeMainID,
-                EMTrainingInfoMainID,
-                0,
-                false,
-                currentUserID,
-                currentDeptID
-            );
-
-            if (result)
+            try
             {
-                return Json(new { IsSuccess = true, Msg = "已重置觀看進度" });
+                // 解析 GUID 參數
+                if (!Guid.TryParse(EMTrainingInfoMainID, out Guid trainingInfoMainID))
+                {
+                    return Json(new { IsSuccess = false, Msg = "無效的訓練資訊ID" });
+                }
+
+                // TODO: 從 Session 或認證系統取得 EmployeeMainID, CurrentUserID, CurrentDeptID
+                // 如果沒有傳入 EmployeeMainID，使用預設值（向後相容）
+                Guid employeeMainID;
+                if (string.IsNullOrEmpty(EmployeeMainID) || !Guid.TryParse(EmployeeMainID, out employeeMainID))
+                {
+                    // 使用預設值或從其他地方取得
+                    employeeMainID = Guid.Parse("00000000-0000-0000-0000-000000000000");
+                }
+
+                var currentUserID = Guid.Parse("00000000-0000-0000-0000-000000000000");
+                var currentDeptID = Guid.Parse("00000000-0000-0000-0000-000000000000");
+
+                // 重置觀看時間為 0，完成狀態為 false
+                var result = await _lessionService.UpdateVideoProgressAsync(
+                    employeeMainID,
+                    trainingInfoMainID,
+                    0,
+                    false,
+                    currentUserID,
+                    currentDeptID
+                );
+
+                if (result)
+                {
+                    return Json(new { IsSuccess = true, Msg = "已重置觀看進度" });
+                }
+                else
+                {
+                    return Json(new { IsSuccess = false, Msg = "重置失敗：資料庫操作失敗" });
+                }
             }
-            else
+            catch (Exception ex)
             {
-                return Json(new { IsSuccess = false, Msg = "重置失敗" });
+                // 記錄錯誤（實際應用中應該使用 ILogger）
+                return Json(new { IsSuccess = false, Msg = $"重置失敗：{ex.Message}" });
             }
         }
 
@@ -389,6 +410,59 @@ namespace ERP.Web.Controllers.Lession
 
             TempData["SuccessMessage"] = "課程片段新增成功！";
             return RedirectToAction(nameof(Index));
+        }
+
+        /// <summary>
+        /// 課程管理列表頁面（用於管理課程）
+        /// </summary>
+        [HttpGet]
+        public async Task<IActionResult> SearchList()
+        {
+            // 取得所有課程列表
+            var lessionMainList = await _lessionService.GetLessionMainListAsync();
+            
+            // 計算每個課程的片段數量
+            var lessionListWithSegmentCount = lessionMainList.Select(lessionMain =>
+            {
+                var paragraphs = _lessionService.ParseParagraphJson(lessionMain.ParagraphJson);
+                return new LessionMainWithSegmentCount
+                {
+                    LessionMain = lessionMain,
+                    SegmentCount = paragraphs?.Count ?? 0
+                };
+            }).ToList();
+            
+            var viewModel = new LessionSearchListViewModel
+            {
+                LessionListWithSegmentCount = lessionListWithSegmentCount
+            };
+
+            return View(viewModel);
+        }
+
+        /// <summary>
+        /// 課程詳細資訊頁面（顯示課程的所有片段）
+        /// </summary>
+        [HttpGet]
+        public async Task<IActionResult> Details(Guid id)
+        {
+            // 取得課程資訊
+            var lessionMain = await _lessionService.GetLessionMainByIdAsync(id);
+            if (lessionMain == null)
+            {
+                return NotFound();
+            }
+
+            // 取得該課程的所有片段
+            var segments = await _lessionService.GetTrainingInfoByLessionMainIdAsync(id);
+
+            var viewModel = new LessionDetailsViewModel
+            {
+                LessionMain = lessionMain,
+                Segments = segments
+            };
+
+            return View(viewModel);
         }
 
         /// <summary>
@@ -917,6 +991,32 @@ namespace ERP.Web.Controllers.Lession
     public class GetYouTubeVideoInfoRequest
     {
         public string Url { get; set; } = string.Empty;
+    }
+
+    /// <summary>
+    /// 課程管理列表 ViewModel
+    /// </summary>
+    public class LessionSearchListViewModel
+    {
+        public List<LessionMainWithSegmentCount> LessionListWithSegmentCount { get; set; } = new();
+    }
+
+    /// <summary>
+    /// 包含片段數量的課程資訊
+    /// </summary>
+    public class LessionMainWithSegmentCount
+    {
+        public LessionMain LessionMain { get; set; } = null!;
+        public int SegmentCount { get; set; }
+    }
+
+    /// <summary>
+    /// 課程詳細資訊 ViewModel
+    /// </summary>
+    public class LessionDetailsViewModel
+    {
+        public LessionMain LessionMain { get; set; } = null!;
+        public List<EMTrainingInfo> Segments { get; set; } = new();
     }
 }
 

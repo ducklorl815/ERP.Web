@@ -1,0 +1,166 @@
+@model ERP.Web.Controllers.Lession.LessionDetailsViewModel
+@{
+    ViewData["Title"] = "課程詳細資訊";
+}
+
+@functions {
+    /// <summary>
+    /// 將秒數格式化為時間字串（MM:SS 或 HH:MM:SS）
+    /// </summary>
+    string FormatSeconds(int totalSeconds)
+    {
+        var hours = totalSeconds / 3600;
+        var minutes = (totalSeconds % 3600) / 60;
+        var seconds = totalSeconds % 60;
+        
+        if (hours > 0)
+        {
+            return $"{hours:D2}:{minutes:D2}:{seconds:D2}";
+        }
+        else
+        {
+            return $"{minutes:D2}:{seconds:D2}";
+        }
+    }
+}
+
+<div class="container-fluid">
+    <div class="row mb-3">
+        <div class="col-12 d-flex justify-content-between align-items-center">
+            <h2 class="mb-0"><i class="fas fa-info-circle"></i> 課程詳細資訊</h2>
+            <div>
+                <a href="@Url.Action("SearchList", "Lession")" class="btn btn-secondary">
+                    <i class="fas fa-arrow-left"></i> 返回管理列表
+                </a>
+            </div>
+        </div>
+    </div>
+    <hr />
+
+    <!-- 課程基本資訊 -->
+    <div class="row mb-4">
+        <div class="col-12">
+            <div class="card">
+                <div class="card-header bg-primary text-white">
+                    <h5 class="mb-0"><i class="fas fa-book"></i> 課程基本資訊</h5>
+                </div>
+                <div class="card-body">
+                    <div class="row">
+                        <div class="col-md-6">
+                            <dl class="row">
+                                <dt class="col-sm-4">課程名稱：</dt>
+                                <dd class="col-sm-8"><strong>@Model.LessionMain.LessionName</strong></dd>
+                                
+                                <dt class="col-sm-4">片段總數：</dt>
+                                <dd class="col-sm-8">
+                                    <span class="badge bg-info">@Model.Segments.Count 個片段</span>
+                                </dd>
+                            </dl>
+                        </div>
+                        <div class="col-md-6">
+                            <dl class="row">
+                                <dt class="col-sm-4">最後修改時間：</dt>
+                                <dd class="col-sm-8">
+                                    <small class="text-muted">
+                                        @Model.LessionMain.ModifyDate.ToString("yyyy-MM-dd HH:mm:ss")
+                                    </small>
+                                </dd>
+                                
+                                <dt class="col-sm-4">序號：</dt>
+                                <dd class="col-sm-8">@Model.LessionMain.Seq</dd>
+                            </dl>
+                        </div>
+                    </div>
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <!-- 片段列表 -->
+    <div class="row">
+        <div class="col-12">
+            <div class="card">
+                <div class="card-header bg-info text-white">
+                    <h5 class="mb-0"><i class="fas fa-list"></i> 課程片段列表</h5>
+                </div>
+                <div class="card-body">
+                    @if (Model.Segments != null && Model.Segments.Any())
+                    {
+                        <div class="table-responsive">
+                            <table class="table table-striped table-hover">
+                                <thead class="table-light">
+                                    <tr>
+                                        <th style="width: 5%;">序號</th>
+                                        <th style="width: 25%;">片段標題</th>
+                                        <th style="width: 30%;">內容描述</th>
+                                        <th style="width: 15%;">影片時長</th>
+                                        <th style="width: 15%;">YouTube URL</th>
+                                        <th style="width: 10%;" class="text-center">操作</th>
+                                    </tr>
+                                </thead>
+                                <tbody>
+                                    @{
+                                        int index = 1;
+                                    }
+                                    @foreach (var segment in Model.Segments)
+                                    {
+                                        <tr>
+                                            <td>@index</td>
+                                            <td>
+                                                <strong>@segment.Title</strong>
+                                            </td>
+                                            <td>
+                                                @if (!string.IsNullOrWhiteSpace(segment.Content))
+                                                {
+                                                    <small class="text-muted">
+                                                        @(segment.Content.Length > 50 ? segment.Content.Substring(0, 50) + "..." : segment.Content)
+                                                    </small>
+                                                }
+                                                else
+                                                {
+                                                    <small class="text-muted">無描述</small>
+                                                }
+                                            </td>
+                                            <td>
+                                                <span class="badge bg-secondary">@FormatSeconds(segment.URLTime)</span>
+                                            </td>
+                                            <td>
+                                                @if (!string.IsNullOrWhiteSpace(segment.URL))
+                                                {
+                                                    <a href="@segment.URL" target="_blank" class="btn btn-sm btn-outline-primary">
+                                                        <i class="fab fa-youtube"></i> 開啟影片
+                                                    </a>
+                                                }
+                                                else
+                                                {
+                                                    <small class="text-muted">無 URL</small>
+                                                }
+                                            </td>
+                                            <td class="text-center">
+                                                <a href="@Url.Action("Edit", "Lession", new { id = segment.ID })" 
+                                                   class="btn btn-sm btn-warning">
+                                                    <i class="fas fa-edit"></i> 編輯
+                                                </a>
+                                            </td>
+                                        </tr>
+                                        index++;
+                                    }
+                                </tbody>
+                            </table>
+                        </div>
+                    }
+                    else
+                    {
+                        <div class="alert alert-warning">
+                            <i class="fas fa-exclamation-triangle"></i> 此課程目前沒有任何片段。
+                            <a href="@Url.Action("Create", "Lession")" class="btn btn-sm btn-primary ms-2">
+                                <i class="fas fa-plus"></i> 新增片段
+                            </a>
+                        </div>
+                    }
+                </div>
+            </div>
+        </div>
+    </div>
+</div>
+
