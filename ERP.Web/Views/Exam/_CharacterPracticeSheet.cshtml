@@ -1,0 +1,386 @@
+@model ERP.Web.Controllers.Exam.CharacterPracticeSheetViewModel
+@using System.Text.RegularExpressions
+
+@{
+    Layout = null;  // 禁用布局
+}
+
+<!DOCTYPE html>
+<html>
+<head>
+    <meta charset="utf-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+    <title>@Model.Title</title>
+    <link href="https://cdn.jsdelivr.net/npm/bootstrap@5.3.0/dist/css/bootstrap.min.css" rel="stylesheet">
+    <style>
+        /* 練習紙容器 */
+        .practice-container {
+            width: 100%;
+            max-width: 100%;
+            margin: 0 auto;
+            padding: 20px;
+            background-color: white;
+        }
+
+        /* 標題區域 */
+        .practice-title {
+            font-size: 18px;
+            font-weight: bold;
+            margin-bottom: 20px;
+            text-align: center;
+        }
+
+        /* 姓名欄位 */
+        .name-field {
+            font-size: 16px;
+            margin-bottom: 20px;
+            text-align: right;
+        }
+
+        /* 生字行容器 */
+        .character-row {
+            display: flex;
+            flex-wrap: wrap;
+            justify-content: flex-start;
+            margin-bottom: 40px;
+            gap: 25px;
+            align-items: flex-start;
+        }
+
+        /* 單個生字區塊 */
+        .character-block {
+            display: flex;
+            flex-direction: column;
+            align-items: center;
+            flex: 0 0 auto;
+            width: 180px;
+        }
+
+        /* 注音顯示（隱藏） */
+        .zhuyin {
+            display: none;
+        }
+
+        /* 田字格容器 */
+        .tianzige-container {
+            position: relative;
+            width: 90px;
+            height: 90px;
+            margin: 0 auto 15px;
+        }
+
+        /* 田字格樣式 */
+        .tianzige {
+            width: 100%;
+            height: 100%;
+            border: 2px solid #90EE90;
+            position: relative;
+            background-color: white;
+            box-sizing: border-box;
+        }
+
+        /* 田字格內部線條（十字線 - 虛線） */
+        .tianzige::before {
+            content: '';
+            position: absolute;
+            top: 50%;
+            left: 0;
+            right: 0;
+            height: 0;
+            border-top: 1px dashed #90EE90;
+            opacity: 0.6;
+            transform: translateY(-50%);
+        }
+
+        .tianzige::after {
+            content: '';
+            position: absolute;
+            left: 50%;
+            top: 0;
+            bottom: 0;
+            width: 0;
+            border-left: 1px dashed #90EE90;
+            opacity: 0.6;
+            transform: translateX(-50%);
+        }
+
+        /* 範例字（淺綠色） */
+        .example-character {
+            position: absolute;
+            top: 50%;
+            left: 50%;
+            transform: translate(-50%, -50%);
+            font-size: 42px;
+            color: #90EE90;
+            font-weight: normal;
+            z-index: 1;
+            font-family: 'Microsoft YaHei', '微軟雅黑', '標楷體', 'KaiTi', serif;
+            user-select: none;
+        }
+
+        /* 練習格容器（多行） */
+        .practice-grid {
+            display: grid;
+            grid-template-columns: repeat(3, 1fr);
+            gap: 8px;
+            margin-top: 15px;
+            width: 100%;
+            grid-auto-rows: auto;
+        }
+
+        /* 練習格 */
+        .practice-cell {
+            width: 50px;
+            height: 50px;
+            border: 2px solid #90EE90;
+            position: relative;
+            background-color: white;
+            box-sizing: border-box;
+        }
+
+        .practice-cell::before {
+            content: '';
+            position: absolute;
+            top: 50%;
+            left: 0;
+            right: 0;
+            height: 0;
+            border-top: 1px dashed #90EE90;
+            opacity: 0.5;
+            transform: translateY(-50%);
+        }
+
+        .practice-cell::after {
+            content: '';
+            position: absolute;
+            left: 50%;
+            top: 0;
+            bottom: 0;
+            width: 0;
+            border-left: 1px dashed #90EE90;
+            opacity: 0.5;
+            transform: translateX(-50%);
+        }
+
+        /* 對角線樣式 */
+        .diagonal-line {
+            position: absolute;
+            width: 0;
+            height: 0;
+            opacity: 0.5;
+            pointer-events: none;
+        }
+
+        .diagonal-line.diag-1 {
+            top: 0;
+            left: 0;
+            width: 141.42%;
+            height: 0;
+            border-top: 1px dashed #90EE90;
+            transform: translate(-20.71%, 50%) rotate(45deg);
+            transform-origin: left center;
+        }
+
+        .diagonal-line.diag-2 {
+            top: 0;
+            right: 0;
+            width: 141.42%;
+            height: 0;
+            border-top: 1px dashed #90EE90;
+            transform: translate(20.71%, 50%) rotate(-45deg);
+            transform-origin: right center;
+        }
+
+    </style>
+    @{
+        var atSymbol = ((char)64).ToString();
+        var atMedia = atSymbol + "media";
+        var atPage = atSymbol + "page";
+        var printStyles = $@"
+    <style>
+        /* 列印樣式 */
+        {atMedia} print {{
+            {atPage} {{
+                margin: 1cm;
+                size: A4 portrait;
+            }}
+
+            .practice-container {{
+                padding: 0;
+            }}
+
+            .practice-title {{
+                font-size: 16px;
+                margin-bottom: 15px;
+            }}
+
+            .name-field {{
+                font-size: 14px;
+                margin-bottom: 15px;
+            }}
+
+            .character-row {{
+                margin-bottom: 25px;
+                gap: 15px;
+            }}
+
+            .character-block {{
+                width: 160px;
+                margin-bottom: 15px;
+            }}
+
+            .tianzige-container {{
+                width: 80px;
+                height: 80px;
+            }}
+
+            .example-character {{
+                font-size: 36px;
+            }}
+
+            .practice-grid {{
+                grid-template-columns: repeat(3, 1fr);
+                gap: 6px;
+            }}
+
+            .practice-cell {{
+                width: 45px;
+                height: 45px;
+            }}
+
+            .zhuyin {{
+                font-size: 14px;
+            }}
+
+            .character-row {{
+                gap: 20px;
+                margin-bottom: 35px;
+            }}
+        }}
+    </style>
+        ";
+    }
+    @Html.Raw(printStyles)
+</head>
+<body>
+    <div class="practice-container">
+        <!-- 標題和姓名欄位 -->
+        <div style="display: flex; justify-content: space-between; align-items: center; margin-bottom: 20px;">
+            <div class="practice-title">@Model.Title</div>
+            <div class="name-field">姓名：_________________________</div>
+        </div>
+
+        @{
+            var characters = Model.Characters.ToCharArray();
+            var charactersPerRow = 6; // 每行顯示6個字
+            var practiceRowsPerCharacter = 6; // 每個字下方有6行練習格
+            var practiceCellsPerRow = 3; // 每行3個練習格
+            var practiceCellsPerCharacter = practiceRowsPerCharacter * practiceCellsPerRow; // 每個字下方總共18個練習格（6行 x 3列）
+        }
+
+        @for (int i = 0; i < characters.Length; i += charactersPerRow)
+        {
+            var rowCharacters = characters.Skip(i).Take(charactersPerRow).ToArray();
+            
+            <div class="character-row">
+                @foreach (var character in rowCharacters)
+                {
+                    <div class="character-block">
+                        <!-- 注音顯示 -->
+                        <div class="zhuyin" data-character="@character">
+                            <span class="zhuyin-text">@GetZhuyin(character)</span>
+                        </div>
+                        
+                        <!-- 範例字（田字格） -->
+                        <div class="tianzige-container">
+                            <div class="tianzige">
+                                <div class="diagonal-line diag-1"></div>
+                                <div class="diagonal-line diag-2"></div>
+                                <div class="example-character">@character</div>
+                            </div>
+                        </div>
+                        
+                        <!-- 練習格（3x3 網格） -->
+                        <div class="practice-grid">
+                            @for (int j = 0; j < practiceCellsPerCharacter; j++)
+                            {
+                                <div class="practice-cell">
+                                    <div class="diagonal-line diag-1"></div>
+                                    <div class="diagonal-line diag-2"></div>
+                                </div>
+                            }
+                        </div>
+                    </div>
+                }
+            </div>
+        }
+    </div>
+
+    <script>
+        // 注音對照表（常用字）
+        const zhuyinMap = {
+            '一': 'ㄧ', '二': 'ㄦˋ', '三': 'ㄙㄢ', '四': 'ㄙˋ', '五': 'ㄨˇ',
+            '六': 'ㄌㄧㄡˋ', '七': 'ㄑㄧ', '八': 'ㄅㄚ', '九': 'ㄐㄧㄡˇ', '十': 'ㄕˊ',
+            '月': 'ㄩㄝˋ', '日': 'ㄖˋ', '天': 'ㄊㄧㄢ', '地': 'ㄉㄧˋ', '人': 'ㄖㄣˊ',
+            '水': 'ㄕㄨㄟˇ', '火': 'ㄏㄨㄛˇ', '木': 'ㄇㄨˋ', '金': 'ㄐㄧㄣ', '土': 'ㄊㄨˇ',
+            '大': 'ㄉㄚˋ', '小': 'ㄒㄧㄠˇ', '中': 'ㄓㄨㄥ', '上': 'ㄕㄤˋ', '下': 'ㄒㄧㄚˋ',
+            '左': 'ㄗㄨㄛˇ', '右': 'ㄧㄡˋ', '前': 'ㄑㄧㄢˊ', '後': 'ㄏㄡˋ', '東': 'ㄉㄨㄥ',
+            '西': 'ㄒㄧ', '南': 'ㄋㄢˊ', '北': 'ㄅㄟˇ', '春': 'ㄔㄨㄣ', '夏': 'ㄒㄧㄚˋ',
+            '秋': 'ㄑㄧㄡ', '冬': 'ㄉㄨㄥ', '山': 'ㄕㄢ', '海': 'ㄏㄞˇ', '河': 'ㄏㄜˊ',
+            '花': 'ㄏㄨㄚ', '草': 'ㄘㄠˇ', '樹': 'ㄕㄨˋ', '鳥': 'ㄋㄧㄠˇ', '魚': 'ㄩˊ',
+            '貓': 'ㄇㄠ', '狗': 'ㄍㄡˇ', '馬': 'ㄇㄚˇ', '牛': 'ㄋㄧㄡˊ', '羊': 'ㄧㄤˊ',
+            '我': 'ㄨㄛˇ', '你': 'ㄋㄧˇ', '他': 'ㄊㄚ', '她': 'ㄊㄚ', '它': 'ㄊㄚ',
+            '的': '˙ㄉㄜ', '了': '˙ㄌㄜ', '在': 'ㄗㄞˋ', '是': 'ㄕˋ', '有': 'ㄧㄡˇ',
+            '和': 'ㄏㄢˊ', '與': 'ㄩˇ', '或': 'ㄏㄨㄛˋ', '但': 'ㄉㄢˋ', '可': 'ㄎㄜˇ',
+            '要': 'ㄧㄠˋ', '會': 'ㄏㄨㄟˋ', '能': 'ㄋㄥˊ', '想': 'ㄒㄧㄤˇ', '看': 'ㄎㄢˋ',
+            '聽': 'ㄊㄧㄥ', '說': 'ㄕㄨㄛ', '讀': 'ㄉㄨˊ', '寫': 'ㄒㄧㄝˇ', '學': 'ㄒㄩㄝˊ',
+            '生': 'ㄕㄥ', '字': 'ㄗˋ', '詞': 'ㄘˊ', '句': 'ㄐㄩˋ', '文': 'ㄨㄣˊ',
+            '書': 'ㄕㄨ', '本': 'ㄅㄣˇ', '頁': 'ㄧㄝˋ', '章': 'ㄓㄤ', '節': 'ㄐㄧㄝˊ'
+        };
+
+        // 如果後端沒有提供注音，使用前端對照表
+        document.addEventListener('DOMContentLoaded', function() {
+            const zhuyinElements = document.querySelectorAll('.zhuyin-text');
+            zhuyinElements.forEach(function(el) {
+                const character = el.closest('.zhuyin').getAttribute('data-character');
+                if (el.textContent.trim() === '' && zhuyinMap[character]) {
+                    el.textContent = zhuyinMap[character];
+                }
+            });
+        });
+    </script>
+</body>
+</html>
+
+@functions {
+    /// <summary>
+    /// 取得中文字的注音
+    /// </summary>
+    private string GetZhuyin(char character)
+    {
+        // 注音對照表（常用字）
+        var zhuyinDictionary = new Dictionary<char, string>
+        {
+            {'一', "ㄧ"}, {'二', "ㄦˋ"}, {'三', "ㄙㄢ"}, {'四', "ㄙˋ"}, {'五', "ㄨˇ"},
+            {'六', "ㄌㄧㄡˋ"}, {'七', "ㄑㄧ"}, {'八', "ㄅㄚ"}, {'九', "ㄐㄧㄡˇ"}, {'十', "ㄕˊ"},
+            {'月', "ㄩㄝˋ"}, {'日', "ㄖˋ"}, {'天', "ㄊㄧㄢ"}, {'地', "ㄉㄧˋ"}, {'人', "ㄖㄣˊ"},
+            {'水', "ㄕㄨㄟˇ"}, {'火', "ㄏㄨㄛˇ"}, {'木', "ㄇㄨˋ"}, {'金', "ㄐㄧㄣ"}, {'土', "ㄊㄨˇ"},
+            {'大', "ㄉㄚˋ"}, {'小', "ㄒㄧㄠˇ"}, {'中', "ㄓㄨㄥ"}, {'上', "ㄕㄤˋ"}, {'下', "ㄒㄧㄚˋ"},
+            {'左', "ㄗㄨㄛˇ"}, {'右', "ㄧㄡˋ"}, {'前', "ㄑㄧㄢˊ"}, {'後', "ㄏㄡˋ"}, {'東', "ㄉㄨㄥ"},
+            {'西', "ㄒㄧ"}, {'南', "ㄋㄢˊ"}, {'北', "ㄅㄟˇ"}, {'春', "ㄔㄨㄣ"}, {'夏', "ㄒㄧㄚˋ"},
+            {'秋', "ㄑㄧㄡ"}, {'冬', "ㄉㄨㄥ"}, {'山', "ㄕㄢ"}, {'海', "ㄏㄞˇ"}, {'河', "ㄏㄜˊ"},
+            {'花', "ㄏㄨㄚ"}, {'草', "ㄘㄠˇ"}, {'樹', "ㄕㄨˋ"}, {'鳥', "ㄋㄧㄠˇ"}, {'魚', "ㄩˊ"},
+            {'貓', "ㄇㄠ"}, {'狗', "ㄍㄡˇ"}, {'馬', "ㄇㄚˇ"}, {'牛', "ㄋㄧㄡˊ"}, {'羊', "ㄧㄤˊ"},
+            {'我', "ㄨㄛˇ"}, {'你', "ㄋㄧˇ"}, {'他', "ㄊㄚ"}, {'她', "ㄊㄚ"}, {'它', "ㄊㄚ"},
+            {'的', "˙ㄉㄜ"}, {'了', "˙ㄌㄜ"}, {'在', "ㄗㄞˋ"}, {'是', "ㄕˋ"}, {'有', "ㄧㄡˇ"},
+            {'和', "ㄏㄢˊ"}, {'與', "ㄩˇ"}, {'或', "ㄏㄨㄛˋ"}, {'但', "ㄉㄢˋ"}, {'可', "ㄎㄜˇ"},
+            {'要', "ㄧㄠˋ"}, {'會', "ㄏㄨㄟˋ"}, {'能', "ㄋㄥˊ"}, {'想', "ㄒㄧㄤˇ"}, {'看', "ㄎㄢˋ"},
+            {'聽', "ㄊㄧㄥ"}, {'說', "ㄕㄨㄛ"}, {'讀', "ㄉㄨˊ"}, {'寫', "ㄒㄧㄝˇ"}, {'學', "ㄒㄩㄝˊ"},
+            {'生', "ㄕㄥ"}, {'字', "ㄗˋ"}, {'詞', "ㄘˊ"}, {'句', "ㄐㄩˋ"}, {'文', "ㄨㄣˊ"},
+            {'書', "ㄕㄨ"}, {'本', "ㄅㄣˇ"}, {'頁', "ㄧㄝˋ"}, {'章', "ㄓㄤ"}, {'節', "ㄐㄧㄝˊ"}
+        };
+
+        return zhuyinDictionary.TryGetValue(character, out var zhuyin) ? zhuyin : string.Empty;
+    }
+}
+
