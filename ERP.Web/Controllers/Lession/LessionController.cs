@@ -392,6 +392,187 @@ namespace ERP.Web.Controllers.Lession
         }
 
         /// <summary>
+        /// 修改課程片段頁面
+        /// </summary>
+        [HttpGet]
+        public async Task<IActionResult> Edit(Guid id)
+        {
+            // 取得要修改的訓練資訊
+            var trainingInfo = await _lessionService.GetTrainingInfoByIdAsync(id);
+            if (trainingInfo == null)
+            {
+                return NotFound();
+            }
+
+            // 找出該片段所屬的課程
+            var lessionMainList = await _lessionService.GetLessionMainListAsync();
+            Guid? currentLessionMainID = null;
+
+            foreach (var lessionMain in lessionMainList)
+            {
+                var paragraphs = _lessionService.ParseParagraphJson(lessionMain.ParagraphJson);
+                if (paragraphs.Any(p => p.LessionInfoID == id))
+                {
+                    currentLessionMainID = lessionMain.ID;
+                    break;
+                }
+            }
+
+            // 取得所有 LessionMain 列表供選擇
+            var viewModel = new LessionEditViewModel
+            {
+                ID = trainingInfo.ID,
+                Title = trainingInfo.Title,
+                Content = trainingInfo.Content ?? string.Empty,
+                URL = trainingInfo.URL,
+                URLTimeString = FormatTimeSpan(trainingInfo.URLTime), // 將秒數轉換為時間字串
+                Img = trainingInfo.Img ?? string.Empty,
+                LessionMainID = currentLessionMainID,
+                LessionMainList = lessionMainList.Select(lm => new SelectListItem
+                {
+                    Value = lm.ID.ToString(),
+                    Text = lm.LessionName,
+                    Selected = lm.ID == currentLessionMainID
+                }).ToList()
+            };
+
+            return View(viewModel);
+        }
+
+        /// <summary>
+        /// 修改課程片段（POST）
+        /// </summary>
+        [HttpPost]
+        [ValidateAntiForgeryToken]
+        public async Task<IActionResult> Edit(LessionEditViewModel model)
+        {
+            // 重新載入 LessionMain 列表（用於驗證失敗時顯示）
+            var lessionMainList = await _lessionService.GetLessionMainListAsync();
+            model.LessionMainList = lessionMainList.Select(lm => new SelectListItem
+            {
+                Value = lm.ID.ToString(),
+                Text = lm.LessionName,
+                Selected = lm.ID == model.LessionMainID
+            }).ToList();
+
+            if (!ModelState.IsValid)
+            {
+                return View(model);
+            }
+
+            // 取得要修改的訓練資訊
+            var trainingInfo = await _lessionService.GetTrainingInfoByIdAsync(model.ID);
+            if (trainingInfo == null)
+            {
+                return NotFound();
+            }
+
+            // TODO: 從 Session 或認證系統取得 CurrentUserID, CurrentDeptID
+            var currentUserID = Guid.Parse("00000000-0000-0000-0000-000000000000");
+            var currentDeptID = Guid.Parse("00000000-0000-0000-0000-000000000000");
+
+            // 解析時間字串 (格式: HH:MM:SS 或 MM:SS) 轉換為秒數
+            int urlTimeSeconds;
+            if (!TryParseTimeToSeconds(model.URLTimeString, out urlTimeSeconds))
+            {
+                ModelState.AddModelError("URLTimeString", "時間格式錯誤，請使用 HH:MM:SS 或 MM:SS 格式");
+                return View(model);
+            }
+
+            // 驗證課程選擇
+            if (!model.LessionMainID.HasValue)
+            {
+                ModelState.AddModelError("LessionMainID", "請選擇課程");
+                return View(model);
+            }
+
+            // 找出該片段原本所屬的課程
+            Guid? oldLessionMainID = null;
+            foreach (var lessionMain in lessionMainList)
+            {
+                var paragraphs = _lessionService.ParseParagraphJson(lessionMain.ParagraphJson);
+                if (paragraphs.Any(p => p.LessionInfoID == model.ID))
+                {
+                    oldLessionMainID = lessionMain.ID;
+                    break;
+                }
+            }
+
+            // 更新訓練資訊
+            trainingInfo.Title = model.Title;
+            trainingInfo.Content = model.Content ?? string.Empty;
+            trainingInfo.URL = model.URL;
+            trainingInfo.URLTime = urlTimeSeconds;
+            trainingInfo.Img = model.Img;
+            trainingInfo.ModifyUser = currentUserID;
+            trainingInfo.ModifyDept = currentDeptID;
+
+            var updateResult = await _lessionService.UpdateTrainingInfoAsync(trainingInfo);
+            if (!updateResult)
+            {
+                ModelState.AddModelError("", "更新片段失敗，請稍後再試");
+                return View(model);
+            }
+
+            // 如果課程有變更，需要更新兩個課程的 ParagraphJson
+            if (oldLessionMainID.HasValue && oldLessionMainID.Value != model.LessionMainID.Value)
+            {
+                // 從舊課程移除
+                var oldLessionMain = await _lessionService.GetLessionMainByIdAsync(oldLessionMainID.Value);
+                if (oldLessionMain != null)
+                {
+                    var oldParagraphs = _lessionService.ParseParagraphJson(oldLessionMain.ParagraphJson);
+                    oldParagraphs.RemoveAll(p => p.LessionInfoID == model.ID);
+                    oldLessionMain.ParagraphJson = _lessionService.SerializeParagraphJson(oldParagraphs);
+                    oldLessionMain.ModifyUser = currentUserID;
+                    oldLessionMain.ModifyDept = currentDeptID;
+                    await _lessionService.UpdateLessionMainAsync(oldLessionMain);
+                }
+
+                // 加入到新課程
+                var newLessionMain = await _lessionService.GetLessionMainByIdAsync(model.LessionMainID.Value);
+                if (newLessionMain != null)
+                {
+                    var newParagraphs = _lessionService.ParseParagraphJson(newLessionMain.ParagraphJson);
+                    // 檢查是否已經存在
+                    if (!newParagraphs.Any(p => p.LessionInfoID == model.ID))
+                    {
+                        newParagraphs.Add(new ParagraphInfo
+                        {
+                            LessionInfoID = model.ID,
+                            Paragraph = model.Title
+                        });
+                        newLessionMain.ParagraphJson = _lessionService.SerializeParagraphJson(newParagraphs);
+                        newLessionMain.ModifyUser = currentUserID;
+                        newLessionMain.ModifyDept = currentDeptID;
+                        await _lessionService.UpdateLessionMainAsync(newLessionMain);
+                    }
+                }
+            }
+            else if (model.LessionMainID.HasValue)
+            {
+                // 課程沒變，但需要更新 ParagraphJson 中的標題（如果標題有變更）
+                var lessionMain = await _lessionService.GetLessionMainByIdAsync(model.LessionMainID.Value);
+                if (lessionMain != null)
+                {
+                    var paragraphs = _lessionService.ParseParagraphJson(lessionMain.ParagraphJson);
+                    var paragraph = paragraphs.FirstOrDefault(p => p.LessionInfoID == model.ID);
+                    if (paragraph != null && paragraph.Paragraph != model.Title)
+                    {
+                        paragraph.Paragraph = model.Title;
+                        lessionMain.ParagraphJson = _lessionService.SerializeParagraphJson(paragraphs);
+                        lessionMain.ModifyUser = currentUserID;
+                        lessionMain.ModifyDept = currentDeptID;
+                        await _lessionService.UpdateLessionMainAsync(lessionMain);
+                    }
+                }
+            }
+
+            TempData["SuccessMessage"] = "課程片段修改成功！";
+            return RedirectToAction(nameof(Index));
+        }
+
+        /// <summary>
         /// 從 YouTube URL 取得影片資訊（API endpoint）
         /// </summary>
         [HttpPost]
@@ -672,6 +853,40 @@ namespace ERP.Web.Controllers.Lession
 
         [Display(Name = "新課程名稱")]
         public string? NewLessionMainName { get; set; }
+
+        public List<SelectListItem> LessionMainList { get; set; } = new();
+
+        [Required(ErrorMessage = "標題為必填")]
+        [Display(Name = "片段標題")]
+        public string Title { get; set; } = string.Empty;
+
+        [Display(Name = "內容描述")]
+        public string? Content { get; set; }
+
+        [Required(ErrorMessage = "YouTube URL 為必填")]
+        [Display(Name = "YouTube 影片網址")]
+        [Url(ErrorMessage = "請輸入有效的 URL")]
+        public string URL { get; set; } = string.Empty;
+
+        [Required(ErrorMessage = "影片時長為必填")]
+        [Display(Name = "影片時長 (格式: HH:MM:SS 或 MM:SS)")]
+        public string URLTimeString { get; set; } = string.Empty;
+
+        [Display(Name = "圖片網址")]
+        [Url(ErrorMessage = "請輸入有效的 URL")]
+        public string? Img { get; set; }
+    }
+
+    /// <summary>
+    /// 修改課程 ViewModel
+    /// </summary>
+    public class LessionEditViewModel
+    {
+        public Guid ID { get; set; }
+
+        [Display(Name = "選擇課程")]
+        [Required(ErrorMessage = "請選擇課程")]
+        public Guid? LessionMainID { get; set; }
 
         public List<SelectListItem> LessionMainList { get; set; } = new();
 
