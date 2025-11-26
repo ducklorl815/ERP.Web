@@ -1,4 +1,4 @@
-using ERP.Web.Models.Models;
+using ERP.Web.Models.Models.Lession;
 using ERP.Web.Service.Service.Lession;
 using Microsoft.AspNetCore.Mvc;
 using Microsoft.AspNetCore.Mvc.Rendering;
@@ -16,35 +16,36 @@ namespace ERP.Web.Controllers.Lession
     {
         private readonly LessionService _lessionService;
         private readonly IConfiguration _configuration;
-        private readonly HttpClient _httpClient;
+        private readonly IHttpClientFactory _httpClientFactory;
+        private readonly IHttpContextAccessor _httpAccessor;
 
-        public LessionController(LessionService lessionService, IConfiguration configuration, IHttpClientFactory httpClientFactory)
+        public LessionController(
+            LessionService lessionService, 
+            IConfiguration configuration, 
+            IHttpClientFactory httpClientFactory,
+            IHttpContextAccessor httpContextAccessor
+            )
         {
             _lessionService = lessionService;
             _configuration = configuration;
-            _httpClient = httpClientFactory.CreateClient();
+            _httpClientFactory = httpClientFactory;
+            _httpAccessor = httpContextAccessor;
         }
 
         /// <summary>
         /// 課程列表頁面（顯示 LessionMain 列表）
         /// </summary>
-        public async Task<IActionResult> Index(Guid? employeeMainID)
+        public async Task<IActionResult> Index()
         {
-            // TODO: 從 Session 或認證系統取得 EmployeeMainID
-            // 目前先使用參數，實際應用時應從登入資訊取得
-            if (!employeeMainID.HasValue)
-            {
-                // 預設值，實際應從 Session 取得
-                employeeMainID = Guid.Parse("70D9291B-3D3B-481E-B33A-F4699685C9BB");
-            }
+            var employeeMainID = GetEmployeeMainIDFromSession();
 
             // 取得所有 LessionMain 列表及其進度
-            var lessionMainProgressDict = await _lessionService.GetLessionMainProgressAsync(employeeMainID.Value);
+            var lessionMainProgressDict = await _lessionService.GetLessionMainProgressAsync(employeeMainID);
 
             var viewModel = new LessionIndexViewModel
             {
                 LessionMainProgressList = lessionMainProgressDict.Values.ToList(),
-                EmployeeMainID = employeeMainID.Value
+                EmployeeMainID = employeeMainID
             };
 
             return View(viewModel);
@@ -53,13 +54,9 @@ namespace ERP.Web.Controllers.Lession
         /// <summary>
         /// 播放課程影片頁面（單一片段）
         /// </summary>
-        public async Task<IActionResult> Play(Guid id, Guid? employeeMainID)
+        public async Task<IActionResult> Play(Guid id)
         {
-            // TODO: 從 Session 或認證系統取得 EmployeeMainID
-            if (!employeeMainID.HasValue)
-            {
-                employeeMainID = Guid.Parse("70D9291B-3D3B-481E-B33A-F4699685C9BB");
-            }
+            var employeeMainID = GetEmployeeMainIDFromSession();
 
             var trainingInfo = await _lessionService.GetTrainingInfoByIdAsync(id);
             if (trainingInfo == null)
@@ -68,12 +65,12 @@ namespace ERP.Web.Controllers.Lession
             }
 
             // 取得觀看進度
-            var detl = await _lessionService.GetTrainingDetlAsync(employeeMainID.Value, id);
+            var detl = await _lessionService.GetTrainingDetlAsync(employeeMainID, id);
 
             var viewModel = new LessionPlayViewModel
             {
                 TrainingInfo = trainingInfo,
-                EmployeeMainID = employeeMainID.Value,
+                EmployeeMainID = employeeMainID,
                 WatchedTime = detl?.Time ?? 0, // 直接使用秒數（int）
                 IsCompleted = detl?.State ?? false
             };
@@ -84,84 +81,173 @@ namespace ERP.Web.Controllers.Lession
         /// <summary>
         /// 多片段課程播放頁面（根據 LessionMain ID 顯示所有片段）
         /// </summary>
-        public async Task<IActionResult> PlayMultiSegment(Guid lessionMainID, Guid? employeeMainID)
+        public async Task<IActionResult> PlayMultiSegment(Guid lessionMainID)
         {
-            // TODO: 從 Session 或認證系統取得 EmployeeMainID
-            if (!employeeMainID.HasValue)
+            try
             {
-                employeeMainID = Guid.Parse("70D9291B-3D3B-481E-B33A-F4699685C9BB");
+                var employeeMainID = GetEmployeeMainIDFromSession();
+                
+                if (employeeMainID == Guid.Empty)
+                {
+                    return BadRequest("無法取得用戶資訊，請重新登入");
+                }
+
+                // 取得 LessionMain
+                var lessionMain = await _lessionService.GetLessionMainByIdAsync(lessionMainID);
+                if (lessionMain == null)
+                {
+                    return NotFound();
+                }
+
+                // 根據 ParagraphJson 取得所有相關的 LessionInfo（片段）
+                var segments = await _lessionService.GetTrainingInfoByLessionMainIdAsync(lessionMainID);
+                
+                if (!segments.Any())
+                {
+                    return NotFound();
+                }
+
+                // 取得所有片段的觀看進度
+                var progressDict = new Dictionary<Guid, EMTrainingDetl?>();
+                foreach (var segment in segments)
+                {
+                    try
+                    {
+                        var detl = await _lessionService.GetTrainingDetlAsync(employeeMainID, segment.ID);
+                        progressDict[segment.ID] = detl;
+                    }
+                    catch
+                    {
+                        // 如果取得進度失敗，設為 null
+                        progressDict[segment.ID] = null;
+                    }
+                }
+
+                var viewModel = new LessionMultiSegmentViewModel
+                {
+                    LessionMainID = lessionMainID,
+                    LessionMainName = lessionMain.LessionName ?? string.Empty,
+                    Segments = segments,
+                    ProgressDict = progressDict,
+                    EmployeeMainID = employeeMainID
+                };
+
+                return View(viewModel);
             }
-
-            // 取得 LessionMain
-            var lessionMain = await _lessionService.GetLessionMainByIdAsync(lessionMainID);
-            if (lessionMain == null)
+            catch (Exception ex)
             {
-                return NotFound();
+                // 記錄錯誤並返回錯誤頁面
+                return StatusCode(500, $"發生錯誤：{ex.Message}");
             }
-
-            // 根據 ParagraphJson 取得所有相關的 LessionInfo（片段）
-            var segments = await _lessionService.GetTrainingInfoByLessionMainIdAsync(lessionMainID);
-            
-            if (!segments.Any())
-            {
-                return NotFound();
-            }
-
-            // 取得所有片段的觀看進度
-            var progressDict = new Dictionary<Guid, EMTrainingDetl?>();
-            foreach (var segment in segments)
-            {
-                var detl = await _lessionService.GetTrainingDetlAsync(employeeMainID.Value, segment.ID);
-                progressDict[segment.ID] = detl;
-            }
-
-            var viewModel = new LessionMultiSegmentViewModel
-            {
-                LessionMainID = lessionMainID,
-                LessionMainName = lessionMain.LessionName,
-                Segments = segments,
-                ProgressDict = progressDict,
-                EmployeeMainID = employeeMainID.Value
-            };
-
-            return View(viewModel);
         }
 
         /// <summary>
         /// 更新影片觀看進度（AJAX）
         /// </summary>
         [HttpPost]
-        public async Task<IActionResult> UpdateProgress([FromBody] UpdateProgressRequest request)
+        [IgnoreAntiforgeryToken]
+        public async Task<IActionResult> UpdateProgress([FromForm] string LessionInfoID, [FromForm] int WatchedTime = 0, [FromForm] bool IsCompleted = false)
         {
-            // TODO: 從 Session 或認證系統取得 EmployeeMainID, CurrentUserID, CurrentDeptID
-            var currentUserID = Guid.Parse("00000000-0000-0000-0000-000000000000");
-            var currentDeptID = Guid.Parse("00000000-0000-0000-0000-000000000000");
+            try
+            {
+                // 驗證請求參數
+                if (string.IsNullOrEmpty(LessionInfoID))
+                {
+                    return Json(new { IsSuccess = false, Msg = "請求參數為空" });
+                }
 
-            var result = await _lessionService.UpdateVideoProgressAsync(
-                request.EmployeeMainID,
-                request.TrainingInfoMainID,
-                request.WatchedTime,
-                request.IsCompleted,
-                currentUserID,
-                currentDeptID
-            );
+                // 解析 GUID
+                if (!Guid.TryParse(LessionInfoID, out Guid trainingInfoMainID) || 
+                    trainingInfoMainID == Guid.Empty)
+                {
+                    return Json(new { IsSuccess = false, Msg = "無效的訓練資訊ID" });
+                }
 
-            return Json(new { success = result });
+                // 從 Session 獲取用戶資訊
+                Guid employeeMainID;
+                Guid CreateUser;
+                Guid CreateDept;
+                
+                try
+                {
+                    employeeMainID = GetEmployeeMainIDFromSession();
+                    CreateUser = GetCreateUserFromSession();
+                    CreateDept = GetCreateDeptFromSession();
+                }
+                catch (Exception sessionEx)
+                {
+                    return Json(new { IsSuccess = false, Msg = $"取得 Session 資訊失敗：{sessionEx.Message}" });
+                }
+
+                if (employeeMainID == Guid.Empty || CreateUser == Guid.Empty || CreateDept == Guid.Empty)
+                {
+                    return Json(new { IsSuccess = false, Msg = "無法取得用戶資訊，請重新登入" });
+                }
+
+                // 驗證觀看時間（必須 >= 0）
+                if (WatchedTime < 0)
+                {
+                    WatchedTime = 0;
+                }
+
+                bool result;
+                try
+                {
+                    result = await _lessionService.UpdateVideoProgressAsync(
+                        employeeMainID,
+                        trainingInfoMainID,
+                        WatchedTime,
+                        IsCompleted,
+                        CreateUser,
+                        CreateDept
+                    );
+                }
+                catch (Exception serviceEx)
+                {
+                    return Json(new { IsSuccess = false, Msg = $"更新進度服務調用失敗：{serviceEx.Message}" });
+                }
+
+                if (result)
+                {
+                    return Json(new { IsSuccess = true, Msg = "進度已更新" });
+                }
+                else
+                {
+                    return Json(new { IsSuccess = false, Msg = "更新進度失敗" });
+                }
+            }
+            catch (Exception ex)
+            {
+                // 記錄錯誤（實際應用中應該使用 ILogger）
+                // 返回詳細錯誤信息以便調試
+                var errorDetails = new
+                {
+                    IsSuccess = false,
+                    Msg = $"更新進度時發生錯誤：{ex.Message}",
+                    ExceptionType = ex.GetType().Name,
+                    InnerException = ex.InnerException?.Message,
+                    StackTrace = ex.StackTrace
+                };
+                
+                // 在開發環境中返回詳細錯誤，生產環境中只返回簡化信息
+                return Json(errorDetails);
+            }
         }
 
         /// <summary>
         /// 儲存觀看時間（使用 FormData，相容舊版 API）
         /// </summary>
         [HttpPost]
-        public async Task<IActionResult> SaveTime(string time, string EmpID, string UrlTime, string VideoUrl)
+        public async Task<IActionResult> SaveTime(string time, string UrlTime, string VideoUrl)
         {
-            // TODO: 從 Session 或認證系統取得 CurrentUserID, CurrentDeptID
-            var currentUserID = Guid.Parse("00000000-0000-0000-0000-000000000000");
-            var currentDeptID = Guid.Parse("00000000-0000-0000-0000-000000000000");
+            // 從 Session 獲取用戶資訊
+            var employeeMainID = GetEmployeeMainIDFromSession();
+            var CreateUser = GetCreateUserFromSession();
+            var CreateDept = GetCreateDeptFromSession();
 
-            if (!Guid.TryParse(EmpID, out Guid employeeMainID))
+            if (employeeMainID == Guid.Empty || CreateUser == Guid.Empty || CreateDept == Guid.Empty)
             {
-                return Json(new { success = false, message = "無效的員工ID" });
+                return Json(new { success = false, message = "無法取得用戶資訊" });
             }
 
             // 根據 VideoUrl 找到對應的 TrainingInfo
@@ -198,8 +284,8 @@ namespace ERP.Web.Controllers.Lession
                 trainingInfo.ID,
                 watchedTimeSeconds,
                 isCompleted,
-                currentUserID,
-                currentDeptID
+                CreateUser,
+                CreateDept
             );
 
             return Json(new { success = result });
@@ -209,27 +295,25 @@ namespace ERP.Web.Controllers.Lession
         /// 重置觀看進度（重看功能）
         /// </summary>
         [HttpPost]
-        public async Task<IActionResult> UpdateDetl([FromForm] string EMTrainingInfoMainID, [FromForm] string EmployeeMainID = null)
+        public async Task<IActionResult> UpdateDetl([FromForm] string LessionInfoID)
         {
             try
             {
                 // 解析 GUID 參數
-                if (!Guid.TryParse(EMTrainingInfoMainID, out Guid trainingInfoMainID))
+                if (!Guid.TryParse(LessionInfoID, out Guid trainingInfoMainID))
                 {
                     return Json(new { IsSuccess = false, Msg = "無效的訓練資訊ID" });
                 }
 
-                // TODO: 從 Session 或認證系統取得 EmployeeMainID, CurrentUserID, CurrentDeptID
-                // 如果沒有傳入 EmployeeMainID，使用預設值（向後相容）
-                Guid employeeMainID;
-                if (string.IsNullOrEmpty(EmployeeMainID) || !Guid.TryParse(EmployeeMainID, out employeeMainID))
-                {
-                    // 使用預設值或從其他地方取得
-                    employeeMainID = Guid.Parse("00000000-0000-0000-0000-000000000000");
-                }
+                // 從 Session 獲取用戶資訊
+                var employeeMainID = GetEmployeeMainIDFromSession();
+                var CreateUser = GetCreateUserFromSession();
+                var CreateDept = GetCreateDeptFromSession();
 
-                var currentUserID = Guid.Parse("00000000-0000-0000-0000-000000000000");
-                var currentDeptID = Guid.Parse("00000000-0000-0000-0000-000000000000");
+                if (employeeMainID == Guid.Empty || CreateUser == Guid.Empty || CreateDept == Guid.Empty)
+                {
+                    return Json(new { IsSuccess = false, Msg = "無法取得用戶資訊" });
+                }
 
                 // 重置觀看時間為 0，完成狀態為 false
                 var result = await _lessionService.UpdateVideoProgressAsync(
@@ -237,8 +321,8 @@ namespace ERP.Web.Controllers.Lession
                     trainingInfoMainID,
                     0,
                     false,
-                    currentUserID,
-                    currentDeptID
+                    CreateUser,
+                    CreateDept
                 );
 
                 if (result)
@@ -297,9 +381,17 @@ namespace ERP.Web.Controllers.Lession
                 return View(model);
             }
 
-            // TODO: 從 Session 或認證系統取得 CurrentUserID, CurrentDeptID
-            var currentUserID = Guid.Parse("00000000-0000-0000-0000-000000000000");
-            var currentDeptID = Guid.Parse("00000000-0000-0000-0000-000000000000");
+            // 從 Session 獲取用戶資訊
+            var CreateUser = GetCreateUserFromSession();
+            var CreateDept = GetCreateDeptFromSession();
+
+
+
+            if (CreateUser == Guid.Empty || CreateDept == Guid.Empty)
+            {
+                ModelState.AddModelError("", "無法取得用戶資訊");
+                return View(model);
+            }
 
             // 解析時間字串 (格式: HH:MM:SS 或 MM:SS) 轉換為秒數
             int urlTimeSeconds;
@@ -333,8 +425,8 @@ namespace ERP.Web.Controllers.Lession
                 {
                     LessionName = model.NewLessionMainName,
                     ParagraphJson = string.Empty, // 初始為空，新增片段後會更新
-                    ModifyUser = currentUserID,
-                    ModifyDept = currentDeptID
+                    ModifyUser = CreateUser,
+                    ModifyDept = CreateDept
                 };
 
                 var createLessionMainID = await _lessionService.CreateLessionMainAsync(newLessionMain);
@@ -367,8 +459,9 @@ namespace ERP.Web.Controllers.Lession
                 URLTime = urlTimeSeconds, // 使用秒數（int）
                 Img = model.Img,
                 Page = 0, // Page 不再使用，設為 0
-                ModifyUser = currentUserID,
-                ModifyDept = currentDeptID
+                TagJson = model.TagJson,
+                ModifyUser = CreateUser,
+                ModifyDept = CreateDept
             };
 
             var createTrainingInfoGuid = await _lessionService.CreateTrainingInfoAsync(trainingInfo);
@@ -398,8 +491,8 @@ namespace ERP.Web.Controllers.Lession
 
             // 更新 ParagraphJson
             lessionMain.ParagraphJson = _lessionService.SerializeParagraphJson(paragraphs);
-            lessionMain.ModifyUser = currentUserID;
-            lessionMain.ModifyDept = currentDeptID;
+            lessionMain.ModifyUser = CreateUser;
+            lessionMain.ModifyDept = CreateDept;
 
             var updateLessionMainResult = await _lessionService.UpdateLessionMainAsync(lessionMain);
             if (!updateLessionMainResult)
@@ -501,6 +594,7 @@ namespace ERP.Web.Controllers.Lession
                 URL = trainingInfo.URL,
                 URLTimeString = FormatTimeSpan(trainingInfo.URLTime), // 將秒數轉換為時間字串
                 Img = trainingInfo.Img ?? string.Empty,
+                TagJson = trainingInfo.TagJson,
                 LessionMainID = currentLessionMainID,
                 LessionMainList = lessionMainList.Select(lm => new SelectListItem
                 {
@@ -541,9 +635,15 @@ namespace ERP.Web.Controllers.Lession
                 return NotFound();
             }
 
-            // TODO: 從 Session 或認證系統取得 CurrentUserID, CurrentDeptID
-            var currentUserID = Guid.Parse("00000000-0000-0000-0000-000000000000");
-            var currentDeptID = Guid.Parse("00000000-0000-0000-0000-000000000000");
+            // 從 Session 獲取用戶資訊
+            var CreateUser = GetCreateUserFromSession();
+            var CreateDept = GetCreateDeptFromSession();
+
+            if (CreateUser == Guid.Empty || CreateDept == Guid.Empty)
+            {
+                ModelState.AddModelError("", "無法取得用戶資訊");
+                return View(model);
+            }
 
             // 解析時間字串 (格式: HH:MM:SS 或 MM:SS) 轉換為秒數
             int urlTimeSeconds;
@@ -578,8 +678,9 @@ namespace ERP.Web.Controllers.Lession
             trainingInfo.URL = model.URL;
             trainingInfo.URLTime = urlTimeSeconds;
             trainingInfo.Img = model.Img;
-            trainingInfo.ModifyUser = currentUserID;
-            trainingInfo.ModifyDept = currentDeptID;
+            trainingInfo.TagJson = model.TagJson;
+            trainingInfo.ModifyUser = CreateUser;
+            trainingInfo.ModifyDept = CreateDept;
 
             var updateResult = await _lessionService.UpdateTrainingInfoAsync(trainingInfo);
             if (!updateResult)
@@ -598,8 +699,8 @@ namespace ERP.Web.Controllers.Lession
                     var oldParagraphs = _lessionService.ParseParagraphJson(oldLessionMain.ParagraphJson);
                     oldParagraphs.RemoveAll(p => p.LessionInfoID == model.ID);
                     oldLessionMain.ParagraphJson = _lessionService.SerializeParagraphJson(oldParagraphs);
-                    oldLessionMain.ModifyUser = currentUserID;
-                    oldLessionMain.ModifyDept = currentDeptID;
+                    oldLessionMain.ModifyUser = CreateUser;
+                    oldLessionMain.ModifyDept = CreateDept;
                     await _lessionService.UpdateLessionMainAsync(oldLessionMain);
                 }
 
@@ -617,8 +718,8 @@ namespace ERP.Web.Controllers.Lession
                             Paragraph = model.Title
                         });
                         newLessionMain.ParagraphJson = _lessionService.SerializeParagraphJson(newParagraphs);
-                        newLessionMain.ModifyUser = currentUserID;
-                        newLessionMain.ModifyDept = currentDeptID;
+                        newLessionMain.ModifyUser = CreateUser;
+                        newLessionMain.ModifyDept = CreateDept;
                         await _lessionService.UpdateLessionMainAsync(newLessionMain);
                     }
                 }
@@ -635,8 +736,8 @@ namespace ERP.Web.Controllers.Lession
                     {
                         paragraph.Paragraph = model.Title;
                         lessionMain.ParagraphJson = _lessionService.SerializeParagraphJson(paragraphs);
-                        lessionMain.ModifyUser = currentUserID;
-                        lessionMain.ModifyDept = currentDeptID;
+                        lessionMain.ModifyUser = CreateUser;
+                        lessionMain.ModifyDept = CreateDept;
                         await _lessionService.UpdateLessionMainAsync(lessionMain);
                     }
                 }
@@ -674,26 +775,29 @@ namespace ERP.Web.Controllers.Lession
                 }
 
                 // 呼叫 YouTube Data API v3
+                var httpClient = _httpClientFactory.CreateClient();
                 var apiUrl = $"https://www.googleapis.com/youtube/v3/videos?id={videoId}&key={apiKey}&part=contentDetails";
-                var response = await _httpClient.GetAsync(apiUrl);
-
-                if (!response.IsSuccessStatusCode)
+                var httpResponse = await httpClient.GetAsync(apiUrl);
+                
+                if (!httpResponse.IsSuccessStatusCode)
                 {
-                    return Json(new { success = false, message = $"無法取得影片資訊：{response.StatusCode}" });
+                    return Json(new { success = false, message = "YouTube API 呼叫失敗" });
                 }
 
-                var jsonContent = await response.Content.ReadAsStringAsync();
-                var jsonDoc = JsonDocument.Parse(jsonContent);
-
+                var responseContent = await httpResponse.Content.ReadAsStringAsync();
+                var response = JsonSerializer.Deserialize<YouTubeApiResponse>(responseContent, new JsonSerializerOptions
+                {
+                    PropertyNameCaseInsensitive = true
+                });
+                
                 // 檢查是否有找到影片
-                if (!jsonDoc.RootElement.TryGetProperty("items", out var items) || items.GetArrayLength() == 0)
+                if (response?.Items == null || response.Items.Count == 0)
                 {
                     return Json(new { success = false, message = "找不到該影片，請確認 URL 是否正確" });
                 }
 
                 // 取得影片長度（ISO 8601 格式，例如：PT1H30M45S）
-                var contentDetails = items[0].GetProperty("contentDetails");
-                var duration = contentDetails.GetProperty("duration").GetString();
+                var duration = response.Items[0].ContentDetails?.Duration;
 
                 if (string.IsNullOrEmpty(duration))
                 {
@@ -869,6 +973,108 @@ namespace ERP.Web.Controllers.Lession
 
             return false;
         }
+
+        /// <summary>
+        /// 從 Session 獲取 EmployeeMainID
+        /// </summary>
+        private Guid GetEmployeeMainIDFromSession()
+        {
+            try
+            {
+                if (HttpContext?.Session != null)
+                {
+                    var employeeMainIDStr = HttpContext.Session.GetString("EmployeeMainID");
+                    if (!string.IsNullOrEmpty(employeeMainIDStr) && Guid.TryParse(employeeMainIDStr, out Guid employeeMainID))
+                    {
+                        return employeeMainID;
+                    }
+                }
+            }
+            catch
+            {
+                // Session 可能未啟用或無法訪問
+            }
+
+            // 如果 Session 中沒有，嘗試從 User.Identity.Name 獲取（向後相容）
+            try
+            {
+                var identityName = _httpAccessor.HttpContext?.User?.Identity?.Name;
+                if (!string.IsNullOrEmpty(identityName) && Guid.TryParse(identityName, out Guid employeeMainID))
+                {
+                    return employeeMainID;
+                }
+            }
+            catch
+            {
+                // 無法從 Identity 獲取
+            }
+
+            return Guid.Empty;
+        }
+
+        /// <summary>
+        /// 從 Session 獲取 CreateUser
+        /// </summary>
+        private Guid GetCreateUserFromSession()
+        {
+            try
+            {
+                if (HttpContext?.Session != null)
+                {
+                    var createUserStr = HttpContext.Session.GetString("CreateUser");
+                    if (!string.IsNullOrEmpty(createUserStr) && Guid.TryParse(createUserStr, out Guid createUser))
+                    {
+                        return createUser;
+                    }
+                }
+            }
+            catch
+            {
+                // Session 可能未啟用或無法訪問
+            }
+
+            // 如果 Session 中沒有，嘗試從 User.Identity.Name 獲取（向後相容）
+            try
+            {
+                var identityName = _httpAccessor.HttpContext?.User?.Identity?.Name;
+                if (!string.IsNullOrEmpty(identityName) && Guid.TryParse(identityName, out Guid createUser))
+                {
+                    return createUser;
+                }
+            }
+            catch
+            {
+                // 無法從 Identity 獲取
+            }
+
+            return Guid.Empty;
+        }
+
+        /// <summary>
+        /// 從 Session 獲取 CreateDept
+        /// </summary>
+        private Guid GetCreateDeptFromSession()
+        {
+            try
+            {
+                if (HttpContext?.Session != null)
+                {
+                    var createDeptStr = HttpContext.Session.GetString("CreateDept");
+                    if (!string.IsNullOrEmpty(createDeptStr) && Guid.TryParse(createDeptStr, out Guid createDept))
+                    {
+                        return createDept;
+                    }
+                }
+            }
+            catch
+            {
+                // Session 可能未啟用或無法訪問
+            }
+
+            // Session 中沒有 CreateDept 時返回空值
+            // 注意：Identity 中沒有標準的部門 ID 屬性，需要透過 Session 設定
+            return Guid.Empty;
+        }
     }
 
     /// <summary>
@@ -896,8 +1102,7 @@ namespace ERP.Web.Controllers.Lession
     /// </summary>
     public class UpdateProgressRequest
     {
-        public Guid EmployeeMainID { get; set; }
-        public Guid TrainingInfoMainID { get; set; }
+        public string LessionInfoID { get; set; } = string.Empty;
         public int WatchedTime { get; set; }
         public bool IsCompleted { get; set; }
     }
@@ -949,6 +1154,9 @@ namespace ERP.Web.Controllers.Lession
         [Display(Name = "圖片網址")]
         [Url(ErrorMessage = "請輸入有效的 URL")]
         public string? Img { get; set; }
+
+        [Display(Name = "影片標籤/錨點")]
+        public string? TagJson { get; set; }
     }
 
     /// <summary>
@@ -983,6 +1191,9 @@ namespace ERP.Web.Controllers.Lession
         [Display(Name = "圖片網址")]
         [Url(ErrorMessage = "請輸入有效的 URL")]
         public string? Img { get; set; }
+
+        [Display(Name = "影片標籤/錨點")]
+        public string? TagJson { get; set; }
     }
 
     /// <summary>
@@ -1017,6 +1228,30 @@ namespace ERP.Web.Controllers.Lession
     {
         public LessionMain LessionMain { get; set; } = null!;
         public List<EMTrainingInfo> Segments { get; set; } = new();
+    }
+
+    /// <summary>
+    /// YouTube API 響應模型
+    /// </summary>
+    public class YouTubeApiResponse
+    {
+        public List<YouTubeVideoItem> Items { get; set; } = new();
+    }
+
+    /// <summary>
+    /// YouTube 影片項目
+    /// </summary>
+    public class YouTubeVideoItem
+    {
+        public YouTubeContentDetails? ContentDetails { get; set; }
+    }
+
+    /// <summary>
+    /// YouTube 內容詳情
+    /// </summary>
+    public class YouTubeContentDetails
+    {
+        public string? Duration { get; set; }
     }
 }
 

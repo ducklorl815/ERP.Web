@@ -1,4 +1,4 @@
-using ERP.Web.Models.Models;
+using ERP.Web.Models.Models.Lession;
 using ERP.Web.Models.Respository.Lession;
 using System.Text.Json;
 
@@ -69,7 +69,7 @@ namespace ERP.Web.Service.Service.Lession
             var detl = new EMTrainingDetl
             {
                 EmployeeMainID = employeeMainID,
-                EMTrainingInfoMainID = trainingInfoMainID,
+                LessionInfoID = trainingInfoMainID,
                 Time = watchedTime, // 直接使用秒數（int）
                 State = isCompleted,
                 ModifyUser = currentUserID,
@@ -91,7 +91,7 @@ namespace ERP.Web.Service.Service.Lession
 
             foreach (var info in trainingInfoList)
             {
-                var detl = trainingDetlList.FirstOrDefault(d => d.EMTrainingInfoMainID == info.ID);
+                var detl = trainingDetlList.FirstOrDefault(d => d.LessionInfoID == info.ID);
                 
                 progressDict[info.ID] = new TrainingProgress
                 {
@@ -152,7 +152,7 @@ namespace ERP.Web.Service.Service.Lession
                 foreach (var segment in segments)
                 {
                     totalTime += segment.URLTime;
-                    var detl = trainingDetlList.FirstOrDefault(d => d.EMTrainingInfoMainID == segment.ID);
+                    var detl = trainingDetlList.FirstOrDefault(d => d.LessionInfoID == segment.ID);
                     if (detl != null)
                     {
                         watchedTime += detl.Time;

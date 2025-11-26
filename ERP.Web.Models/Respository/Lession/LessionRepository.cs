@@ -1,5 +1,5 @@
 using Dapper;
-using ERP.Web.Models.Models;
+using ERP.Web.Models.Models.Lession;
 using ERP.Web.Utility.Models;
 using Microsoft.Data.SqlClient;
 using Microsoft.Extensions.Options;
@@ -30,7 +30,7 @@ namespace ERP.Web.Models.Respository.Lession
             var sql = @"
                 SELECT 
                     ID, Seq, Title, Content, URL, URLTime, 
-                    Img, Page,
+                    Img, Page, TagJson,
                     ModifyDate, ModifyUser, ModifyDept, 
                     Enabled, Deleted
                 FROM [Lession].[dbo].[LessionInfo]
@@ -61,7 +61,7 @@ namespace ERP.Web.Models.Respository.Lession
             var sql = @"
                 SELECT 
                     ID, Seq, Title, Content, URL, URLTime, 
-                    Img, Page,
+                    Img, Page, TagJson,
                     ModifyDate, ModifyUser, ModifyDept, 
                     Enabled, Deleted
                 FROM [Lession].[dbo].[LessionInfo]
@@ -93,6 +93,7 @@ namespace ERP.Web.Models.Respository.Lession
             sqlparam.Add("URLTime", trainingInfo.URLTime);
             sqlparam.Add("Img", trainingInfo.Img);
             sqlparam.Add("Page", trainingInfo.Page);
+            sqlparam.Add("TagJson", trainingInfo.TagJson ?? (object)DBNull.Value);
             sqlparam.Add("ModifyDate", DateTime.Now);
             sqlparam.Add("ModifyUser", trainingInfo.ModifyUser);
             sqlparam.Add("ModifyDept", trainingInfo.ModifyDept);
@@ -102,13 +103,13 @@ namespace ERP.Web.Models.Respository.Lession
             var sql = @"
                 INSERT INTO [Lession].[dbo].[LessionInfo] 
                 (ID, Title, Content, URL, URLTime, 
-                 Img, Page,
+                 Img, Page, TagJson,
                  ModifyDate, ModifyUser, ModifyDept, 
                  Enabled, Deleted)
                 OUTPUT INSERTED.ID
                 VALUES 
                 (@ID, @Title, @Content, @URL, @URLTime, 
-                 @Img, @Page,
+                 @Img, @Page, @TagJson,
                  @ModifyDate, @ModifyUser, @ModifyDept, 
                  @Enabled, @Deleted)
             ";
@@ -133,11 +134,12 @@ namespace ERP.Web.Models.Respository.Lession
             var sqlparam = new DynamicParameters();
             sqlparam.Add("ID", trainingInfo.ID);
             sqlparam.Add("Title", trainingInfo.Title);
-            sqlparam.Add("Content", trainingInfo.Content ?? (object)DBNull.Value);
+            sqlparam.Add("Content", trainingInfo.Content);
             sqlparam.Add("URL", trainingInfo.URL);
             sqlparam.Add("URLTime", trainingInfo.URLTime);
-            sqlparam.Add("Img", trainingInfo.Img ?? (object)DBNull.Value);
+            sqlparam.Add("Img", trainingInfo.Img);
             sqlparam.Add("Page", trainingInfo.Page);
+            sqlparam.Add("TagJson", trainingInfo.TagJson);
             sqlparam.Add("ModifyDate", DateTime.Now);
             sqlparam.Add("ModifyUser", trainingInfo.ModifyUser);
             sqlparam.Add("ModifyDept", trainingInfo.ModifyDept);
@@ -150,6 +152,7 @@ namespace ERP.Web.Models.Respository.Lession
                     URLTime = @URLTime,
                     Img = @Img,
                     Page = @Page,
+                    TagJson = @TagJson,
                     ModifyDate = @ModifyDate,
                     ModifyUser = @ModifyUser,
                     ModifyDept = @ModifyDept
@@ -202,16 +205,16 @@ namespace ERP.Web.Models.Respository.Lession
         {
             var sqlparam = new DynamicParameters();
             sqlparam.Add("EmployeeMainID", employeeMainID);
-            sqlparam.Add("EMTrainingInfoMainID", trainingInfoMainID);
+            sqlparam.Add("LessionInfoID", trainingInfoMainID);
 
             var sql = @"
                 SELECT 
-                    ID, Seq, EmployeeMainID, EMTrainingInfoMainID, Time, State,
+                    ID, Seq, EmployeeMainID, LessionInfoID, Time, State,
                     ModifyDate, ModifyUser, ModifyDept, 
                     Enabled, Deleted
                 FROM [Lession].[dbo].[LessionTrainingDetl]
                 WHERE EmployeeMainID = @EmployeeMainID 
-                    AND EMTrainingInfoMainID = @EMTrainingInfoMainID
+                    AND LessionInfoID = @LessionInfoID
                     AND Enabled = 1 AND Deleted = 0
             ";
 
@@ -237,7 +240,7 @@ namespace ERP.Web.Models.Respository.Lession
 
             var sql = @"
                 SELECT 
-                    ID, Seq, EmployeeMainID, EMTrainingInfoMainID, Time, State,
+                    ID, Seq, EmployeeMainID, LessionInfoID, Time, State,
                     ModifyDate, ModifyUser, ModifyDept, 
                     Enabled, Deleted
                 FROM [Lession].[dbo].[LessionTrainingDetl]
@@ -265,7 +268,7 @@ namespace ERP.Web.Models.Respository.Lession
         public async Task<bool> UpsertTrainingDetlAsync(EMTrainingDetl detl)
         {
             // 先檢查是否已存在
-            var existing = await GetTrainingDetlAsync(detl.EmployeeMainID, detl.EMTrainingInfoMainID);
+            var existing = await GetTrainingDetlAsync(detl.EmployeeMainID, detl.LessionInfoID);
 
             if (existing != null)
             {
@@ -306,7 +309,7 @@ namespace ERP.Web.Models.Respository.Lession
                 var sqlparam = new DynamicParameters();
                 sqlparam.Add("ID", Guid.NewGuid());
                 sqlparam.Add("EmployeeMainID", detl.EmployeeMainID);
-                sqlparam.Add("EMTrainingInfoMainID", detl.EMTrainingInfoMainID);
+                sqlparam.Add("LessionInfoID", detl.LessionInfoID);
                 sqlparam.Add("Time", detl.Time);
                 sqlparam.Add("State", detl.State);
                 sqlparam.Add("ModifyDate", DateTime.Now);
@@ -317,11 +320,11 @@ namespace ERP.Web.Models.Respository.Lession
 
                 var sql = @"
                     INSERT INTO [Lession].[dbo].[LessionTrainingDetl] 
-                    (ID, EmployeeMainID, EMTrainingInfoMainID, Time, State,
+                    (ID, EmployeeMainID, LessionInfoID, Time, State,
                      ModifyDate, ModifyUser, ModifyDept, 
                      Enabled, Deleted)
                     VALUES 
-                    (@ID, @EmployeeMainID, @EMTrainingInfoMainID, @Time, @State,
+                    (@ID, @EmployeeMainID, @LessionInfoID, @Time, @State,
                      @ModifyDate, @ModifyUser, @ModifyDept, 
                      @Enabled, @Deleted)
                 ";

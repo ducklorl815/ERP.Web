@@ -1,9 +1,10 @@
 @model ERP.Web.Controllers.Lession.LessionMultiSegmentViewModel
+@using ERP.Web.Models.Models.Lession
 @{
     ViewData["Title"] = $"{Model.LessionMainName} - 多片段播放";
 }
 
-<div class="container-fluid">
+<div class="container-fluid" style="margin-bottom: 100px; padding-bottom: 50px;">
     <div class="row mb-3">
         <div class="col-12">
             <h2>@Model.LessionMainName</h2>
@@ -26,8 +27,14 @@
                     </div>
 
                     <!-- YouTube 影片播放器容器（只顯示一個） -->
-                    <div class="embed-responsive embed-responsive-16by9 mb-3" style="position: relative; padding-bottom: 56.25%; height: 0; overflow: hidden;">
-                        <div id="mainVideoPlayer" style="position: absolute; top: 0; left: 0; width: 100%; height: 100%;"></div>
+                    <div class="embed-responsive embed-responsive-16by9 mb-3" style="position: relative; padding-bottom: 56.25%; height: 0; overflow: hidden; background-color: #000;">
+                        <div id="mainVideoPlayer" style="position: absolute; top: 0; left: 0; width: 100%; height: 100%;">
+                            <!-- 初始顯示提示訊息 -->
+                            <div id="videoPlaceholder" style="position: absolute; top: 50%; left: 50%; transform: translate(-50%, -50%); color: #fff; text-align: center; z-index: 10;">
+                                <i class="fas fa-play-circle" style="font-size: 48px; margin-bottom: 10px; opacity: 0.7;"></i>
+                                <p style="margin: 0;">請從右側播放清單選擇要觀看的片段</p>
+                            </div>
+                        </div>
                     </div>
 
                     <!-- 進度條（細小的一條） -->
@@ -104,43 +111,51 @@
                             var timeSpanId = $"TimeSpan_{segmentIdStr}";
                             var videoBarId = $"vedioBar_{segmentIdStr}";
 
-                            <div class="list-group-item list-group-item-action playlist-item @(isActive ? "active" : "")" 
-                                 data-segment-index="@i"
-                                 data-segment-id="@segment.ID"
-                                 data-segment-id-str="@segmentIdStr"
-                                 onclick="switchToSegment(@i, '@segment.ID', '@segmentIdStr')"
-                                 style="cursor: pointer;">
-                                <div class="d-flex w-100 justify-content-between align-items-start">
-                                    <div class="flex-grow-1">
-                                        <div class="d-flex align-items-center mb-2">
-                                            @if (isCompleted)
-                                            {
-                                                <i class="fas fa-check-circle text-success me-2"></i>
-                                            }
-                                            else if (progress != null)
-                                            {
-                                                <i class="fas fa-play-circle text-warning me-2"></i>
-                                            }
-                                            else
-                                            {
-                                                <i class="fas fa-circle text-secondary me-2"></i>
-                                            }
-                                            <h6 class="mb-0 text-dark" style="font-size: 1rem; font-weight: 500;">@segment.Title</h6>
-                                        </div>
-                                        <div class="progress mb-2" style="height: 4px;">
-                                            <div class="progress-bar @(isCompleted ? "bg-success" : progress != null ? "bg-warning" : "bg-secondary")" 
-                                                 role="progressbar" 
-                                                 style="width: @progressPercentage%" 
-                                                 aria-valuenow="@progressPercentage" 
-                                                 aria-valuemin="0" 
-                                                 aria-valuemax="100">
+                            <div class="playlist-item-wrapper" data-segment-index="@i" data-segment-id-str="@segmentIdStr">
+                                <div class="list-group-item list-group-item-action playlist-item @(isActive ? "active" : "")" 
+                                     data-segment-index="@i"
+                                     data-segment-id="@segment.ID"
+                                     data-segment-id-str="@segmentIdStr"
+                                     onclick="switchToSegment(@i, '@segment.ID', '@segmentIdStr')"
+                                     style="cursor: pointer;">
+                                    <div class="d-flex w-100 justify-content-between align-items-start">
+                                        <div class="flex-grow-1">
+                                            <div class="d-flex align-items-center mb-2">
+                                                @if (isCompleted)
+                                                {
+                                                    <i class="fas fa-check-circle text-success me-2"></i>
+                                                }
+                                                else if (progress != null)
+                                                {
+                                                    <i class="fas fa-play-circle text-warning me-2"></i>
+                                                }
+                                                else
+                                                {
+                                                    <i class="fas fa-circle text-secondary me-2"></i>
+                                                }
+                                                <h6 class="mb-0 text-dark" style="font-size: 1rem; font-weight: 500;">@segment.Title</h6>
                                             </div>
+                                            <div class="progress mb-2" style="height: 4px;">
+                                                <div class="progress-bar @(isCompleted ? "bg-success" : progress != null ? "bg-warning" : "bg-secondary")" 
+                                                     role="progressbar" 
+                                                     style="width: @progressPercentage%" 
+                                                     aria-valuenow="@progressPercentage" 
+                                                     aria-valuemin="0" 
+                                                     aria-valuemax="100">
+                                                </div>
+                                            </div>
+                                            <small class="text-dark" style="font-size: 0.85rem;">
+                                                <i class="fas fa-clock"></i> 
+                                                @FormatSeconds(segment.URLTime) | 
+                                                進度: @progressPercentage%
+                                            </small>
                                         </div>
-                                        <small class="text-dark" style="font-size: 0.85rem;">
-                                            <i class="fas fa-clock"></i> 
-                                            @FormatSeconds(segment.URLTime) | 
-                                            進度: @progressPercentage%
-                                        </small>
+                                    </div>
+                                </div>
+                                <!-- 錨點子清單容器 -->
+                                <div class="anchor-sublist-container" id="anchorSublist_@segmentIdStr" style="display: none;">
+                                    <div class="anchor-sublist">
+                                        <!-- 錨點列表將動態生成 -->
                                     </div>
                                 </div>
                             </div>
@@ -148,6 +163,7 @@
                     </div>
                 </div>
             </div>
+
         </div>
     </div>
 
@@ -179,11 +195,12 @@
              data-video="@GetYouTubeVideoId(segment.URL)" 
              data-watchtime="@watchedTimeSeconds"
              data-urltimesec="@totalTimeSeconds"
-             data-url="@segment.URL"
+             data-url="@EncodeAttribute(segment.URL)"
              data-segment-id="@segment.ID"
              data-segment-id-str="@segmentIdStr"
-             data-title="@segment.Title"
-             data-content="@segment.Content"
+             data-title="@EncodeAttribute(segment.Title)"
+             data-content="@EncodeAttribute(segment.Content ?? "")"
+             data-tag-json="@EncodeAttribute(segment.TagJson ?? "")"
              data-total-time="@FormatSeconds(segment.URLTime)">
         </div>
     }
@@ -242,6 +259,17 @@
         }
 
         return videoId;
+    }
+
+    /// <summary>
+    /// 編碼 HTML 屬性值，防止特殊字符導致問題
+    /// </summary>
+    string EncodeAttribute(string value)
+    {
+        if (string.IsNullOrEmpty(value))
+            return string.Empty;
+        
+        return System.Net.WebUtility.HtmlEncode(value);
     }
 }
 
@@ -324,6 +352,126 @@
         #playlistSidebar {
             transition: all 0.3s ease-in-out;
         }
+        /* 播放清單項容器 */
+        .playlist-item-wrapper {
+            border-bottom: 1px solid #e9ecef;
+        }
+        .playlist-item-wrapper:last-child {
+            border-bottom: none;
+        }
+        
+        /* 錨點子清單容器 */
+        .anchor-sublist-container {
+            background-color: #f8f9fa;
+            border-top: 1px solid #dee2e6;
+            margin: 0;
+            padding: 0;
+            animation: slideDown 0.3s ease-out;
+        }
+        
+        @@keyframes slideDown {
+            from {
+                opacity: 0;
+                max-height: 0;
+            }
+            to {
+                opacity: 1;
+                max-height: 500px;
+            }
+        }
+        
+        /* 錨點子清單 */
+        .anchor-sublist {
+            padding: 0.5rem 0;
+        }
+        
+        /* 錨點子清單項目 */
+        .anchor-sublist-item {
+            padding: 0.5rem 1rem 0.5rem 2.5rem;
+            cursor: pointer;
+            transition: all 0.2s;
+            border-left: 3px solid transparent;
+            position: relative;
+        }
+        
+        .anchor-sublist-item:hover {
+            background-color: #e9ecef;
+            border-left-color: #0d6efd;
+        }
+        
+        .anchor-sublist-item::before {
+            content: '';
+            position: absolute;
+            left: 1.5rem;
+            top: 0;
+            bottom: 0;
+            width: 2px;
+            background-color: #dee2e6;
+        }
+        
+        .anchor-sublist-item:first-child::before {
+            top: 50%;
+        }
+        
+        .anchor-sublist-item:last-child::before {
+            bottom: 50%;
+        }
+        
+        .anchor-sublist-item:only-child::before {
+            display: none;
+        }
+        
+        /* 錨點項目內容 */
+        .anchor-item-content {
+            display: flex;
+            align-items: center;
+            gap: 0.5rem;
+        }
+        
+        .anchor-icon {
+            font-size: 0.85rem;
+            width: 16px;
+            text-align: center;
+            position: relative;
+            z-index: 1;
+            background-color: #f8f9fa;
+            padding: 2px;
+        }
+        
+        .anchor-sublist-item:hover .anchor-icon {
+            background-color: #e9ecef;
+        }
+        
+        .anchor-time {
+            font-weight: 600;
+            color: #0d6efd;
+            min-width: 55px;
+            font-size: 0.85rem;
+        }
+        
+        .anchor-title {
+            color: #495057;
+            font-size: 0.85rem;
+            flex: 1;
+        }
+        
+        .anchor-sublist-item:hover .anchor-title {
+            color: #212529;
+        }
+        
+        /* 活動片段的錨點列表樣式 */
+        .playlist-item.active + .anchor-sublist-container {
+            background-color: #e7f3ff;
+            border-top-color: #0d6efd;
+        }
+        
+        .playlist-item.active + .anchor-sublist-container .anchor-icon {
+            background-color: #e7f3ff;
+        }
+        
+        .playlist-item.active + .anchor-sublist-container .anchor-sublist-item:hover .anchor-icon {
+            background-color: #d0e7ff;
+        }
     </style>
     <script>
         // 全域變數
@@ -381,6 +529,14 @@
             return `${hours.toString().padStart(2, '0')}:${minutes.toString().padStart(2, '0')}:${remainingSeconds.toString().padStart(2, '0')}`;
         }
 
+        // 解碼 HTML 實體（用於顯示 Content）
+        function decodeHtmlEntities(text) {
+            if (!text) return '';
+            const textarea = document.createElement('textarea');
+            textarea.innerHTML = text;
+            return textarea.value;
+        }
+
         // 更新主要播放器的進度條和時間顯示
         function updateMainVideoBar() {
             if (!mainPlayerInstance || !mainPlayerInstance.getCurrentTime) return;
@@ -403,9 +559,9 @@
 
         // 切換到指定片段
         function switchToSegment(index, segmentId, segmentIdStr) {
-            // 儲存當前片段的進度
+            // 儲存當前片段的進度（如果正在播放）
             if (mainPlayerInstance && mainPlayerInstance.getCurrentTime) {
-                const currentTime = Math.floor(mainPlayerInstance.getCurrentTime());
+                console.log('切換片段前，儲存當前片段進度');
                 saveCurrentSegmentProgress();
             }
 
@@ -426,16 +582,25 @@
             const totalTime = parseInt(playerElement.dataset.urltimesec);
             const title = playerElement.dataset.title;
             const content = playerElement.dataset.content;
+            // 使用 getAttribute 獲取 data-tag-json，因為 dataset 可能無法正確轉換連字符
+            const tagJson = playerElement.getAttribute('data-tag-json') || playerElement.dataset.tagJson || '';
             const totalTimeStr = playerElement.dataset.totalTime;
+            
+            console.log('切換片段，TagJson:', tagJson);
 
             // 更新標題和描述
             const currentTitle = document.getElementById('currentTitle');
             const currentContent = document.getElementById('currentContent');
             if (currentTitle) {
-                currentTitle.textContent = title;
+                currentTitle.textContent = title || '';
             }
             if (currentContent) {
-                currentContent.innerHTML = content || '';
+                // Content 可能包含 HTML，需要正确解码后显示
+                if (content) {
+                    currentContent.innerHTML = decodeHtmlEntities(content);
+                } else {
+                    currentContent.innerHTML = '';
+                }
             }
 
             // 更新播放清單中的活動狀態
@@ -447,8 +612,16 @@
                 }
             });
 
+            // 隱藏提示訊息
+            const placeholder = document.getElementById('videoPlaceholder');
+            if (placeholder) {
+                placeholder.style.display = 'none';
+            }
+
             // 更新主要播放器
             if (mainPlayerInstance) {
+                // 重新啟動定期更新（因為切換了片段）
+                startProgressUpdateInterval();
                 mainPlayerInstance.loadVideoById({
                     videoId: videoId,
                     startSeconds: watchtime
@@ -465,7 +638,8 @@
                         'controls': 1,
                         'disablekb': 0,
                         'rel': 0,
-                        'enablejsapi': 1
+                        'enablejsapi': 1,
+                        'autoplay': 0  // 不自動播放
                     },
                     events: {
                         'onReady': onMainPlayerReady,
@@ -475,28 +649,160 @@
             }
 
             // 重看按鈕已經設定為 resetCurrentProgress()，會自動取得當前片段 ID
+            
+            // 載入並顯示錨點列表到對應的片段項中
+            loadAnchorsToSegment(segmentIdStr, tagJson);
         }
 
-        // 儲存當前片段進度
+        // 載入並顯示錨點列表到對應的片段項中
+        function loadAnchorsToSegment(segmentIdStr, tagJson) {
+            // 先隱藏所有片段的錨點列表
+            document.querySelectorAll('.anchor-sublist-container').forEach(container => {
+                container.style.display = 'none';
+            });
+            
+            const anchorContainer = document.getElementById(`anchorSublist_${segmentIdStr}`);
+            if (!anchorContainer) {
+                console.warn(`找不到錨點容器: anchorSublist_${segmentIdStr}`);
+                return;
+            }
+            
+            const anchorList = anchorContainer.querySelector('.anchor-sublist');
+            if (!anchorList) {
+                console.warn(`找不到錨點列表元素`);
+                return;
+            }
+            
+            console.log('loadAnchorsToSegment 被調用，segmentIdStr:', segmentIdStr, 'tagJson:', tagJson);
+            
+            if (!tagJson || tagJson.trim() === '') {
+                console.log('TagJson 為空，隱藏錨點列表');
+                anchorContainer.style.display = 'none';
+                return;
+            }
+
+            try {
+                // 解碼 HTML 實體（因為使用了 EncodeAttribute）
+                let decodedJson = tagJson;
+                if (tagJson.includes('&quot;') || tagJson.includes('&#39;')) {
+                    const textarea = document.createElement('textarea');
+                    textarea.innerHTML = tagJson;
+                    decodedJson = textarea.value;
+                }
+                
+                console.log('解碼後的 JSON:', decodedJson);
+                
+                const tags = JSON.parse(decodedJson);
+                console.log('解析後的標籤:', tags);
+                
+                if (!tags || tags.length === 0) {
+                    console.log('標籤列表為空，隱藏錨點列表');
+                    anchorContainer.style.display = 'none';
+                    return;
+                }
+
+                // 顯示錨點容器
+                anchorContainer.style.display = 'block';
+                
+                // 清空現有列表
+                anchorList.innerHTML = '';
+
+                // 生成錨點列表
+                tags.forEach((tag, index) => {
+                    const anchorItem = document.createElement('div');
+                    anchorItem.className = 'anchor-sublist-item';
+                    anchorItem.onclick = (e) => {
+                        e.stopPropagation(); // 阻止觸發父元素的點擊事件
+                        jumpToAnchor(tag.Time);
+                    };
+                    
+                    const timeStr = formatTime(tag.Time);
+                    anchorItem.innerHTML = `
+                        <div class="anchor-item-content">
+                            <i class="fas fa-bookmark text-primary anchor-icon"></i>
+                            <span class="anchor-time">${timeStr}</span>
+                            <span class="anchor-title">${tag.Title || '未命名章節'}</span>
+                        </div>
+                    `;
+                    anchorList.appendChild(anchorItem);
+                });
+                
+                console.log(`成功載入 ${tags.length} 個錨點到片段 ${segmentIdStr}`);
+            } catch (e) {
+                console.error('解析錨點 JSON 失敗:', e);
+                console.error('原始 JSON 字串:', tagJson);
+                anchorContainer.style.display = 'none';
+            }
+        }
+
+        // 跳轉到錨點時間
+        function jumpToAnchor(timeInSeconds) {
+            console.log(`嘗試跳轉到時間點: ${timeInSeconds} 秒 (${formatTime(timeInSeconds)})`);
+            
+            if (!mainPlayerInstance) {
+                console.warn('播放器尚未初始化，無法跳轉');
+                Swal.fire({
+                    title: '提示',
+                    text: '播放器尚未準備就緒，請稍候再試',
+                    icon: 'warning',
+                    timer: 2000,
+                    showConfirmButton: false
+                });
+                return;
+            }
+
+            try {
+                // 確保播放器已準備就緒
+                if (typeof mainPlayerInstance.seekTo !== 'function') {
+                    console.warn('播放器的 seekTo 方法不可用');
+                    return;
+                }
+                
+                // 跳轉到指定時間點
+                mainPlayerInstance.seekTo(timeInSeconds, true);
+                
+                // 如果影片暫停，則開始播放
+                const playerState = mainPlayerInstance.getPlayerState();
+                if (playerState === YT.PlayerState.PAUSED || playerState === YT.PlayerState.ENDED) {
+                    mainPlayerInstance.playVideo();
+                }
+                
+                console.log(`成功跳轉到時間點: ${formatTime(timeInSeconds)}`);
+                
+                // 可選：顯示提示訊息
+                const timeStr = formatTime(timeInSeconds);
+                // 使用 Toast 或簡單的視覺反饋
+                const anchorItems = document.querySelectorAll('.anchor-item');
+                anchorItems.forEach(item => {
+                    item.style.backgroundColor = '';
+                });
+                
+            } catch (error) {
+                console.error('跳轉到錨點失敗:', error);
+                Swal.fire({
+                    title: '錯誤',
+                    text: `跳轉失敗：${error.message || '未知錯誤'}`,
+                    icon: 'error',
+                    timer: 2000,
+                    showConfirmButton: false
+                });
+            }
+        }
+
+        // 儲存當前片段進度（使用 UpdateProgress API）
         function saveCurrentSegmentProgress() {
             if (!mainPlayerInstance || !mainPlayerInstance.getCurrentTime) return;
 
             const currentSegment = document.querySelector(`[data-segment-index="${currentSegmentIndex}"]`);
             if (!currentSegment) return;
 
-            const playerElement = document.getElementById(`VideoPlayer_${currentSegment.dataset.segmentIdStr}`);
-            if (!playerElement) return;
-
+            const trainingInfoMainID = currentSegment.dataset.segmentId;
             const currentTime = Math.floor(mainPlayerInstance.getCurrentTime());
-            const videoUrl = playerElement.dataset.url;
-            const urlTime = formatTime(currentTime);
+            const totalTime = mainPlayerInstance.getDuration ? Math.floor(mainPlayerInstance.getDuration()) : 0;
+            const isCompleted = totalTime > 0 && currentTime >= totalTime * 0.95; // 觀看超過 95% 視為完成
 
-            const data = new FormData();
-            data.append('time', formatTime(currentTime));
-            data.append('EmpID', employeeMainID);
-            data.append('UrlTime', urlTime);
-            data.append('VideoUrl', videoUrl);
-            navigator.sendBeacon('@Url.Action("SaveTime", "Lession")', data);
+            // 使用 UpdateProgress API
+            sendProgressToServer(trainingInfoMainID, isCompleted);
         }
 
         // YouTube IFrame API 載入
@@ -506,14 +812,9 @@
         firstScriptTag.parentNode.insertBefore(tag, firstScriptTag);
 
         function onYouTubeIframeAPIReady() {
-            // 初始化第一個片段
-            if (@Model.Segments.Count > 0)
-            {
-                const firstSegment = document.querySelector('[data-segment-index="0"]');
-                if (firstSegment) {
-                    switchToSegment(0, firstSegment.dataset.segmentId, firstSegment.dataset.segmentIdStr);
-                }
-            }
+            // YouTube API 已載入，但不自動播放影片
+            // 用戶需要點擊播放清單中的片段才會開始播放
+            console.log('YouTube API 已準備就緒');
         }
 
         function onMainPlayerReady(event) {
@@ -528,51 +829,103 @@
                 event.target.seekTo(watchtime, true);
             }
 
-            // 開始定期更新進度
+            // 開始定期更新進度條顯示（每秒更新一次 UI）
             setInterval(updateMainVideoBar, 1000);
+            
+            // 啟動定期更新進度到伺服器（每30秒）
+            startProgressUpdateInterval();
         }
 
         function onMainPlayerStateChange(event) {
-            if (event.data === YT.PlayerState.PAUSED || event.data === YT.PlayerState.ENDED) {
-                // 儲存進度
-                saveCurrentSegmentProgress();
-            }
+            const currentSegment = document.querySelector(`[data-segment-index="${currentSegmentIndex}"]`);
+            if (!currentSegment) return;
 
-            if (event.data === YT.PlayerState.ENDED) {
-                // 更新完成狀態到伺服器
-                const currentSegment = document.querySelector(`[data-segment-index="${currentSegmentIndex}"]`);
-                if (currentSegment) {
-                    sendProgressToServer(currentSegment.dataset.segmentId, true);
-                }
+            const trainingInfoMainID = currentSegment.dataset.segmentId;
+
+            if (event.data === YT.PlayerState.PAUSED) {
+                // 暫停時立即更新進度
+                console.log('影片已暫停，更新進度');
+                saveCurrentSegmentProgress();
+            } else if (event.data === YT.PlayerState.ENDED) {
+                // 影片結束時標記為完成
+                console.log('影片已結束，標記為完成');
+                sendProgressToServer(trainingInfoMainID, true);
             }
         }
 
         // 發送進度到伺服器
         function sendProgressToServer(trainingInfoMainID, isCompleted) {
-            if (!mainPlayerInstance || !mainPlayerInstance.getCurrentTime) return;
+            if (!mainPlayerInstance || !mainPlayerInstance.getCurrentTime) {
+                console.warn('無法取得播放器時間，跳過進度更新');
+                return;
+            }
 
             const currentTime = Math.floor(mainPlayerInstance.getCurrentTime());
             
-            fetch('@Url.Action("UpdateProgress", "Lession")', {
-                method: 'POST',
-                headers: {
-                    'Content-Type': 'application/json',
+            // 確保 trainingInfoMainID 是有效的 GUID 字符串
+            if (!trainingInfoMainID || trainingInfoMainID === 'undefined' || trainingInfoMainID === 'null') {
+                console.error('無效的訓練資訊ID:', trainingInfoMainID);
+                return;
+            }
+            
+            console.log('發送進度到伺服器:', {
+                LessionInfoID: trainingInfoMainID,
+                WatchedTime: currentTime,
+                IsCompleted: isCompleted
+            });
+            
+            $.ajax({
+                url: '@Url.Action("UpdateProgress", "Lession")',
+                type: 'POST',
+                data: {
+                    LessionInfoID: trainingInfoMainID,
+                    WatchedTime: currentTime,
+                    IsCompleted: isCompleted || false
                 },
-                body: JSON.stringify({
-                    employeeMainID: employeeMainID,
-                    trainingInfoMainID: trainingInfoMainID,
-                    watchedTime: currentTime,
-                    isCompleted: isCompleted
-                })
-            })
-            .then(response => response.json())
-            .then(data => {
-                if (data.success) {
-                    console.log('進度已更新');
+                success: function (response) {
+                    if (response.IsSuccess) {
+                        console.log('進度已成功更新到伺服器');
+                    } else {
+                        console.warn('進度更新失敗:', response.Msg);
+                    }
+                },
+                error: function (xhr, status, error) {
+                    let errorMsg = '更新進度時發生錯誤';
+                    try {
+                        if (xhr.responseText) {
+                            const response = JSON.parse(xhr.responseText);
+                            errorMsg = response.Msg || response.message || errorMsg;
+                        }
+                    } catch (e) {
+                        errorMsg = xhr.responseText || errorMsg;
+                    }
+                    
+                    console.error('更新進度時發生錯誤:', {
+                        status: status,
+                        error: error,
+                        statusCode: xhr.status,
+                        responseText: xhr.responseText,
+                        errorMessage: errorMsg,
+                        readyState: xhr.readyState
+                    });
+                    
+                    // 嘗試解析並顯示詳細錯誤信息
+                    if (xhr.responseText) {
+                        try {
+                            const errorResponse = JSON.parse(xhr.responseText);
+                            console.error('服務器錯誤詳情:', errorResponse);
+                            if (errorResponse.Msg) {
+                                console.error('錯誤訊息:', errorResponse.Msg);
+                            }
+                            if (errorResponse.StackTrace) {
+                                console.error('堆疊追蹤:', errorResponse.StackTrace);
+                            }
+                        } catch (parseError) {
+                            console.error('無法解析錯誤響應:', parseError);
+                        }
+                    }
+                    // 不顯示錯誤提示給用戶，避免打擾觀看體驗
                 }
-            })
-            .catch(error => {
-                console.error('更新進度時發生錯誤:', error);
             });
         }
 
@@ -597,15 +950,13 @@
                 cancelButtonText: '取消'
             }).then(result => {
                 if (result.isConfirmed) {
-                    // 傳遞 EmployeeMainID 和 EMTrainingInfoMainID
+                    // 傳遞 LessionInfoID（EmployeeMainID 已從 Session 獲取）
                     const formData = new URLSearchParams();
-                    formData.append('EMTrainingInfoMainID', trainingInfoMainID);
-                    formData.append('EmployeeMainID', employeeMainID);
+                    formData.append('LessionInfoID', trainingInfoMainID);
                     
                     // 除錯：記錄傳遞的參數
                     console.log('重置進度參數:', {
-                        EMTrainingInfoMainID: trainingInfoMainID,
-                        EmployeeMainID: employeeMainID,
+                        LessionInfoID: trainingInfoMainID,
                         formData: formData.toString()
                     });
 
@@ -658,36 +1009,80 @@
             });
         }
 
-        // 頁面可見性處理
+        // 定期自動更新進度（每30秒）
+        let progressUpdateInterval = null;
+
+        function startProgressUpdateInterval() {
+            // 清除舊的間隔
+            if (progressUpdateInterval) {
+                clearInterval(progressUpdateInterval);
+            }
+            // 每30秒自動更新進度
+            progressUpdateInterval = setInterval(() => {
+                if (mainPlayerInstance && mainPlayerInstance.getCurrentTime) {
+                    console.log('定期更新進度（30秒）');
+                    saveCurrentSegmentProgress();
+                }
+            }, 30000);
+        }
+
+        // 頁面可見性處理（切換標籤頁、最小化視窗等）
         document.addEventListener('visibilitychange', () => {
             if (document.hidden) {
+                // 頁面隱藏時暫停影片並更新進度
                 if (mainPlayerInstance && mainPlayerInstance.pauseVideo) {
                     mainPlayerInstance.pauseVideo();
                 }
-
+                console.log('頁面已隱藏，更新進度');
                 saveCurrentSegmentProgress();
             }
         });
 
-        // 定期自動儲存（每30秒）
-        window.addEventListener('DOMContentLoaded', () => {
-            setInterval(() => {
-                saveCurrentSegmentProgress();
-            }, 30000);
-        });
-
-        // 頁面卸載時儲存進度
-        window.addEventListener('beforeunload', function() {
-            saveCurrentSegmentProgress();
+        // 頁面卸載時儲存進度（關閉視窗、重新整理、導航離開）
+        window.addEventListener('beforeunload', function(e) {
+            console.log('頁面即將卸載，更新進度');
             if (mainPlayerInstance && mainPlayerInstance.getCurrentTime) {
                 const currentSegment = document.querySelector(`[data-segment-index="${currentSegmentIndex}"]`);
-                if (currentSegment) {
+                if (currentSegment && currentSegment.dataset.segmentId) {
                     const currentTime = Math.floor(mainPlayerInstance.getCurrentTime());
-                    const totalTime = mainPlayerInstance.getDuration ? Math.floor(mainPlayerInstance.getDuration()) : 1;
-                    const isCompleted = currentTime >= totalTime * 0.95; // 觀看超過 95% 視為完成
-                    sendProgressToServer(currentSegment.dataset.segmentId, isCompleted);
+                    const totalTime = mainPlayerInstance.getDuration ? Math.floor(mainPlayerInstance.getDuration()) : 0;
+                    const isCompleted = totalTime > 0 && currentTime >= totalTime * 0.95;
+                    
+                    // 使用 sendBeacon 確保在頁面卸載時也能發送請求（使用 FormData）
+                    const formData = new FormData();
+                    formData.append('LessionInfoID', currentSegment.dataset.segmentId);
+                    formData.append('WatchedTime', currentTime.toString());
+                    formData.append('IsCompleted', isCompleted.toString());
+                    
+                    navigator.sendBeacon('@Url.Action("UpdateProgress", "Lession")', formData);
                 }
             }
+        });
+
+        // 頁面卸載時（unload 事件，作為備用）
+        window.addEventListener('unload', function() {
+            console.log('頁面卸載中，更新進度');
+            if (mainPlayerInstance && mainPlayerInstance.getCurrentTime) {
+                const currentSegment = document.querySelector(`[data-segment-index="${currentSegmentIndex}"]`);
+                if (currentSegment && currentSegment.dataset.segmentId) {
+                    const currentTime = Math.floor(mainPlayerInstance.getCurrentTime());
+                    const totalTime = mainPlayerInstance.getDuration ? Math.floor(mainPlayerInstance.getDuration()) : 0;
+                    const isCompleted = totalTime > 0 && currentTime >= totalTime * 0.95;
+                    
+                    // 使用 sendBeacon 發送 FormData
+                    const formData = new FormData();
+                    formData.append('LessionInfoID', currentSegment.dataset.segmentId);
+                    formData.append('WatchedTime', currentTime.toString());
+                    formData.append('IsCompleted', isCompleted.toString());
+                    
+                    navigator.sendBeacon('@Url.Action("UpdateProgress", "Lession")', formData);
+                }
+            }
+        });
+
+        // 初始化定期更新
+        window.addEventListener('DOMContentLoaded', () => {
+            startProgressUpdateInterval();
         });
     </script>
 }

@@ -158,6 +158,25 @@
                             </div>
                         </div>
 
+                        <!-- 影片標籤/錨點管理 -->
+                        <div class="card mb-3">
+                            <div class="card-header bg-primary text-white">
+                                <h6 class="mb-0"><i class="fas fa-tags"></i> 影片標籤/錨點管理</h6>
+                            </div>
+                            <div class="card-body">
+                                <p class="text-muted small mb-3">
+                                    <i class="fas fa-info-circle"></i> 可以為影片添加時間點標籤，類似 YouTube 的章節功能。點擊標籤可快速跳轉到對應時間點。
+                                </p>
+                                <div id="tagContainer">
+                                    <!-- 標籤列表將動態生成 -->
+                                </div>
+                                <button type="button" class="btn btn-sm btn-success mt-2" onclick="addTag()">
+                                    <i class="fas fa-plus"></i> 新增標籤
+                                </button>
+                                <input type="hidden" asp-for="TagJson" id="TagJson" />
+                            </div>
+                        </div>
+
                         <!-- 操作按鈕 -->
                         <div class="d-flex justify-content-between">
                             <a href="@Url.Action("Index", "Lession")" class="btn btn-secondary">
@@ -305,9 +324,38 @@
             // 滾動到預覽區域
             previewDiv.scrollIntoView({ behavior: 'smooth', block: 'nearest' });
         }
+        // YouTube Player 變數
+        let youtubePlayer = null;
+        let isYouTubeAPIReady = false;
 
-        // 自動取得影片長度
-        async function fetchVideoDuration() {
+        // 載入 YouTube iframe API
+        if (typeof YT === 'undefined') {
+            var tag = document.createElement('script');
+            tag.src = "https://www.youtube.com/iframe_api";
+            var firstScriptTag = document.getElementsByTagName('script')[0];
+            firstScriptTag.parentNode.insertBefore(tag, firstScriptTag);
+        }
+
+        // YouTube API 準備就緒回調
+        function onYouTubeIframeAPIReady() {
+            isYouTubeAPIReady = true;
+        }
+
+        // 將秒數轉換為時間字串格式（HH:MM:SS 或 MM:SS）
+        function formatTimeSpan(totalSeconds) {
+            const hours = Math.floor(totalSeconds / 3600);
+            const minutes = Math.floor((totalSeconds % 3600) / 60);
+            const seconds = totalSeconds % 60;
+
+            if (hours > 0) {
+                return `${hours.toString().padStart(2, '0')}:${minutes.toString().padStart(2, '0')}:${seconds.toString().padStart(2, '0')}`;
+            } else {
+                return `${minutes.toString().padStart(2, '0')}:${seconds.toString().padStart(2, '0')}`;
+            }
+        }
+
+        // 自動取得影片長度（使用 YouTube iframe API）
+        function fetchVideoDuration() {
             const url = document.getElementById('youtubeUrl').value;
             const durationInput = document.getElementById('urlTimeString');
             const statusSpan = document.getElementById('durationStatus');
@@ -340,55 +388,150 @@
             statusSpan.innerHTML = '<i class="fas fa-spinner fa-spin"></i> 正在取得影片資訊...';
             statusSpan.className = 'ms-2 text-info';
 
+            // 確保 YouTube API 已載入
+            if (typeof YT === 'undefined' || typeof YT.Player === 'undefined') {
+                // 如果 API 還沒載入，等待載入完成
+                const checkAPI = setInterval(() => {
+                    if (typeof YT !== 'undefined' && typeof YT.Player !== 'undefined') {
+                        clearInterval(checkAPI);
+                        loadVideoDuration(videoId, durationInput, statusSpan, btnFetch);
+                    }
+                }, 100);
+
+                // 10秒超時
+                setTimeout(() => {
+                    clearInterval(checkAPI);
+                    if (typeof YT === 'undefined' || typeof YT.Player === 'undefined') {
+                        btnFetch.disabled = false;
+                        btnFetch.innerHTML = '<i class="fas fa-sync-alt"></i> 自動取得';
+                        statusSpan.innerHTML = '<i class="fas fa-times-circle text-danger"></i> YouTube API 載入失敗';
+                        statusSpan.className = 'ms-2 text-danger';
+                        Swal.fire({
+                            title: '錯誤',
+                            text: 'YouTube API 載入失敗，請重新整理頁面後再試',
+                            icon: 'error',
+                            confirmButtonText: '確定'
+                        });
+                    }
+                }, 10000);
+            } else {
+                loadVideoDuration(videoId, durationInput, statusSpan, btnFetch);
+            }
+        }
+
+        // 使用 YouTube Player 載入影片並取得時長
+        function loadVideoDuration(videoId, durationInput, statusSpan, btnFetch) {
             try {
-                const response = await fetch('@Url.Action("GetYouTubeVideoInfo", "Lession")', {
-                    method: 'POST',
-                    headers: {
-                        'Content-Type': 'application/json'
-                    },
-                    body: JSON.stringify({ url: url })
-                });
-
-                const data = await response.json();
-
-                if (data.success) {
-                    durationInput.value = data.duration;
-                    statusSpan.innerHTML = '<i class="fas fa-check-circle text-success"></i> 已自動填入';
-                    statusSpan.className = 'ms-2 text-success';
-                    
-                    Swal.fire({
-                        title: '成功',
-                        text: `已自動取得影片長度：${data.duration}`,
-                        icon: 'success',
-                        timer: 2000,
-                        showConfirmButton: false
-                    });
-                } else {
-                    statusSpan.innerHTML = '<i class="fas fa-exclamation-triangle text-warning"></i> ' + data.message;
-                    statusSpan.className = 'ms-2 text-warning';
-                    
-                    Swal.fire({
-                        title: '無法取得',
-                        text: data.message || '無法取得影片長度，請手動輸入',
-                        icon: 'warning',
-                        confirmButtonText: '確定'
-                    });
+                // 如果已有 player，先銷毀
+                if (youtubePlayer) {
+                    youtubePlayer.destroy();
                 }
+
+                // 創建臨時的隱藏 div 來載入 player
+                const tempDiv = document.createElement('div');
+                tempDiv.id = 'temp-youtube-player';
+                tempDiv.style.display = 'none';
+                document.body.appendChild(tempDiv);
+
+                // 創建 YouTube Player
+                youtubePlayer = new YT.Player('temp-youtube-player', {
+                    videoId: videoId,
+                    events: {
+                        'onReady': function(event) {
+                            try {
+                                const duration = event.target.getDuration();
+                                if (duration && duration > 0) {
+                                    const timeString = formatTimeSpan(duration);
+                                    durationInput.value = timeString;
+                                    statusSpan.innerHTML = '<i class="fas fa-check-circle text-success"></i> 已自動填入';
+                                    statusSpan.className = 'ms-2 text-success';
+                                    
+                                    Swal.fire({
+                                        title: '成功',
+                                        text: `已自動取得影片長度：${timeString}`,
+                                        icon: 'success',
+                                        timer: 2000,
+                                        showConfirmButton: false
+                                    });
+
+                                    // 清理臨時元素
+                                    if (youtubePlayer) {
+                                        youtubePlayer.destroy();
+                                        youtubePlayer = null;
+                                    }
+                                    if (tempDiv && tempDiv.parentNode) {
+                                        tempDiv.parentNode.removeChild(tempDiv);
+                                    }
+                                } else {
+                                    throw new Error('無法取得影片時長');
+                                }
+                            } catch (error) {
+                                statusSpan.innerHTML = '<i class="fas fa-exclamation-triangle text-warning"></i> 無法取得影片時長';
+                                statusSpan.className = 'ms-2 text-warning';
+                                
+                                Swal.fire({
+                                    title: '無法取得',
+                                    text: '無法取得影片長度，請手動輸入',
+                                    icon: 'warning',
+                                    confirmButtonText: '確定'
+                                });
+
+                                // 清理臨時元素
+                                if (youtubePlayer) {
+                                    youtubePlayer.destroy();
+                                    youtubePlayer = null;
+                                }
+                                if (tempDiv && tempDiv.parentNode) {
+                                    tempDiv.parentNode.removeChild(tempDiv);
+                                }
+                            } finally {
+                                btnFetch.disabled = false;
+                                btnFetch.innerHTML = '<i class="fas fa-sync-alt"></i> 自動取得';
+                            }
+                        },
+                        'onError': function(event) {
+                            statusSpan.innerHTML = '<i class="fas fa-exclamation-triangle text-warning"></i> 無法載入影片';
+                            statusSpan.className = 'ms-2 text-warning';
+                            
+                            Swal.fire({
+                                title: '無法取得',
+                                text: '無法載入影片，請確認 URL 是否正確或手動輸入時長',
+                                icon: 'warning',
+                                confirmButtonText: '確定'
+                            });
+
+                            // 清理臨時元素
+                            if (youtubePlayer) {
+                                youtubePlayer.destroy();
+                                youtubePlayer = null;
+                            }
+                            if (tempDiv && tempDiv.parentNode) {
+                                tempDiv.parentNode.removeChild(tempDiv);
+                            }
+
+                            btnFetch.disabled = false;
+                            btnFetch.innerHTML = '<i class="fas fa-sync-alt"></i> 自動取得';
+                        }
+                    }
+                });
             } catch (error) {
                 statusSpan.innerHTML = '<i class="fas fa-times-circle text-danger"></i> 發生錯誤';
                 statusSpan.className = 'ms-2 text-danger';
                 
                 Swal.fire({
                     title: '錯誤',
-                    text: '無法連線到伺服器，請稍後再試',
+                    text: '發生錯誤：' + error.message,
                     icon: 'error',
                     confirmButtonText: '確定'
                 });
-            } finally {
+
                 btnFetch.disabled = false;
                 btnFetch.innerHTML = '<i class="fas fa-sync-alt"></i> 自動取得';
             }
         }
+
+        // 全域回調函數（YouTube API 需要）
+        window.onYouTubeIframeAPIReady = onYouTubeIframeAPIReady;
 
         // URL 輸入時自動驗證
         document.getElementById('youtubeUrl')?.addEventListener('blur', function() {
@@ -460,6 +603,120 @@
                     return false;
                 }
             }
+            // 保存標籤數據到隱藏欄位
+            saveTagsToJson();
+        });
+
+        // 標籤管理功能
+        let tagIndex = 0;
+        let tags = [];
+
+        // 初始化標籤（如果有現有數據）
+        function initTags() {
+            const tagJson = document.getElementById('TagJson').value;
+            if (tagJson) {
+                try {
+                    tags = JSON.parse(tagJson);
+                    tags.forEach((tag, index) => {
+                        addTagToUI(tag.Time, tag.Title, index);
+                    });
+                    tagIndex = tags.length;
+                } catch (e) {
+                    console.error('解析標籤 JSON 失敗:', e);
+                }
+            }
+        }
+
+        // 新增標籤
+        function addTag() {
+            addTagToUI(0, '', tagIndex++);
+        }
+
+        // 添加標籤到 UI
+        function addTagToUI(time, title, index) {
+            const container = document.getElementById('tagContainer');
+            const tagDiv = document.createElement('div');
+            tagDiv.className = 'tag-item mb-2 p-2 border rounded';
+            tagDiv.dataset.index = index;
+            tagDiv.innerHTML = `
+                <div class="row g-2 align-items-center">
+                    <div class="col-md-4">
+                        <label class="form-label small mb-0">時間點（秒）</label>
+                        <input type="number" class="form-control form-control-sm tag-time" 
+                               value="${time}" min="0" 
+                               onchange="updateTag(${index})" 
+                               placeholder="例如：60">
+                    </div>
+                    <div class="col-md-6">
+                        <label class="form-label small mb-0">標籤標題（中文）</label>
+                        <input type="text" class="form-control form-control-sm tag-title" 
+                               value="${title}" 
+                               onchange="updateTag(${index})" 
+                               placeholder="例如：第一章 基礎介紹">
+                    </div>
+                    <div class="col-md-2">
+                        <label class="form-label small mb-0">&nbsp;</label>
+                        <button type="button" class="btn btn-sm btn-danger w-100" 
+                                onclick="removeTag(${index})">
+                            <i class="fas fa-trash"></i>
+                        </button>
+                    </div>
+                </div>
+            `;
+            container.appendChild(tagDiv);
+            if (index >= tags.length) {
+                tags.push({ Time: time, Title: title });
+            }
+        }
+
+        // 更新標籤
+        function updateTag(index) {
+            const tagDiv = document.querySelector(`.tag-item[data-index="${index}"]`);
+            if (tagDiv) {
+                const timeInput = tagDiv.querySelector('.tag-time');
+                const titleInput = tagDiv.querySelector('.tag-title');
+                const time = parseInt(timeInput.value) || 0;
+                const title = titleInput.value.trim();
+                
+                if (tags[index]) {
+                    tags[index].Time = time;
+                    tags[index].Title = title;
+                } else {
+                    tags[index] = { Time: time, Title: title };
+                }
+                saveTagsToJson();
+            }
+        }
+
+        // 移除標籤
+        function removeTag(index) {
+            const tagDiv = document.querySelector(`.tag-item[data-index="${index}"]`);
+            if (tagDiv) {
+                tagDiv.remove();
+                tags.splice(index, 1);
+                // 重新渲染所有標籤
+                const container = document.getElementById('tagContainer');
+                container.innerHTML = '';
+                tags.forEach((tag, i) => {
+                    addTagToUI(tag.Time, tag.Title, i);
+                });
+                tagIndex = tags.length;
+                saveTagsToJson();
+            }
+        }
+
+        // 保存標籤到 JSON
+        function saveTagsToJson() {
+            // 過濾掉空的標籤
+            const validTags = tags.filter(tag => tag.Title && tag.Title.trim() !== '');
+            // 按時間排序
+            validTags.sort((a, b) => a.Time - b.Time);
+            document.getElementById('TagJson').value = JSON.stringify(validTags);
+        }
+
+        // 頁面載入時初始化
+        document.addEventListener('DOMContentLoaded', function() {
+            initTags();
         });
     </script>
 }
