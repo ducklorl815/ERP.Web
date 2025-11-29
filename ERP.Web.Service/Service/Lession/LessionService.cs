@@ -1,8 +1,8 @@
-using ERP.Web.Models.Models.Lession;
-using ERP.Web.Models.Respository.Lession;
+using LifeTech.ERP.Emanage.Web.Models.Models.Lession;
+using LifeTech.ERP.Emanage.Web.Models.Respository.Lession;
 using System.Text.Json;
 
-namespace ERP.Web.Service.Service.Lession
+namespace LifeTech.ERP.Emanage.Web.Service.Service.Lession
 {
     /// <summary>
     /// 課程紀錄服務
@@ -50,15 +50,59 @@ namespace ERP.Web.Service.Service.Lession
         }
 
         /// <summary>
-        /// 更新影片觀看進度
+        /// 更新影片觀看進度（含驗證）
         /// </summary>
-        /// <param name="employeeMainID">員工ID</param>
-        /// <param name="trainingInfoMainID">訓練資訊ID</param>
-        /// <param name="watchedTime">已觀看時間（秒）</param>
-        /// <param name="isCompleted">是否看完</param>
-        /// <param name="currentUserID">當前使用者ID</param>
-        /// <param name="currentDeptID">當前部門ID</param>
-        public async Task<bool> UpdateVideoProgressAsync(
+        public async Task<(bool IsSuccess, string Message)> UpdateVideoProgressAsync(
+            string lessionInfoID,
+            int watchedTime,
+            bool isCompleted,
+            Guid employeeMainID,
+            Guid currentUserID,
+            Guid currentDeptID)
+        {
+            // 驗證請求參數
+            if (string.IsNullOrEmpty(lessionInfoID))
+            {
+                return (false, "請求參數為空");
+            }
+
+            // 解析 GUID
+            if (!Guid.TryParse(lessionInfoID, out Guid trainingInfoMainID) || 
+                trainingInfoMainID == Guid.Empty)
+            {
+                return (false, "無效的訓練資訊ID");
+            }
+
+            // 驗證觀看時間（必須 >= 0）
+            if (watchedTime < 0)
+            {
+                watchedTime = 0;
+            }
+
+            // 驗證用戶資訊
+            if (employeeMainID == Guid.Empty || currentUserID == Guid.Empty || currentDeptID == Guid.Empty)
+            {
+                return (false, "無法取得用戶資訊，請重新登入");
+            }
+
+            var detl = new EMTrainingDetl
+            {
+                EmployeeMainID = employeeMainID,
+                LessionInfoID = trainingInfoMainID,
+                Time = watchedTime,
+                State = isCompleted,
+                ModifyUser = currentUserID,
+                ModifyDept = currentDeptID
+            };
+
+            var result = await _lessionRepository.UpsertTrainingDetlAsync(detl);
+            return result ? (true, "進度已更新") : (false, "更新進度失敗");
+        }
+
+        /// <summary>
+        /// 更新影片觀看進度（直接使用GUID，不含驗證）
+        /// </summary>
+        public async Task<bool> UpdateVideoProgressDirectAsync(
             Guid employeeMainID,
             Guid trainingInfoMainID,
             int watchedTime,
@@ -70,7 +114,7 @@ namespace ERP.Web.Service.Service.Lession
             {
                 EmployeeMainID = employeeMainID,
                 LessionInfoID = trainingInfoMainID,
-                Time = watchedTime, // 直接使用秒數（int）
+                Time = watchedTime,
                 State = isCompleted,
                 ModifyUser = currentUserID,
                 ModifyDept = currentDeptID
@@ -241,6 +285,14 @@ namespace ERP.Web.Service.Service.Lession
         }
 
         /// <summary>
+        /// 刪除主要課程（軟刪除，將 Deleted 設為 1）
+        /// </summary>
+        public async Task<bool> DeleteLessionMainAsync(Guid id, Guid modifyUser, Guid modifyDept)
+        {
+            return await _lessionRepository.DeleteLessionMainAsync(id, modifyUser, modifyDept);
+        }
+
+        /// <summary>
         /// 解析 ParagraphJson 為段落資訊清單
         /// </summary>
         public List<ParagraphInfo> ParseParagraphJson(string? paragraphJson)
@@ -317,6 +369,523 @@ namespace ERP.Web.Service.Service.Lession
             return result;
         }
 
+        /// <summary>
+        /// 取得多片段課程播放所需的資料（含進度）
+        /// </summary>
+        public async Task<(LessionMain? LessionMain, List<EMTrainingInfo> Segments, Dictionary<Guid, EMTrainingDetl?> ProgressDict, string ErrorMessage)> 
+            GetMultiSegmentPlayDataAsync(Guid lessionMainID, Guid employeeMainID)
+        {
+            if (employeeMainID == Guid.Empty)
+            {
+                return (null, new List<EMTrainingInfo>(), new Dictionary<Guid, EMTrainingDetl?>(), "無法取得用戶資訊，請重新登入");
+            }
+
+            var lessionMain = await GetLessionMainByIdAsync(lessionMainID);
+            if (lessionMain == null)
+            {
+                return (null, new List<EMTrainingInfo>(), new Dictionary<Guid, EMTrainingDetl?>(), "找不到課程");
+            }
+
+            var segments = await GetTrainingInfoByLessionMainIdAsync(lessionMainID);
+            if (!segments.Any())
+            {
+                return (null, new List<EMTrainingInfo>(), new Dictionary<Guid, EMTrainingDetl?>(), "找不到課程片段");
+            }
+
+            // 取得所有片段的觀看進度
+            var progressDict = new Dictionary<Guid, EMTrainingDetl?>();
+            foreach (var segment in segments)
+            {
+                try
+                {
+                    var detl = await GetTrainingDetlAsync(employeeMainID, segment.ID);
+                    progressDict[segment.ID] = detl;
+                }
+                catch
+                {
+                    progressDict[segment.ID] = null;
+                }
+            }
+
+            return (lessionMain, segments, progressDict, string.Empty);
+        }
+
+        /// <summary>
+        /// 根據 VideoUrl 找到對應的 TrainingInfo
+        /// </summary>
+        public async Task<EMTrainingInfo?> FindTrainingInfoByVideoUrlAsync(string videoUrl)
+        {
+            if (string.IsNullOrEmpty(videoUrl))
+            {
+                return null;
+            }
+
+            var trainingInfoList = await GetTrainingInfoListAsync();
+            var videoId = ExtractVideoId(videoUrl);
+
+            return trainingInfoList.FirstOrDefault(t => 
+                t.URL == videoUrl || 
+                t.URL.Contains(videoUrl) || 
+                videoUrl.Contains(t.URL) ||
+                ExtractVideoId(t.URL) == videoId);
+        }
+
+        /// <summary>
+        /// 儲存觀看時間（相容舊版 API）
+        /// </summary>
+        public async Task<(bool Success, string Message)> SaveTimeAsync(
+            string time, 
+            string urlTime, 
+            string videoUrl,
+            Guid employeeMainID,
+            Guid createUser,
+            Guid createDept)
+        {
+            if (employeeMainID == Guid.Empty || createUser == Guid.Empty || createDept == Guid.Empty)
+            {
+                return (false, "無法取得用戶資訊");
+            }
+
+            var trainingInfo = await FindTrainingInfoByVideoUrlAsync(videoUrl);
+            if (trainingInfo == null)
+            {
+                return (false, "找不到對應的訓練資訊");
+            }
+
+            // 解析時間字串 (格式: HH:MM:SS)
+            if (!TryParseTimeString(urlTime, out int watchedTimeSeconds))
+            {
+                return (false, "時間格式錯誤");
+            }
+
+            // 判斷是否完成（如果觀看時間接近總時長）
+            var isCompleted = watchedTimeSeconds >= (trainingInfo.URLTime * 0.95);
+
+            var result = await UpdateVideoProgressDirectAsync(
+                employeeMainID,
+                trainingInfo.ID,
+                watchedTimeSeconds,
+                isCompleted,
+                createUser,
+                createDept
+            );
+
+            return (result, result ? "成功" : "失敗");
+        }
+
+        /// <summary>
+        /// 根據 TrainingInfoID 找出所屬的 LessionMain
+        /// </summary>
+        public async Task<Guid?> FindLessionMainIdByTrainingInfoIdAsync(Guid trainingInfoID)
+        {
+            var lessionMainList = await GetLessionMainListAsync();
+
+            foreach (var lessionMain in lessionMainList)
+            {
+                var paragraphs = ParseParagraphJson(lessionMain.ParagraphJson);
+                if (paragraphs.Any(p => p.LessionInfoID == trainingInfoID))
+                {
+                    return lessionMain.ID;
+                }
+            }
+
+            return null;
+        }
+
+        /// <summary>
+        /// 取得課程列表及其片段數量
+        /// </summary>
+        public async Task<List<LessionMainWithSegmentCount>> GetLessionListWithSegmentCountAsync()
+        {
+            var lessionMainList = await GetLessionMainListAsync();
+            
+            return lessionMainList.Select(lessionMain =>
+            {
+                var paragraphs = ParseParagraphJson(lessionMain.ParagraphJson);
+                return new LessionMainWithSegmentCount
+                {
+                    LessionMain = lessionMain,
+                    SegmentCount = paragraphs?.Count ?? 0
+                };
+            }).ToList();
+        }
+
+        /// <summary>
+        /// 新增課程片段（含完整業務邏輯）
+        /// </summary>
+        public async Task<(bool IsSuccess, string Message, Guid? TrainingInfoID, Guid? LessionMainID)> CreateLessionSegmentAsync(
+            LessionCreateRequest request,
+            Guid createUser,
+            Guid createDept)
+        {
+            if (createUser == Guid.Empty || createDept == Guid.Empty)
+            {
+                return (false, "無法取得用戶資訊", null, null);
+            }
+
+            // 解析時間字串
+            if (!TryParseTimeToSeconds(request.URLTimeString, out int urlTimeSeconds))
+            {
+                return (false, "時間格式錯誤，請使用 HH:MM:SS 或 MM:SS 格式", null, null);
+            }
+
+            Guid lessionMainID;
+
+            // 判斷是新增新課程還是選擇現有課程
+            if (request.IsNewLessionMain)
+            {
+                if (string.IsNullOrWhiteSpace(request.NewLessionMainName))
+                {
+                    return (false, "新課程名稱為必填", null, null);
+                }
+
+                var newLessionMain = new LessionMain
+                {
+                    LessionName = request.NewLessionMainName,
+                    ParagraphJson = string.Empty,
+                    ModifyUser = createUser,
+                    ModifyDept = createDept
+                };
+
+                var createLessionMainID = await CreateLessionMainAsync(newLessionMain);
+                if (createLessionMainID == Guid.Empty)
+                {
+                    return (false, "建立新課程失敗，請稍後再試", null, null);
+                }
+
+                lessionMainID = createLessionMainID;
+            }
+            else
+            {
+                if (!request.LessionMainID.HasValue)
+                {
+                    return (false, "請選擇課程或建立新課程", null, null);
+                }
+
+                lessionMainID = request.LessionMainID.Value;
+            }
+
+            // 新增 LessionInfo（片段）
+            var trainingInfo = new EMTrainingInfo
+            {
+                Title = request.Title,
+                Content = request.Content ?? string.Empty,
+                URL = request.URL,
+                URLTime = urlTimeSeconds,
+                Img = request.Img,
+                Page = 0,
+                TagJson = request.TagJson,
+                ModifyUser = createUser,
+                ModifyDept = createDept
+            };
+
+            var createTrainingInfoGuid = await CreateTrainingInfoAsync(trainingInfo);
+            if (createTrainingInfoGuid == Guid.Empty)
+            {
+                return (false, "新增片段失敗，請稍後再試", null, lessionMainID);
+            }
+
+            // 更新 LessionMain 的 ParagraphJson
+            var lessionMain = await GetLessionMainByIdAsync(lessionMainID);
+            if (lessionMain == null)
+            {
+                return (false, "找不到對應的課程，請重新選擇", createTrainingInfoGuid, lessionMainID);
+            }
+
+            var paragraphs = ParseParagraphJson(lessionMain.ParagraphJson);
+            paragraphs.Add(new ParagraphInfo
+            {
+                LessionInfoID = createTrainingInfoGuid,
+                Paragraph = request.Title
+            });
+
+            lessionMain.ParagraphJson = SerializeParagraphJson(paragraphs);
+            lessionMain.ModifyUser = createUser;
+            lessionMain.ModifyDept = createDept;
+
+            var updateResult = await UpdateLessionMainAsync(lessionMain);
+            if (!updateResult)
+            {
+                return (false, "更新課程資訊失敗，但片段已新增", createTrainingInfoGuid, lessionMainID);
+            }
+
+            return (true, "課程片段新增成功", createTrainingInfoGuid, lessionMainID);
+        }
+
+        /// <summary>
+        /// 更新課程片段（含完整業務邏輯）
+        /// </summary>
+        public async Task<(bool IsSuccess, string Message)> UpdateLessionSegmentAsync(
+            LessionEditRequest request,
+            Guid createUser,
+            Guid createDept)
+        {
+            if (createUser == Guid.Empty || createDept == Guid.Empty)
+            {
+                return (false, "無法取得用戶資訊");
+            }
+
+            var trainingInfo = await GetTrainingInfoByIdAsync(request.ID);
+            if (trainingInfo == null)
+            {
+                return (false, "找不到要修改的訓練資訊");
+            }
+
+            // 解析時間字串
+            if (!TryParseTimeToSeconds(request.URLTimeString, out int urlTimeSeconds))
+            {
+                return (false, "時間格式錯誤，請使用 HH:MM:SS 或 MM:SS 格式");
+            }
+
+            if (!request.LessionMainID.HasValue)
+            {
+                return (false, "請選擇課程");
+            }
+
+            // 找出該片段原本所屬的課程
+            var oldLessionMainID = await FindLessionMainIdByTrainingInfoIdAsync(request.ID);
+
+            // 更新訓練資訊
+            trainingInfo.Title = request.Title;
+            trainingInfo.Content = request.Content ?? string.Empty;
+            trainingInfo.URL = request.URL;
+            trainingInfo.URLTime = urlTimeSeconds;
+            trainingInfo.Img = request.Img;
+            trainingInfo.TagJson = request.TagJson;
+            trainingInfo.ModifyUser = createUser;
+            trainingInfo.ModifyDept = createDept;
+
+            var updateResult = await UpdateTrainingInfoAsync(trainingInfo);
+            if (!updateResult)
+            {
+                return (false, "更新片段失敗，請稍後再試");
+            }
+
+            // 如果課程有變更，需要更新兩個課程的 ParagraphJson
+            if (oldLessionMainID.HasValue && oldLessionMainID.Value != request.LessionMainID.Value)
+            {
+                // 從舊課程移除
+                var oldLessionMain = await GetLessionMainByIdAsync(oldLessionMainID.Value);
+                if (oldLessionMain != null)
+                {
+                    var oldParagraphs = ParseParagraphJson(oldLessionMain.ParagraphJson);
+                    oldParagraphs.RemoveAll(p => p.LessionInfoID == request.ID);
+                    oldLessionMain.ParagraphJson = SerializeParagraphJson(oldParagraphs);
+                    oldLessionMain.ModifyUser = createUser;
+                    oldLessionMain.ModifyDept = createDept;
+                    await UpdateLessionMainAsync(oldLessionMain);
+                }
+
+                // 加入到新課程
+                var newLessionMain = await GetLessionMainByIdAsync(request.LessionMainID.Value);
+                if (newLessionMain != null)
+                {
+                    var newParagraphs = ParseParagraphJson(newLessionMain.ParagraphJson);
+                    if (!newParagraphs.Any(p => p.LessionInfoID == request.ID))
+                    {
+                        newParagraphs.Add(new ParagraphInfo
+                        {
+                            LessionInfoID = request.ID,
+                            Paragraph = request.Title
+                        });
+                        newLessionMain.ParagraphJson = SerializeParagraphJson(newParagraphs);
+                        newLessionMain.ModifyUser = createUser;
+                        newLessionMain.ModifyDept = createDept;
+                        await UpdateLessionMainAsync(newLessionMain);
+                    }
+                }
+            }
+            else if (request.LessionMainID.HasValue)
+            {
+                // 課程沒變，但需要更新 ParagraphJson 中的標題（如果標題有變更）
+                var lessionMain = await GetLessionMainByIdAsync(request.LessionMainID.Value);
+                if (lessionMain != null)
+                {
+                    var paragraphs = ParseParagraphJson(lessionMain.ParagraphJson);
+                    var paragraph = paragraphs.FirstOrDefault(p => p.LessionInfoID == request.ID);
+                    if (paragraph != null && paragraph.Paragraph != request.Title)
+                    {
+                        paragraph.Paragraph = request.Title;
+                        lessionMain.ParagraphJson = SerializeParagraphJson(paragraphs);
+                        lessionMain.ModifyUser = createUser;
+                        lessionMain.ModifyDept = createDept;
+                        await UpdateLessionMainAsync(lessionMain);
+                    }
+                }
+            }
+
+            return (true, "課程片段修改成功");
+        }
+
+        #endregion
+
+        #region 輔助方法
+
+        /// <summary>
+        /// 從 YouTube URL 中提取 Video ID
+        /// </summary>
+        public string ExtractVideoId(string url)
+        {
+            if (string.IsNullOrEmpty(url))
+                return string.Empty;
+
+            if (url.Contains("youtube.com/watch?v="))
+            {
+                var startIndex = url.IndexOf("watch?v=") + 8;
+                var endIndex = url.IndexOf("&", startIndex);
+                if (endIndex == -1) endIndex = url.Length;
+                return url.Substring(startIndex, endIndex - startIndex);
+            }
+            else if (url.Contains("youtu.be/"))
+            {
+                var startIndex = url.IndexOf("youtu.be/") + 9;
+                var endIndex = url.IndexOf("?", startIndex);
+                if (endIndex == -1) endIndex = url.Length;
+                return url.Substring(startIndex, endIndex - startIndex);
+            }
+            else if (url.Contains("youtube.com/embed/"))
+            {
+                var startIndex = url.IndexOf("embed/") + 6;
+                var endIndex = url.IndexOf("?", startIndex);
+                if (endIndex == -1) endIndex = url.Length;
+                return url.Substring(startIndex, endIndex - startIndex);
+            }
+
+            return string.Empty;
+        }
+
+        /// <summary>
+        /// 解析時間字串為秒數（支援 HH:MM:SS, MM:SS, 或純秒數）
+        /// </summary>
+        public bool TryParseTimeToSeconds(string timeString, out int result)
+        {
+            result = 0;
+            if (string.IsNullOrWhiteSpace(timeString))
+                return false;
+
+            var parts = timeString.Split(':');
+            if (parts.Length == 3)
+            {
+                // HH:MM:SS
+                if (int.TryParse(parts[0], out int hours) &&
+                    int.TryParse(parts[1], out int minutes) &&
+                    int.TryParse(parts[2], out int seconds))
+                {
+                    result = hours * 3600 + minutes * 60 + seconds;
+                    return true;
+                }
+            }
+            else if (parts.Length == 2)
+            {
+                // MM:SS
+                if (int.TryParse(parts[0], out int minutes) &&
+                    int.TryParse(parts[1], out int seconds))
+                {
+                    result = minutes * 60 + seconds;
+                    return true;
+                }
+            }
+            else if (parts.Length == 1)
+            {
+                // 純秒數
+                if (int.TryParse(parts[0], out int totalSeconds))
+                {
+                    result = totalSeconds;
+                    return true;
+                }
+            }
+
+            return false;
+        }
+
+        /// <summary>
+        /// 解析時間字串（格式: HH:MM:SS）為秒數
+        /// </summary>
+        private bool TryParseTimeString(string urlTime, out int result)
+        {
+            result = 0;
+            var timeParts = urlTime.Split(':');
+            if (timeParts.Length != 3)
+            {
+                return false;
+            }
+
+            if (int.TryParse(timeParts[0], out int hours) &&
+                int.TryParse(timeParts[1], out int minutes) &&
+                int.TryParse(timeParts[2], out int seconds))
+            {
+                result = hours * 3600 + minutes * 60 + seconds;
+                return true;
+            }
+
+            return false;
+        }
+
+        /// <summary>
+        /// 將秒數轉換為時間字串格式（HH:MM:SS 或 MM:SS）
+        /// </summary>
+        public string FormatTimeSpan(int totalSeconds)
+        {
+            var hours = totalSeconds / 3600;
+            var minutes = (totalSeconds % 3600) / 60;
+            var seconds = totalSeconds % 60;
+
+            if (hours > 0)
+            {
+                return $"{hours:D2}:{minutes:D2}:{seconds:D2}";
+            }
+            else
+            {
+                return $"{minutes:D2}:{seconds:D2}";
+            }
+        }
+
+        /// <summary>
+        /// 解析 ISO 8601 時間格式（例如：PT1H30M45S）為秒數
+        /// </summary>
+        public int ParseISO8601Duration(string duration)
+        {
+            if (!duration.StartsWith("PT"))
+                return 0;
+
+            duration = duration.Substring(2);
+            int totalSeconds = 0;
+
+            // 解析小時
+            var hourIndex = duration.IndexOf('H');
+            if (hourIndex != -1)
+            {
+                if (int.TryParse(duration.Substring(0, hourIndex), out int hours))
+                {
+                    totalSeconds += hours * 3600;
+                }
+                duration = duration.Substring(hourIndex + 1);
+            }
+
+            // 解析分鐘
+            var minuteIndex = duration.IndexOf('M');
+            if (minuteIndex != -1)
+            {
+                if (int.TryParse(duration.Substring(0, minuteIndex), out int minutes))
+                {
+                    totalSeconds += minutes * 60;
+                }
+                duration = duration.Substring(minuteIndex + 1);
+            }
+
+            // 解析秒數
+            var secondIndex = duration.IndexOf('S');
+            if (secondIndex != -1)
+            {
+                if (int.TryParse(duration.Substring(0, secondIndex), out int seconds))
+                {
+                    totalSeconds += seconds;
+                }
+            }
+
+            return totalSeconds;
+        }
+
         #endregion
     }
 
@@ -344,6 +913,46 @@ namespace ERP.Web.Service.Service.Lession
         public int WatchedTime { get; set; } // 已觀看時間（秒）
         public int ProgressPercentage { get; set; } // 進度百分比
         public bool IsCompleted { get; set; } // 是否全部完成
+    }
+
+    /// <summary>
+    /// 包含片段數量的課程資訊
+    /// </summary>
+    public class LessionMainWithSegmentCount
+    {
+        public LessionMain LessionMain { get; set; } = null!;
+        public int SegmentCount { get; set; }
+    }
+
+    /// <summary>
+    /// 新增課程片段請求
+    /// </summary>
+    public class LessionCreateRequest
+    {
+        public Guid? LessionMainID { get; set; }
+        public bool IsNewLessionMain { get; set; }
+        public string? NewLessionMainName { get; set; }
+        public string Title { get; set; } = string.Empty;
+        public string? Content { get; set; }
+        public string URL { get; set; } = string.Empty;
+        public string URLTimeString { get; set; } = string.Empty;
+        public string? Img { get; set; }
+        public string? TagJson { get; set; }
+    }
+
+    /// <summary>
+    /// 更新課程片段請求
+    /// </summary>
+    public class LessionEditRequest
+    {
+        public Guid ID { get; set; }
+        public Guid? LessionMainID { get; set; }
+        public string Title { get; set; } = string.Empty;
+        public string? Content { get; set; }
+        public string URL { get; set; } = string.Empty;
+        public string URLTimeString { get; set; } = string.Empty;
+        public string? Img { get; set; }
+        public string? TagJson { get; set; }
     }
 }
 

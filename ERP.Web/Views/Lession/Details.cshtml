@@ -1,4 +1,4 @@
-@model ERP.Web.Controllers.Lession.LessionDetailsViewModel
+@model LifeTech.ERP.Emanage.Web.Controllers.Lession.LessionDetailsViewModel
 @{
     ViewData["Title"] = "課程詳細資訊";
 }
@@ -122,7 +122,7 @@
                                                 }
                                             </td>
                                             <td>
-                                                <span class="badge bg-secondary">@FormatSeconds(segment.URLTime)</span>
+                                                <span class="badge bg-secondary" style="color:white">@FormatSeconds(segment.URLTime)</span>
                                             </td>
                                             <td>
                                                 @if (!string.IsNullOrWhiteSpace(segment.URL))

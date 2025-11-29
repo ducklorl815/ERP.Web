@@ -1,5 +1,5 @@
-@model ERP.Web.Controllers.Lession.LessionMultiSegmentViewModel
-@using ERP.Web.Models.Models.Lession
+@model LifeTech.ERP.Emanage.Web.Controllers.Lession.LessionMultiSegmentViewModel
+@using LifeTech.ERP.Emanage.Web.Models.Models.Lession
 @{
     ViewData["Title"] = $"{Model.LessionMainName} - 多片段播放";
 }
@@ -793,10 +793,19 @@
         function saveCurrentSegmentProgress() {
             if (!mainPlayerInstance || !mainPlayerInstance.getCurrentTime) return;
 
-            const currentSegment = document.querySelector(`[data-segment-index="${currentSegmentIndex}"]`);
-            if (!currentSegment) return;
+            // 確保選擇到 .playlist-item 元素
+            const currentSegment = document.querySelector(`.playlist-item[data-segment-index="${currentSegmentIndex}"]`);
+            if (!currentSegment) {
+                console.warn('找不到當前片段元素，無法儲存進度');
+                return;
+            }
 
             const trainingInfoMainID = currentSegment.dataset.segmentId;
+            if (!trainingInfoMainID) {
+                console.warn('無法取得片段ID，無法儲存進度');
+                return;
+            }
+
             const currentTime = Math.floor(mainPlayerInstance.getCurrentTime());
             const totalTime = mainPlayerInstance.getDuration ? Math.floor(mainPlayerInstance.getDuration()) : 0;
             const isCompleted = totalTime > 0 && currentTime >= totalTime * 0.95; // 觀看超過 95% 視為完成
@@ -818,10 +827,11 @@
         }
 
         function onMainPlayerReady(event) {
-            const currentSegment = document.querySelector(`[data-segment-index="${currentSegmentIndex}"]`);
-            if (!currentSegment) return;
+            // 選擇 .playlist-item-wrapper 以獲取 segmentIdStr
+            const currentSegmentWrapper = document.querySelector(`.playlist-item-wrapper[data-segment-index="${currentSegmentIndex}"]`);
+            if (!currentSegmentWrapper) return;
 
-            const playerElement = document.getElementById(`VideoPlayer_${currentSegment.dataset.segmentIdStr}`);
+            const playerElement = document.getElementById(`VideoPlayer_${currentSegmentWrapper.dataset.segmentIdStr}`);
             if (!playerElement) return;
 
             const watchtime = parseInt(playerElement.dataset.watchtime) || 0;
@@ -837,7 +847,8 @@
         }
 
         function onMainPlayerStateChange(event) {
-            const currentSegment = document.querySelector(`[data-segment-index="${currentSegmentIndex}"]`);
+            // 選擇 .playlist-item 以獲取 segmentId
+            const currentSegment = document.querySelector(`.playlist-item[data-segment-index="${currentSegmentIndex}"]`);
             if (!currentSegment) return;
 
             const trainingInfoMainID = currentSegment.dataset.segmentId;
@@ -931,14 +942,49 @@
 
         // 重置當前片段進度
         function resetCurrentProgress() {
-            const currentSegment = document.querySelector(`[data-segment-index="${currentSegmentIndex}"]`);
-            if (!currentSegment) return;
+            // 確保選擇到 .playlist-item 元素，而不是 .playlist-item-wrapper
+            const currentSegment = document.querySelector(`.playlist-item[data-segment-index="${currentSegmentIndex}"]`);
+            if (!currentSegment) {
+                console.error('找不到當前片段元素，currentSegmentIndex:', currentSegmentIndex);
+                Swal.fire({
+                    title: '錯誤',
+                    text: '找不到當前片段，請重新選擇片段後再試',
+                    icon: 'error',
+                    confirmButtonText: '確定'
+                });
+                return;
+            }
 
-            resetProgress(currentSegment.dataset.segmentId);
+            const segmentId = currentSegment.dataset.segmentId;
+            if (!segmentId) {
+                console.error('無法取得片段ID，currentSegment:', currentSegment);
+                Swal.fire({
+                    title: '錯誤',
+                    text: '無法取得片段ID，請重新選擇片段後再試',
+                    icon: 'error',
+                    confirmButtonText: '確定'
+                });
+                return;
+            }
+
+            console.log('重置進度，片段ID:', segmentId);
+            resetProgress(segmentId);
         }
 
         // 重置進度
         function resetProgress(trainingInfoMainID) {
+            // 驗證 trainingInfoMainID 是否有效
+            if (!trainingInfoMainID || trainingInfoMainID === 'undefined' || trainingInfoMainID === 'null') {
+                console.error('無效的訓練資訊ID:', trainingInfoMainID);
+                Swal.fire({
+                    title: '錯誤',
+                    text: '無法取得片段ID，請重新選擇片段後再試',
+                    icon: 'error',
+                    confirmButtonText: '確定'
+                });
+                return;
+            }
+
             Swal.fire({
                 title: '提示',
                 text: "確定要重看該片段嗎？觀看進度將被重置為 0。",
@@ -970,16 +1016,20 @@
                     .then(response => {
                         // 檢查回應狀態
                         if (!response.ok) {
-                            throw new Error(`HTTP error! status: ${response.status}`);
+                            // 嘗試解析錯誤響應
+                            return response.text().then(text => {
+                                console.error('HTTP 錯誤響應:', text);
+                                throw new Error(`HTTP error! status: ${response.status}, response: ${text}`);
+                            });
                         }
                         return response.json();
                     })
                     .then(data => {
                         console.log('重置進度回應:', data);
-                        if (data.IsSuccess) {
+                        if (data && data.IsSuccess) {
                             Swal.fire({
                                 title: '成功',
-                                text: data.Msg,
+                                text: data.Msg || '已重置觀看進度',
                                 icon: 'success',
                                 timer: 1500,
                                 showConfirmButton: false
@@ -990,7 +1040,7 @@
                         } else {
                             Swal.fire({
                                 title: "錯誤",
-                                text: data.Msg || "重置失敗，請稍後再試",
+                                text: (data && data.Msg) || "重置失敗，請稍後再試",
                                 icon: "error",
                                 showConfirmButton: true
                             });
@@ -1042,7 +1092,8 @@
         window.addEventListener('beforeunload', function(e) {
             console.log('頁面即將卸載，更新進度');
             if (mainPlayerInstance && mainPlayerInstance.getCurrentTime) {
-                const currentSegment = document.querySelector(`[data-segment-index="${currentSegmentIndex}"]`);
+                // 選擇 .playlist-item 以獲取 segmentId
+                const currentSegment = document.querySelector(`.playlist-item[data-segment-index="${currentSegmentIndex}"]`);
                 if (currentSegment && currentSegment.dataset.segmentId) {
                     const currentTime = Math.floor(mainPlayerInstance.getCurrentTime());
                     const totalTime = mainPlayerInstance.getDuration ? Math.floor(mainPlayerInstance.getDuration()) : 0;
@@ -1063,7 +1114,8 @@
         window.addEventListener('unload', function() {
             console.log('頁面卸載中，更新進度');
             if (mainPlayerInstance && mainPlayerInstance.getCurrentTime) {
-                const currentSegment = document.querySelector(`[data-segment-index="${currentSegmentIndex}"]`);
+                // 選擇 .playlist-item 以獲取 segmentId
+                const currentSegment = document.querySelector(`.playlist-item[data-segment-index="${currentSegmentIndex}"]`);
                 if (currentSegment && currentSegment.dataset.segmentId) {
                     const currentTime = Math.floor(mainPlayerInstance.getCurrentTime());
                     const totalTime = mainPlayerInstance.getDuration ? Math.floor(mainPlayerInstance.getDuration()) : 0;

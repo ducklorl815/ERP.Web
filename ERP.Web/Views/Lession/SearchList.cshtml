@@ -1,9 +1,10 @@
-@model ERP.Web.Controllers.Lession.LessionSearchListViewModel
+@model LifeTech.ERP.Emanage.Web.Controllers.Lession.LessionSearchListViewModel
 @{
     ViewData["Title"] = "課程管理列表";
 }
 
 <div class="container-fluid">
+    @Html.AntiForgeryToken()
     <div class="row mb-3">
         <div class="col-12 d-flex justify-content-between align-items-center">
             <h2 class="mb-0"><i class="fas fa-list"></i> 課程管理列表</h2>
@@ -18,6 +19,22 @@
         </div>
     </div>
     <hr />
+
+    @if (TempData["SuccessMessage"] != null)
+    {
+        <div class="alert alert-success alert-dismissible fade show" role="alert">
+            <i class="fas fa-check-circle"></i> @TempData["SuccessMessage"]
+            <button type="button" class="btn-close" data-bs-dismiss="alert" aria-label="Close"></button>
+        </div>
+    }
+
+    @if (TempData["ErrorMessage"] != null)
+    {
+        <div class="alert alert-danger alert-dismissible fade show" role="alert">
+            <i class="fas fa-exclamation-circle"></i> @TempData["ErrorMessage"]
+            <button type="button" class="btn-close" data-bs-dismiss="alert" aria-label="Close"></button>
+        </div>
+    }
 
     @if (Model.LessionListWithSegmentCount != null && Model.LessionListWithSegmentCount.Any())
     {
@@ -58,6 +75,12 @@
                                            class="btn btn-sm btn-primary">
                                             <i class="fas fa-eye"></i> 查看詳情
                                         </a>
+                                        <button type="button" 
+                                                class="btn btn-sm btn-danger btn-delete" 
+                                                data-id="@item.LessionMain.ID"
+                                                data-name="@item.LessionMain.LessionName">
+                                            <i class="fas fa-trash"></i> 刪除
+                                        </button>
                                     </td>
                                 </tr>
                                 index++;
@@ -75,4 +98,73 @@
         </div>
     }
 </div>
+
+@section Scripts {
+    <script src="https://cdn.jsdelivr.net/npm/sweetalert2@11"></script>
+    <script>
+        document.addEventListener('DOMContentLoaded', function() {
+            // 為所有刪除按鈕綁定事件
+            document.querySelectorAll('.btn-delete').forEach(button => {
+                button.addEventListener('click', function() {
+                    const id = this.getAttribute('data-id');
+                    const name = this.getAttribute('data-name');
+                    deleteLession(id, name);
+                });
+            });
+        });
+
+        function deleteLession(id, name) {
+            Swal.fire({
+                title: '確認刪除',
+                html: `確定要刪除課程「<strong>${escapeHtml(name)}</strong>」嗎？<br><small class="text-muted">此操作將標記課程為已刪除，刪除後將不會在列表中顯示。</small>`,
+                icon: 'warning',
+                showCancelButton: true,
+                confirmButtonColor: '#d33',
+                cancelButtonColor: '#3085d6',
+                confirmButtonText: '確定刪除',
+                cancelButtonText: '取消',
+                reverseButtons: true
+            }).then((result) => {
+                if (result.isConfirmed) {
+                    // 創建表單並提交
+                    const form = document.createElement('form');
+                    form.method = 'POST';
+                    form.action = '@Url.Action("Delete", "Lession")';
+
+                    // 添加 AntiForgeryToken
+                    const token = document.querySelector('input[name="__RequestVerificationToken"]');
+                    if (token) {
+                        const tokenInput = document.createElement('input');
+                        tokenInput.type = 'hidden';
+                        tokenInput.name = '__RequestVerificationToken';
+                        tokenInput.value = token.value;
+                        form.appendChild(tokenInput);
+                    }
+
+                    // 添加 ID 參數
+                    const idInput = document.createElement('input');
+                    idInput.type = 'hidden';
+                    idInput.name = 'id';
+                    idInput.value = id;
+                    form.appendChild(idInput);
+
+                    document.body.appendChild(form);
+                    form.submit();
+                }
+            });
+        }
+
+        // 轉義 HTML 特殊字符
+        function escapeHtml(text) {
+            const map = {
+                '&': '&amp;',
+                '<': '&lt;',
+                '>': '&gt;',
+                '"': '&quot;',
+                "'": '&#039;'
+            };
+            return text.replace(/[&<>"']/g, m => map[m]);
+        }
+    </script>
+}
 

@@ -1,9 +1,9 @@
-@model ERP.Web.Controllers.Lession.LessionCreateViewModel
+@model LifeTech.ERP.Emanage.Web.Controllers.Lession.LessionCreateViewModel
 @{
     ViewData["Title"] = "新增課程片段";
 }
 
-<div class="container-fluid">
+<div class="container-fluid" style="margin-bottom: 100px; padding-bottom: 50px;">
     <div class="row">
         <div class="col-12">
             <h2>新增課程片段</h2>
@@ -34,7 +34,7 @@
                         <!-- 課程選擇 -->
                         <div class="card mb-3">
                             <div class="card-header bg-info text-white">
-                                <h6 class="mb-0"><i class="fas fa-book"></i> 選擇或建立課程</h6>
+                                <h3 class="mb-0"><i class="fas fa-book"></i> 選擇或建立課程</h3>
                             </div>
                             <div class="card-body">
                                 <div class="mb-3">
@@ -73,7 +73,7 @@
                         <!-- 片段基本資訊 -->
                         <div class="card mb-3">
                             <div class="card-header">
-                                <h6 class="mb-0"><i class="fas fa-video"></i> 片段基本資訊</h6>
+                                <h3 class="mb-0"><i class="fas fa-video"></i> 片段基本資訊</h3>
                             </div>
                             <div class="card-body">
                                 <div class="mb-3">
@@ -93,7 +93,7 @@
                         <!-- YouTube 影片資訊 -->
                         <div class="card mb-3">
                             <div class="card-header bg-primary text-white">
-                                <h6 class="mb-0"><i class="fab fa-youtube"></i> YouTube 影片資訊</h6>
+                                <h3 class="mb-0"><i class="fab fa-youtube"></i> YouTube 影片資訊</h3>
                             </div>
                             <div class="card-body">
                                 <div class="mb-3">
@@ -128,7 +128,7 @@
                                 <div id="videoPreview" class="mb-3" style="display: none;">
                                     <div class="card">
                                         <div class="card-body">
-                                            <h6 class="card-title">影片預覽</h6>
+                                            <h3 class="card-title">影片預覽</h3>
                                             <div class="embed-responsive embed-responsive-16by9" style="position: relative; padding-bottom: 56.25%; height: 0; overflow: hidden;">
                                                 <iframe id="previewIframe" 
                                                         style="position: absolute; top: 0; left: 0; width: 100%; height: 100%;"
@@ -146,7 +146,7 @@
                         <!-- 圖片設定 -->
                         <div class="card mb-3">
                             <div class="card-header">
-                                <h6 class="mb-0"><i class="fas fa-image"></i> 圖片設定（選填）</h6>
+                                <h3 class="mb-0"><i class="fas fa-image"></i> 圖片設定（選填）</h3>
                             </div>
                             <div class="card-body">
                                 <div class="mb-3">
@@ -161,7 +161,7 @@
                         <!-- 影片標籤/錨點管理 -->
                         <div class="card mb-3">
                             <div class="card-header bg-primary text-white">
-                                <h6 class="mb-0"><i class="fas fa-tags"></i> 影片標籤/錨點管理</h6>
+                                <h3 class="mb-0"><i class="fas fa-tags"></i> 影片標籤/錨點管理</h3>
                             </div>
                             <div class="card-body">
                                 <p class="text-muted small mb-3">
@@ -203,7 +203,7 @@
                     <h5 class="mb-0"><i class="fas fa-info-circle"></i> 使用說明</h5>
                 </div>
                 <div class="card-body">
-                    <h6>填寫說明：</h6>
+                    <h3>填寫說明：</h3>
                     <ul class="list-unstyled">
                         <li class="mb-2">
                             <strong>選擇或建立課程：</strong><br>
@@ -228,7 +228,7 @@
 
                     <hr />
 
-                    <h6>範例：</h6>
+                    <h3>範例：</h3>
                     <div class="alert alert-light">
                         <strong>課程：</strong> Python 基礎課程<br>
                         <strong>片段標題：</strong> 第一章 - 基礎介紹<br>

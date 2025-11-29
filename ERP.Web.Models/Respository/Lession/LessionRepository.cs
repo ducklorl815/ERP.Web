@@ -1,11 +1,11 @@
 using Dapper;
-using ERP.Web.Models.Models.Lession;
-using ERP.Web.Utility.Models;
-using Microsoft.Data.SqlClient;
+using LifeTech.ERP.Emanage.Web.Models.Models.Lession;
+using LifeTech.ERP.Emanage.Web.Utility.Models;
+using System.Data.SqlClient;
 using Microsoft.Extensions.Options;
 using System.Text.Json;
 
-namespace ERP.Web.Models.Respository.Lession
+namespace LifeTech.ERP.Emanage.Web.Models.Respository.Lession
 {
     /// <summary>
     /// 課程紀錄 Repository
@@ -584,6 +584,38 @@ namespace ERP.Web.Models.Respository.Lession
                     ModifyUser = @ModifyUser,
                     ModifyDept = @ModifyDept
                 WHERE ID = @ID
+            ";
+
+            using var conn = new SqlConnection(_dBList.erp);
+            try
+            {
+                var result = await conn.ExecuteAsync(sql, sqlparam);
+                return result > 0;
+            }
+            catch
+            {
+                return false;
+            }
+        }
+
+        /// <summary>
+        /// 刪除主要課程（軟刪除，將 Deleted 設為 1）
+        /// </summary>
+        public async Task<bool> DeleteLessionMainAsync(Guid id, Guid modifyUser, Guid modifyDept)
+        {
+            var sqlparam = new DynamicParameters();
+            sqlparam.Add("ID", id);
+            sqlparam.Add("ModifyDate", DateTime.Now);
+            sqlparam.Add("ModifyUser", modifyUser);
+            sqlparam.Add("ModifyDept", modifyDept);
+
+            var sql = @"
+                UPDATE [Lession].[dbo].[LessionMain]
+                SET Deleted = 1,
+                    ModifyDate = @ModifyDate,
+                    ModifyUser = @ModifyUser,
+                    ModifyDept = @ModifyDept
+                WHERE ID = @ID AND Deleted = 0
             ";
 
             using var conn = new SqlConnection(_dBList.erp);
