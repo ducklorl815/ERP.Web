@@ -53,7 +53,23 @@ namespace ERP.Web.Controllers.Account
                     return View();
                 }
 
-                // 登入成功 - 初始化使用者資料和權限
+                // 檢查是否啟用 OTP
+                var isOTPEnabled = !string.IsNullOrEmpty(result.Account) && await _otpService.IsOTPEnabledAsync(result.Account);
+                
+                if (isOTPEnabled)
+                {
+                    // 需要 OTP 驗證，將登入資訊暫存到 TempData
+                    TempData["PendingLogin_Account"] = result.Account;
+                    TempData["PendingLogin_EmpID"] = result.EmpID;
+                    TempData["PendingLogin_EmpName"] = result.EmpName;
+                    TempData["PendingLogin_ReturnUrl"] = model.ReturnUrl;
+                    TempData["PendingLogin_AutoLogin"] = model.AutoLogin;
+                    
+                    // 導向 OTP 驗證頁面
+                    return RedirectToAction("VerifyOTP", new { account = result.Account, returnUrl = model.ReturnUrl });
+                }
+
+                // 未啟用 OTP，直接完成登入
                 await InitializeUserSessionAsync(result.Account, result.EmpName, result.EmpID);
 
                 // 處理自動登入 Cookie（只記錄帳號，供下次自動登入使用）
@@ -114,8 +130,16 @@ namespace ERP.Web.Controllers.Account
             HttpContext.Session.SetString("UserName", empName ?? string.Empty);
             HttpContext.Session.SetString("UserEmpID", empID ?? string.Empty);
             HttpContext.Session.SetString("LoginTime", DateTime.Now.ToString("yyyy-MM-dd HH:mm:ss"));
+            
+            // 2. 記錄 OTP 驗證狀態（如果已啟用 OTP）
+            var isOTPEnabled = await _otpService.IsOTPEnabledAsync(account);
+            if (isOTPEnabled)
+            {
+                HttpContext.Session.SetString("OTPVerified", "true");
+                HttpContext.Session.SetString("OTPVerifiedTime", DateTime.Now.ToString("yyyy-MM-dd HH:mm:ss"));
+            }
 
-            // 2. 初始化使用者權限（透過 PermissionService）
+            // 3. 初始化使用者權限（透過 PermissionService）
             // 根據帳號取得權限，並自動寫入 Cookie
             if (!string.IsNullOrEmpty(account))
             {

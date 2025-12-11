@@ -2,7 +2,7 @@ using ERP.Web.Models.Respository.Account;
 using ERP.Web.Service.ViewModels.Account;
 using Microsoft.Extensions.Configuration;
 
-namespace LifeTech.ERP.Web.Service.Service
+namespace ERP.Web.Service.Service.Account
 {
     /// <summary>
     /// 帳號登入服務

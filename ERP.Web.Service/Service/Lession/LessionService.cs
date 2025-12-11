@@ -1,8 +1,8 @@
-using LifeTech.ERP.Emanage.Web.Models.Models.Lession;
-using LifeTech.ERP.Emanage.Web.Models.Respository.Lession;
+using ERP.Web.Models.Models.Lession;
+using ERP.Web.Models.Respository.Lession;
 using System.Text.Json;
 
-namespace LifeTech.ERP.Emanage.Web.Service.Service.Lession
+namespace ERP.Web.Service.Service.Lession
 {
     /// <summary>
     /// 課程紀錄服務

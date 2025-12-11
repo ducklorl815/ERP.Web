@@ -1,5 +1,5 @@
-﻿using LifeTech.ERP.Emanage.Web.Models.Models.Lession;
-using LifeTech.ERP.Emanage.Web.Service.Service.Lession;
+﻿using ERP.Web.Models.Models.Lession;
+using ERP.Web.Service.Service.Lession;
 using Microsoft.AspNetCore.Mvc.Rendering;
 using System;
 using System.Collections.Generic;
@@ -8,7 +8,7 @@ using System.Linq;
 using System.Text;
 using System.Threading.Tasks;
 
-namespace LifeTech.ERP.Emanage.Web.Service.ViewModels
+namespace ERP.Web.Service.ViewModels
 {
     /// <summary>
     /// 課程列表 ViewModel

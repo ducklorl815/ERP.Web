@@ -12,7 +12,7 @@ using ERP.Web.Service.Service.Lession;
 using ERP.Web.Service.Service.Slack;
 using ERP.Web.Utility.Models;
 using ERP.Web.Utility.Services;
-using LifeTech.ERP.Web.Service.Service;
+using ERP.Web.Service.Service.Account;
 using Microsoft.Extensions.FileProviders;
 
 var builder = WebApplication.CreateBuilder(args);
@@ -41,6 +41,10 @@ builder.Services.AddSingleton<IPermissionService, PermissionService>();
 // 帳號登入服務（Scoped - 每個 HTTP 請求一個實例）
 builder.Services.AddScoped<AccountLoginService>();
 builder.Services.AddScoped<AccountLoginRepo>();
+
+// OTP 服務（Scoped - 每個 HTTP 請求一個實例）
+builder.Services.AddScoped<ERP.Web.Service.Service.Account.OTPService>();
+builder.Services.AddScoped<OTPRepository>();
 
 // 其他服務
 builder.Services.AddSingleton<ControllerSettingService>();

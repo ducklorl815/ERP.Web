@@ -11,6 +11,8 @@
     <PackageReference Include="EPPlus" Version="6.2.16" />
     <!-- 移除 Microsoft.AspNet.Mvc - ASP.NET Core 已內建 MVC 功能 -->
     <PackageReference Include="Microsoft.AspNetCore.Http.Features" Version="5.0.17" />
+    <!-- OTP 功能：TOTP (Time-based One-Time Password) -->
+    <PackageReference Include="Otp.NET" Version="1.3.0" />
   </ItemGroup>
 
   <ItemGroup>

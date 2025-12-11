@@ -6,7 +6,6 @@ namespace ERP.Web.Controllers.ControllerSetting
 
     public partial class ControllerSettingController : Controller
     {
-
         /// <summary>
         /// 查詢AccessGroup
         /// </summary>

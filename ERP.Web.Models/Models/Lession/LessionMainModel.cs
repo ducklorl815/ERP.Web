@@ -1,4 +1,4 @@
-namespace LifeTech.ERP.Emanage.Web.Models.Models.Lession
+namespace ERP.Web.Models.Models.Lession
 {
     /// <summary>
     /// 訓練資訊主表 Model

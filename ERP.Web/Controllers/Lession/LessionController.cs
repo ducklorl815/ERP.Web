@@ -1,14 +1,11 @@
-using LifeTech.ERP.Emanage.Web.Models.Models.Lession;
-using LifeTech.ERP.Emanage.Web.Service.Service.Lession;
-using LifeTech.ERP.Emanage.Web.Service.ViewModels;
-using LifeTech.ERP.Utility.Extensions;
-using LifeTech.Utility.Helper;
+using ERP.Web.Service.Service.Lession;
+using ERP.Web.Service.ViewModels;
 using Microsoft.AspNetCore.Mvc;
 using Microsoft.AspNetCore.Mvc.Rendering;
-using System.ComponentModel.DataAnnotations;
+using System.Net.Http.Json;
 
 
-namespace LifeTech.ERP.Emanage.Web.Controllers.Lession
+namespace ERP.Web.Controllers.Lession
 {
     /// <summary>
     /// 課程紀錄控制器
@@ -18,19 +15,16 @@ namespace LifeTech.ERP.Emanage.Web.Controllers.Lession
     {
         private readonly LessionService _lessionService;
         private readonly IConfiguration _configuration;
-        private readonly HttpClientHelper _httpClientHelper;
         private readonly IHttpContextAccessor _httpAccessor;
 
         public LessionController(
             LessionService lessionService, 
             IConfiguration configuration, 
-            HttpClientHelper httpClientHelper,
             IHttpContextAccessor httpContextAccessor
             )
         {
             _lessionService = lessionService;
             _configuration = configuration;
-            _httpClientHelper = httpClientHelper;
             _httpAccessor = httpContextAccessor;
         }
 
@@ -487,10 +481,9 @@ namespace LifeTech.ERP.Emanage.Web.Controllers.Lession
                     return Json(new { success = false, message = "YouTube API Key 未設定，請手動輸入影片時長" });
                 }
 
-                var httpRequest = new HttpRequestMessage();
-                httpRequest.RequestUri = new Uri($"https://www.googleapis.com/youtube/v3/videos?id={videoId}&key={apiKey}&part=contentDetails");
-                httpRequest.Method = HttpMethod.Get;
-                var response = await _httpClientHelper.GetJsonAsync<YouTubeApiResponse>(httpRequest);
+                using var httpClient = new HttpClient();
+                var requestUri = new Uri($"https://www.googleapis.com/youtube/v3/videos?id={videoId}&key={apiKey}&part=contentDetails");
+                var response = await httpClient.GetFromJsonAsync<YouTubeApiResponse>(requestUri);
                 
                 if (response?.Items == null || response.Items.Count == 0)
                 {
@@ -546,20 +539,8 @@ namespace LifeTech.ERP.Emanage.Web.Controllers.Lession
                 // Session 可能未啟用或無法訪問
             }
 
-            // 如果 Session 中沒有，嘗試從 User.Identity 獲取（向後相容）
-            try
-            {
-                var identityName = _httpAccessor.HttpContext?.User?.Identity?.GetName();
-                if (!string.IsNullOrEmpty(identityName) && Guid.TryParse(identityName, out Guid employeeMainID))
-                {
-                    return employeeMainID;
-                }
-            }
-            catch
-            {
-                // 無法從 Identity 獲取
-            }
-
+            // 如果 Session 中沒有，無法從 User.Identity 獲取（擴充方法不存在）
+            // 返回 Guid.Empty
             return Guid.Empty;
         }
 
@@ -584,20 +565,8 @@ namespace LifeTech.ERP.Emanage.Web.Controllers.Lession
                 // Session 可能未啟用或無法訪問
             }
 
-            // 如果 Session 中沒有，嘗試從 User.Identity 獲取（向後相容）
-            try
-            {
-                var identityName = _httpAccessor.HttpContext?.User?.Identity?.GetName();
-                if (!string.IsNullOrEmpty(identityName) && Guid.TryParse(identityName, out Guid createUser))
-                {
-                    return createUser;
-                }
-            }
-            catch
-            {
-                // 無法從 Identity 獲取
-            }
-
+            // 如果 Session 中沒有，無法從 User.Identity 獲取（擴充方法不存在）
+            // 返回 Guid.Empty
             return Guid.Empty;
         }
 
@@ -622,20 +591,8 @@ namespace LifeTech.ERP.Emanage.Web.Controllers.Lession
                 // Session 可能未啟用或無法訪問
             }
 
-            // 如果 Session 中沒有，嘗試從 User.Identity 獲取（向後相容）
-            try
-            {
-                var identityDeptID = _httpAccessor.HttpContext?.User?.Identity?.GetDeptID();
-                if (!string.IsNullOrEmpty(identityDeptID) && Guid.TryParse(identityDeptID, out Guid createDept))
-                {
-                    return createDept;
-                }
-            }
-            catch
-            {
-                // 無法從 Identity 獲取
-            }
-
+            // 如果 Session 中沒有，無法從 User.Identity 獲取（擴充方法不存在）
+            // 返回 Guid.Empty
             return Guid.Empty;
         }
     }

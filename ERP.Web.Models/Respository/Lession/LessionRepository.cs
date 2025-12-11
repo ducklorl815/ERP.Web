@@ -1,11 +1,11 @@
 using Dapper;
-using LifeTech.ERP.Emanage.Web.Models.Models.Lession;
-using LifeTech.ERP.Emanage.Web.Utility.Models;
-using System.Data.SqlClient;
+using ERP.Web.Models.Models.Lession;
+using ERP.Web.Utility.Models;
+using Microsoft.Data.SqlClient;
 using Microsoft.Extensions.Options;
 using System.Text.Json;
 
-namespace LifeTech.ERP.Emanage.Web.Models.Respository.Lession
+namespace ERP.Web.Models.Respository.Lession
 {
     /// <summary>
     /// 課程紀錄 Repository

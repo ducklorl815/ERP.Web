@@ -37,7 +37,7 @@ namespace ERP.Web.Models.Respository.Account
                     SELECT COUNT(*) 
                       FROM erp.dbo.EmployeeMain
                      WHERE Email = @Email
-                       AND Password = HASHBYTES('SHA2_256', @Password + Salt)
+                       AND Password = CONVERT(VARCHAR(64), HASHBYTES('SHA2_256', @Password), 2)
                        AND IsActive = 1
                        AND Enabled = 1
                        AND Deleted = 0
@@ -262,7 +262,7 @@ namespace ERP.Web.Models.Respository.Account
     public class EmployeeMain
     {
         /// <summary>員工ID（主鍵）</summary>
-        public string ID { get; set; } = string.Empty;
+        public Guid ID { get; set; }
 
         /// <summary>中文姓名</summary>
         public string CName { get; set; } = string.Empty;
@@ -295,7 +295,7 @@ namespace ERP.Web.Models.Respository.Account
         public DateTime? ModifyDate { get; set; }
 
         /// <summary>修改人員</summary>
-        public string ModifyUser { get; set; } = string.Empty;
+        public Guid ModifyUser { get; set; }
 
         /// <summary>啟用狀態（系統欄位）</summary>
         public bool Enabled { get; set; }
@@ -309,7 +309,7 @@ namespace ERP.Web.Models.Respository.Account
         public string Account => Email;
 
         /// <summary>員工ID（對應到 ID）</summary>
-        public string EmpID => ID;
+        public string EmpID => ID.ToString();
 
         /// <summary>員工姓名（對應到 CName）</summary>
         public string EmpName => CName;
