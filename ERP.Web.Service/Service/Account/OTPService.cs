@@ -42,21 +42,14 @@ namespace ERP.Web.Service.Service.Account
 
         /// <summary>
         /// 生成 TOTP Secret Key 和 QR Code URL
+        /// 不管是否已經設定過，都會生成新的 QR Code 供使用者掃描
         /// </summary>
         public async Task<OTPSetupResult> SetupTOTPAsync(string account, string? employeeMainID = null)
         {
             try
             {
-                // 檢查是否已經設定過
+                // 取得現有設定（如果有的話），用於取得 EmployeeMainID
                 var existingSetting = await _otpRepository.GetOTPSettingAsync(account);
-                if (existingSetting != null && existingSetting.IsOTPEnabled && !string.IsNullOrEmpty(existingSetting.SecretKey))
-                {
-                    return new OTPSetupResult
-                    {
-                        IsSuccess = false,
-                        ErrorMessage = "此帳號已經設定過 OTP，如需重新設定請先停用"
-                    };
-                }
 
                 // 生成新的 Secret Key（20 bytes = 160 bits，符合 RFC 4226 建議）
                 var secretKey = KeyGeneration.GenerateRandomKey(20);
@@ -73,6 +66,11 @@ namespace ERP.Web.Service.Service.Account
                 {
                     empID = parsedID;
                 }
+                else if (existingSetting != null)
+                {
+                    // 如果已有設定，使用現有的 EmployeeMainID
+                    empID = existingSetting.EmployeeMainID;
+                }
                 else
                 {
                     var empMainID = await _otpRepository.GetEmployeeMainIDAsync(account);
@@ -87,26 +85,40 @@ namespace ERP.Web.Service.Service.Account
                     empID = empMainID.Value;
                 }
 
-                // 儲存 OTP 設定（先不啟用，等使用者驗證成功後再啟用）
-                var setting = new EmployeeOTPSetting
+                // 儲存或更新 OTP 設定（先不啟用，等使用者驗證成功後再啟用）
+                EmployeeOTPSetting setting;
+                if (existingSetting != null)
                 {
-                    ID = Guid.NewGuid(),
-                    EmployeeMainID = empID,
-                    Email = account,
-                    IsOTPEnabled = false, // 先不啟用，等驗證成功後再啟用
-                    OTPType = "TOTP",
-                    SecretKey = encryptedSecretKey,
-                    CreateUser = account,
-                    ModifyUser = account
-                };
+                    // 如果已有設定，更新現有的設定
+                    setting = existingSetting;
+                    setting.SecretKey = encryptedSecretKey;
+                    setting.IsOTPEnabled = false; // 重新設定時先不啟用，等驗證成功後再啟用
+                    setting.ModifyUser = account;
+                    setting.ModifyDate = DateTime.Now;
+                }
+                else
+                {
+                    // 如果沒有設定，建立新的設定
+                    setting = new EmployeeOTPSetting
+                    {
+                        ID = Guid.NewGuid(),
+                        EmployeeMainID = empID,
+                        Email = account,
+                        IsOTPEnabled = false, // 先不啟用，等驗證成功後再啟用
+                        OTPType = "TOTP",
+                        SecretKey = encryptedSecretKey,
+                        CreateUser = account,
+                        ModifyUser = account
+                    };
+                }
 
-                var saveResult = await _otpRepository.SaveOTPSettingAsync(setting);
-                if (!saveResult)
+                var (saveSuccess, saveError) = await _otpRepository.SaveOTPSettingAsync(setting);
+                if (!saveSuccess)
                 {
                     return new OTPSetupResult
                     {
                         IsSuccess = false,
-                        ErrorMessage = "儲存 OTP 設定失敗"
+                        ErrorMessage = saveError ?? "儲存 OTP 設定失敗"
                     };
                 }
 
@@ -138,18 +150,6 @@ namespace ERP.Web.Service.Service.Account
         {
             try
             {
-                // 檢查驗證次數限制（10 分鐘內最多 5 次）
-                var attemptCount = await _otpRepository.GetRecentOTPAttemptCountAsync(account, 10);
-                if (attemptCount >= 5)
-                {
-                    await _otpRepository.LogOTPAttemptAsync(account, "TOTP", false, ipAddress, userAgent);
-                    return new OTPVerifyResult
-                    {
-                        IsSuccess = false,
-                        ErrorMessage = "驗證次數過多，請稍後再試"
-                    };
-                }
-
                 // 取得 OTP 設定
                 var setting = await _otpRepository.GetOTPSettingAsync(account);
                 if (setting == null || string.IsNullOrEmpty(setting.SecretKey))
@@ -200,7 +200,12 @@ namespace ERP.Web.Service.Service.Account
                 {
                     setting.IsOTPEnabled = true;
                     setting.ModifyUser = account;
-                    await _otpRepository.SaveOTPSettingAsync(setting);
+                    var (enableSuccess, enableError) = await _otpRepository.SaveOTPSettingAsync(setting);
+                    if (!enableSuccess)
+                    {
+                        Console.WriteLine($"啟用 OTP 時發生錯誤: {enableError}");
+                        // 即使啟用失敗，驗證仍然成功，繼續登入流程
+                    }
                 }
 
                 return new OTPVerifyResult
@@ -235,7 +240,12 @@ namespace ERP.Web.Service.Service.Account
 
                 setting.IsOTPEnabled = false;
                 setting.ModifyUser = account;
-                return await _otpRepository.SaveOTPSettingAsync(setting);
+                var (disableSuccess, disableError) = await _otpRepository.SaveOTPSettingAsync(setting);
+                if (!disableSuccess)
+                {
+                    Console.WriteLine($"停用 OTP 時發生錯誤: {disableError}");
+                }
+                return disableSuccess;
             }
             catch (Exception ex)
             {

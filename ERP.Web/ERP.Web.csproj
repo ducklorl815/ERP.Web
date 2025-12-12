@@ -27,6 +27,9 @@
     <!-- 使用完全支援 net6.0 的 EPPlus 版本，避免相依套件版本衝突 -->
     <PackageReference Include="EPPlus" Version="6.2.16" />
     <!-- SignalR 已內建於 .NET 6 的 Microsoft.AspNetCore.App 框架中，不需要單獨安裝套件 -->
+    <!-- QRCoder 用於生成 QR Code 圖片 -->
+    <PackageReference Include="QRCoder" Version="1.6.0" />
+    <PackageReference Include="System.Drawing.Common" Version="10.0.1" />
   </ItemGroup>
 
   <ItemGroup>

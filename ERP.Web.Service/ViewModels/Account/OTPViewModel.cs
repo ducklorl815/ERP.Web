@@ -37,9 +37,14 @@ namespace ERP.Web.Service.ViewModels.Account
         public string? SecretKey { get; set; }
 
         /// <summary>
-        /// QR Code URL
+        /// QR Code URL（otpauth:// 格式）
         /// </summary>
         public string? QRCodeUrl { get; set; }
+
+        /// <summary>
+        /// QR Code 圖片 URL（Base64 格式，用於直接顯示）
+        /// </summary>
+        public string? QRCodeImageUrl { get; set; }
 
         /// <summary>
         /// 是否已啟用 OTP

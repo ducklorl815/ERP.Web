@@ -1,0 +1,194 @@
+@model ERP.Web.Service.ViewModels.Account.OTPSetupViewModel
+@using Newtonsoft.Json
+
+@if (!string.IsNullOrEmpty(Model.ErrorMessage))
+{
+    <div class="alert alert-danger">
+        <i class="fas fa-exclamation-circle"></i> @Model.ErrorMessage
+    </div>
+}
+
+<!-- 顯示 QR Code 和設定步驟 -->
+<div class="alert alert-info">
+    <i class="fas fa-info-circle"></i> 請按照以下步驟完成 OTP 設定
+</div>
+
+<!-- 設定步驟說明 -->
+<div class="card mb-4">
+    <div class="card-body">
+        <h2 class="card-title mb-3"><i class="fas fa-list-ol"></i> 設定步驟：</h2>
+        <ol class="mb-0" style="padding-left: 1.5rem;">
+            <li class="mb-2">
+                <strong>安裝驗證器 App</strong>
+                <ul style="margin-top: 5px; margin-bottom: 0;">
+                    <li><strong>手機版：</strong>Google Authenticator、Microsoft Authenticator、Authy</li>
+                    <li>
+                        <strong>電腦版：</strong>
+                        <ul style="margin-top: 5px; margin-bottom: 0;">
+                            <li>Chrome 擴充功能：<a href="https://chromewebstore.google.com/detail/authenticator/bhghoamapcdpbohphigoooaddinpkbai" target="_blank">安裝 Authenticator</a></li>
+                            <li>Edge 擴充功能：<a href="https://microsoftedge.microsoft.com/addons/detail/authenticator-2fa-client/ocglkepbibnalbgmbachknglpdipeoio" target="_blank">安裝 Authenticator</a></li>
+                        </ul>
+                    </li>
+                </ul>
+            </li>
+            <li class="mb-2">點擊右上角並Lock Authenticator 驗證器 App，點擊「<strong>+</strong>」或「<strong>新增帳號</strong>」</li>
+            <li class="mb-2">選擇「<strong>掃描 QR Code</strong>」</li>
+            <li class="mb-2">掃描下方顯示的 QR Code
+
+                <!-- RWD 排版：電腦版並排，手機版上下排列 -->
+                <div class="row justify-content-center align-items-center mt-4">
+                    <!-- QR Code 區塊 -->
+                    <div class="col-md-5 col-sm-12 text-center mb-4 mb-md-0">
+                        <h5 class="mb-3"><i class="fas fa-qrcode"></i> 掃描 QR Code</h5>
+
+                        @if (!string.IsNullOrEmpty(Model.QRCodeImageUrl))
+                        {
+                            <!-- QR Code 圖片顯示 -->
+                            <div class="mb-3">
+                                <img src="@Model.QRCodeImageUrl"
+                                     alt="TOTP QR Code"
+                                     class="img-fluid border rounded shadow-sm"
+                                     style="max-width: 250px; width: 100%; background: white; padding: 10px;"
+                                     id="qrCodeImage" />
+                            </div>
+                        }
+                        else if (!string.IsNullOrEmpty(Model.QRCodeUrl))
+                        {
+                            <div class="alert alert-danger">
+                                <i class="fas fa-exclamation-triangle"></i> QR Code 圖片生成失敗
+                            </div>
+                        }
+                        else
+                        {
+                            <div class="alert alert-warning">
+                                <i class="fas fa-exclamation-triangle"></i> QR Code 尚未生成
+                            </div>
+                        }
+                        <p class="mt-3 text-muted small">
+                            <i class="fas fa-mobile-alt d-md-none"></i>
+                            <i class="fas fa-desktop d-none d-md-inline"></i>
+                            使用驗證器 App 掃描此 QR Code 即可完成綁定
+                        </p>
+                    </div>
+                </div>
+
+            </li>
+            <li class="mb-2">
+                App 會自動新增「<strong>ERP System</strong>」帳號，並完成綁定<br />
+            </li>
+            <li class="mb-2">在驗證碼輸入框中輸入 Authenticator 驗證器顯示的 6 位數驗證碼</li>
+            <li class="mb-2">完成設定</li>
+        </ol>
+    </div>
+</div>
+
+
+
+<script>
+    // 驗證 OTP 設定（使用 AJAX）
+    function verifyOTPSetup(event) {
+        event.preventDefault();
+        var verifyCode = document.getElementById('verifyCode').value.trim();
+        var resultDiv = document.getElementById('verifyResult');
+
+        if (verifyCode.length !== 6) {
+            resultDiv.innerHTML = '<div class="alert alert-danger"><i class="fas fa-exclamation-circle"></i> 請輸入 6 位數驗證碼</div>';
+            return;
+        }
+
+        // 顯示載入狀態
+        resultDiv.innerHTML = '<div class="alert alert-info"><i class="fas fa-spinner fa-spin"></i> 驗證中...</div>';
+        var submitBtn = event.target.querySelector('button[type="submit"]');
+        submitBtn.disabled = true;
+        submitBtn.innerHTML = '<i class="fas fa-spinner fa-spin"></i> 驗證中...';
+
+        // 使用 AJAX 呼叫後端驗證
+        fetch('@Url.Action("VerifyOTP", "Account")', {
+            method: 'POST',
+            headers: {
+                'Content-Type': 'application/x-www-form-urlencoded',
+            },
+            body: new URLSearchParams({
+                'Account': '@Model.Account',
+                'OTPCode': verifyCode
+            })
+        })
+            .then(response => {
+                if (response.redirected) {
+                    // 驗證成功，關閉 Modal 並重新載入頁面
+                    var modal = bootstrap.Modal.getInstance(document.getElementById('otpHelpModal'));
+                    if (modal) {
+                        modal.hide();
+                    }
+                    window.location.href = response.url;
+                } else {
+                    return response.text();
+                }
+            })
+            .then(data => {
+                if (data) {
+                    // 驗證失敗，顯示錯誤訊息
+                    resultDiv.innerHTML = '<div class="alert alert-danger"><i class="fas fa-times-circle"></i> ' +
+                        (data.includes('驗證碼錯誤') ? '驗證碼錯誤，請重新輸入' : '驗證失敗，請檢查驗證碼是否正確') +
+                        '</div>';
+                    submitBtn.disabled = false;
+                    submitBtn.innerHTML = '<i class="fas fa-check"></i> 驗證並啟用 OTP';
+                    // 清空輸入框並重新聚焦
+                    document.getElementById('verifyCode').value = '';
+                    document.getElementById('verifyCode').focus();
+                }
+            })
+            .catch(error => {
+                console.error('Error:', error);
+                resultDiv.innerHTML = '<div class="alert alert-danger"><i class="fas fa-exclamation-triangle"></i> 系統發生錯誤，請稍後再試</div>';
+                submitBtn.disabled = false;
+                submitBtn.innerHTML = '<i class="fas fa-check"></i> 驗證並啟用 OTP';
+            });
+    }
+
+    // 複製 Secret Key
+    function copySecretKey() {
+        var secretKeyInput = document.getElementById('secretKey');
+        var secretKey = secretKeyInput ? secretKeyInput.value : '';
+        if (!secretKey) {
+            alert('無法取得 Secret Key');
+            return;
+        }
+
+        navigator.clipboard.writeText(secretKey).then(function () {
+            alert('Secret Key 已複製到剪貼簿！');
+        }, function (err) {
+            // 備用方案：使用傳統方法
+            var textArea = document.createElement('textarea');
+            textArea.value = secretKey;
+            textArea.style.position = 'fixed';
+            textArea.style.opacity = '0';
+            document.body.appendChild(textArea);
+            textArea.select();
+            try {
+                document.execCommand('copy');
+                alert('Secret Key 已複製到剪貼簿！');
+            } catch (err) {
+                alert('複製失敗，請手動複製：' + secretKey);
+            }
+            document.body.removeChild(textArea);
+        });
+    }
+
+    // 限制驗證碼輸入為數字
+    document.addEventListener('DOMContentLoaded', function () {
+        var verifyCodeInput = document.getElementById('verifyCode');
+        if (verifyCodeInput) {
+            // 自動聚焦
+            setTimeout(function () {
+                verifyCodeInput.focus();
+            }, 500);
+
+            // 限制只能輸入數字
+            verifyCodeInput.addEventListener('input', function (e) {
+                this.value = this.value.replace(/[^0-9]/g, '');
+            });
+        }
+    });
+</script>
+

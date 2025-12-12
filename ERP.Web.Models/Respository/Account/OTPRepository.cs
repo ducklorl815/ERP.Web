@@ -67,8 +67,29 @@ namespace ERP.Web.Models.Respository.Account
         /// <summary>
         /// 儲存 OTP 設定
         /// </summary>
-        public async Task<bool> SaveOTPSettingAsync(EmployeeOTPSetting setting)
+        public async Task<(bool Success, string? ErrorMessage)> SaveOTPSettingAsync(EmployeeOTPSetting setting)
         {
+            // 驗證必要欄位
+            if (setting == null)
+            {
+                return (false, "OTP 設定資料為空");
+            }
+
+            if (string.IsNullOrEmpty(setting.Email))
+            {
+                return (false, "Email 欄位為空");
+            }
+
+            if (setting.EmployeeMainID == Guid.Empty)
+            {
+                return (false, "EmployeeMainID 欄位為空");
+            }
+
+            if (string.IsNullOrEmpty(setting.SecretKey))
+            {
+                return (false, "SecretKey 欄位為空");
+            }
+
             var sqlparam = new DynamicParameters();
             sqlparam.Add("ID", setting.ID);
             sqlparam.Add("EmployeeMainID", setting.EmployeeMainID);
@@ -76,10 +97,10 @@ namespace ERP.Web.Models.Respository.Account
             sqlparam.Add("IsOTPEnabled", setting.IsOTPEnabled);
             sqlparam.Add("OTPType", setting.OTPType ?? "TOTP");
             sqlparam.Add("SecretKey", setting.SecretKey); // 已加密的 Secret Key
-            sqlparam.Add("BackupPhone", setting.BackupPhone);
-            sqlparam.Add("BackupEmail", setting.BackupEmail);
-            sqlparam.Add("CreateUser", setting.CreateUser);
-            sqlparam.Add("ModifyUser", setting.ModifyUser);
+            sqlparam.Add("BackupPhone", (object?)setting.BackupPhone ?? string.Empty);
+            sqlparam.Add("BackupEmail", (object?)setting.BackupEmail ?? string.Empty);
+            sqlparam.Add("CreateUser", setting.CreateUser ?? string.Empty);
+            sqlparam.Add("ModifyUser", setting.ModifyUser ?? string.Empty);
 
             var sql = @"
                 IF EXISTS (SELECT 1 FROM erp.dbo.EmployeeOTPSetting WHERE Email = @Email AND Deleted = 0)
@@ -134,14 +155,38 @@ namespace ERP.Web.Models.Respository.Account
             {
                 using (var conn = new SqlConnection(_dBList.erp))
                 {
+                    await conn.OpenAsync();
                     var result = await conn.ExecuteAsync(sql, sqlparam);
-                    return result > 0;
+                    return (result > 0, null);
                 }
+            }
+            catch (SqlException sqlEx)
+            {
+                var errorMsg = $"資料庫錯誤: {sqlEx.Message}";
+                if (sqlEx.Number == 2) // 無法連線到資料庫
+                {
+                    errorMsg = "無法連線到資料庫，請檢查連線設定";
+                }
+                else if (sqlEx.Number == 208) // 無效的物件名稱（資料表不存在）
+                {
+                    errorMsg = "資料表 erp.dbo.EmployeeOTPSetting 不存在，請檢查資料庫結構";
+                }
+                else if (sqlEx.Number == 515) // 無法插入 NULL 值
+                {
+                    errorMsg = $"無法插入 NULL 值: {sqlEx.Message}";
+                }
+                
+                Console.WriteLine($"儲存 OTP 設定時發生 SQL 錯誤: {sqlEx.Message}");
+                Console.WriteLine($"SQL 錯誤編號: {sqlEx.Number}");
+                Console.WriteLine($"堆疊追蹤: {sqlEx.StackTrace}");
+                return (false, errorMsg);
             }
             catch (Exception ex)
             {
-                Console.WriteLine($"儲存 OTP 設定時發生錯誤: {ex.Message}");
-                return false;
+                var errorMsg = $"儲存 OTP 設定時發生錯誤: {ex.Message}";
+                Console.WriteLine(errorMsg);
+                Console.WriteLine($"堆疊追蹤: {ex.StackTrace}");
+                return (false, errorMsg);
             }
         }
 

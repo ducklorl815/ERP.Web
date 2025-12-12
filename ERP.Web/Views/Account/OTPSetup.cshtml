@@ -1,4 +1,5 @@
 @model ERP.Web.Service.ViewModels.Account.OTPSetupViewModel
+@using Newtonsoft.Json
 @{
     Layout = "~/Views/Shared/_Layout.cshtml";
     ViewData["Title"] = "OTP 設定";
@@ -19,139 +20,344 @@
                         </div>
                     }
 
-                    @if (Model.IsOTPEnabled)
-                    {
-                        <!-- 已啟用 OTP -->
-                        <div class="alert alert-success">
-                            <i class="fas fa-check-circle"></i> OTP 雙因素驗證已啟用
-                        </div>
-
-                        <div class="text-center mt-4">
-                            <button type="button" class="btn btn-danger" onclick="disableOTP()">
-                                <i class="fas fa-times"></i> 停用 OTP
-                            </button>
-                        </div>
-                    }
-                    else if (!string.IsNullOrEmpty(Model.QRCodeUrl))
-                    {
                         <!-- 顯示 QR Code 和設定步驟 -->
                         <div class="alert alert-info">
                             <i class="fas fa-info-circle"></i> 請按照以下步驟完成 OTP 設定
                         </div>
 
-                        <div class="setup-steps">
-                            <h5>設定步驟：</h5>
-                            <ol>
-                                <li>在您的手機上安裝驗證器 App（如 Google Authenticator、Microsoft Authenticator）</li>
-                                <li>使用驗證器 App 掃描下方的 QR Code</li>
-                                <li>或手動輸入 Secret Key：<code>@Model.SecretKey</code></li>
-                                <li>在驗證器 App 中輸入顯示的 6 位數驗證碼進行驗證</li>
-                            </ol>
+                        <!-- 教學提示按鈕 -->
+                        <div class="text-center mb-3">
+                            <button type="button" class="btn btn-outline-primary" data-bs-toggle="modal" data-bs-target="#otpHelpModal">
+                                <i class="fas fa-question-circle"></i> 查看設定教學
+                            </button>
                         </div>
 
-                        <div class="text-center mt-4">
-                            <div id="qrcode"></div>
-                            <p class="mt-3">
-                                <small class="text-muted">Secret Key: <code>@Model.SecretKey</code></small>
-                            </p>
-                        </div>
-
-                        <div class="mt-4">
-                            <h5>驗證設定：</h5>
-                            <form id="verifyForm" onsubmit="verifyOTPSetup(event)">
-                                <div class="form-group">
-                                    <label for="verifyCode">請輸入驗證器 App 中顯示的驗證碼：</label>
-                                    <input type="text" 
-                                           id="verifyCode" 
-                                           class="form-control" 
-                                           placeholder="000000" 
-                                           maxlength="6"
-                                           pattern="[0-9]{6}"
-                                           required />
+                        <!-- RWD 排版：電腦版並排，手機版上下排列 -->
+                        <div class="row justify-content-center align-items-center mt-4">
+                            <!-- QR Code 區塊 -->
+                            <div class="col-md-5 col-sm-12 text-center mb-4 mb-md-0">
+                                <h5 class="mb-3"><i class="fas fa-qrcode"></i> 掃描 QR Code</h5>
+                                
+                                <!-- 除錯資訊（暫時啟用以找出問題） -->
+                                <div class="alert alert-info small mb-2">
+                                    <strong>🔍 除錯資訊：</strong><br />
+                                    QRCodeImageUrl 是否為空: <strong>@(string.IsNullOrEmpty(Model.QRCodeImageUrl) ? "是 ❌" : "否 ✅")</strong><br />
+                                    QRCodeImageUrl 長度: <strong>@(Model.QRCodeImageUrl?.Length ?? 0)</strong> 字元<br />
+                                    QRCodeUrl 是否為空: <strong>@(string.IsNullOrEmpty(Model.QRCodeUrl) ? "是 ❌" : "否 ✅")</strong><br />
+                                    @if (!string.IsNullOrEmpty(Model.QRCodeUrl))
+                                    {
+                                        <text>QRCodeUrl 前50字: <code>@(Model.QRCodeUrl.Substring(0, Math.Min(50, Model.QRCodeUrl.Length)))...</code></text>
+                                    }
+                                    @if (!string.IsNullOrEmpty(Model.QRCodeImageUrl))
+                                    {
+                                        <br />
+                                        <text>QRCodeImageUrl 前50字: <code>@(Model.QRCodeImageUrl.Substring(0, Math.Min(50, Model.QRCodeImageUrl.Length)))...</code></text>
+                                    }
                                 </div>
-                                <button type="submit" class="btn btn-primary">
-                                    <i class="fas fa-check"></i> 驗證並啟用
-                                </button>
-                            </form>
-                        </div>
-                    }
-                    else
-                    {
-                        <!-- 尚未設定，顯示設定按鈕 -->
-                        <div class="alert alert-warning">
-                            <i class="fas fa-exclamation-triangle"></i> 您尚未設定 OTP 雙因素驗證
+                                
+                                @if (!string.IsNullOrEmpty(Model.QRCodeImageUrl))
+                                {
+                                    <!-- QR Code 圖片顯示 -->
+                                    <div class="mb-3">
+                                        <img src="@Model.QRCodeImageUrl" 
+                                             alt="TOTP QR Code" 
+                                             class="img-fluid border rounded shadow-sm" 
+                                             style="max-width: 250px; width: 100%; background: white; padding: 10px;" 
+                                             id="qrCodeImage"
+                                             onerror="console.error('QR Code 圖片載入失敗'); this.style.display='none'; this.nextElementSibling.style.display='block';" />
+                                        <div class="alert alert-danger" style="display: none;">
+                                            <i class="fas fa-exclamation-triangle"></i> QR Code 圖片載入失敗
+                                        </div>
+                                    </div>
+                                    
+                                    <!-- 測試：顯示 Base64 前100字元（僅用於除錯） -->
+                                    @if (false) // 設為 true 可顯示 Base64 預覽
+                                    {
+                                        <div class="alert alert-secondary small">
+                                            <strong>Base64 預覽（前100字元）：</strong><br />
+                                            @(Model.QRCodeImageUrl?.Substring(0, Math.Min(100, Model.QRCodeImageUrl?.Length ?? 0)) ?? "null")
+                                        </div>
+                                    }
+                                }
+                                else if (!string.IsNullOrEmpty(Model.QRCodeUrl))
+                                {
+                                    <!-- 如果只有 QRCodeUrl 但沒有圖片，顯示錯誤訊息和除錯資訊 -->
+                                    <div class="alert alert-danger">
+                                        <i class="fas fa-exclamation-triangle"></i> QR Code 圖片生成失敗
+                                        <br />
+                                        <small class="text-muted">
+                                            QRCodeUrl 存在但無法生成圖片，請檢查伺服器日誌<br />
+                                            QRCodeUrl: @(Model.QRCodeUrl?.Substring(0, Math.Min(100, Model.QRCodeUrl?.Length ?? 0)) ?? "null")
+                                        </small>
+                                    </div>
+                                }
+                                else
+                                {
+                                    <div class="alert alert-warning">
+                                        <i class="fas fa-exclamation-triangle"></i> QR Code 尚未生成
+                                        <br />
+                                        <small class="text-muted">
+                                            系統正在生成 QR Code，請稍候...<br />
+                                            如果持續無法顯示，請重新整理頁面
+                                        </small>
+                                    </div>
+                                    
+                                    <!-- 自動重新整理（如果 QR Code 未生成） -->
+                                    <script>
+                                        // 檢查 QRCodeImageUrl 是否為空
+                                        var qrCodeImageUrl = '@(Model.QRCodeImageUrl ?? "")';
+                                        if (!qrCodeImageUrl || qrCodeImageUrl === '') {
+                                            console.log('QR Code 未生成，5 秒後重新整理頁面...');
+                                            setTimeout(function() {
+                                                window.location.reload();
+                                            }, 5000);
+                                        }
+                                    </script>
+                                }
+                                <p class="mt-3 text-muted small">
+                                    <i class="fas fa-mobile-alt d-md-none"></i>
+                                    <i class="fas fa-desktop d-none d-md-inline"></i>
+                                    使用驗證器 App 掃描此 QR Code 即可完成綁定
+                                </p>
+                            </div>
+
+                            <!-- Secret Key 區塊（電腦版右側，手機版下方） -->
+                            <div class="col-md-5 col-sm-12">
+                                <h5 class="mb-3">手動輸入金鑰</h5>
+                                <div class="card border-secondary">
+                                    <div class="card-body">
+                                        <p class="text-muted small mb-2">
+                                            <i class="fas fa-info-circle"></i> 
+                                            <strong>備用方案：</strong>若無法掃描 QR Code，可手動輸入此金鑰
+                                        </p>
+                                        <div class="input-group">
+                                            <input type="text" 
+                                                   class="form-control font-monospace" 
+                                                   id="secretKey" 
+                                                   value="@Model.SecretKey" 
+                                                   readonly 
+                                                   style="font-size: 0.9rem;" />
+                                            <button type="button" 
+                                                    class="btn btn-outline-secondary" 
+                                                    onclick="copySecretKey()" 
+                                                    title="複製 Secret Key">
+                                                <i class="fas fa-copy"></i> 複製
+                                            </button>
+                                        </div>
+                                        <small class="text-muted d-block mt-2">
+                                            <i class="fas fa-lightbulb"></i> 
+                                            建議優先使用 QR Code 掃描，手動輸入僅作為備用方案
+                                        </small>
+                                    </div>
+                                </div>
+                            </div>
                         </div>
 
-                        <div class="text-center mt-4">
-                            <form asp-action="OTPSetup" method="post">
-                                <input type="hidden" name="account" value="@Model.Account" />
-                                <button type="submit" class="btn btn-primary btn-lg">
-                                    <i class="fas fa-plus-circle"></i> 開始設定 OTP
-                                </button>
-                            </form>
+                        <!-- 驗證碼輸入區塊 -->
+                        <div class="mt-5">
+                            <div class="row justify-content-center">
+                                <div class="col-md-8 col-sm-12">
+                                    <h5 class="text-center mb-3">驗證設定</h5>
+                                    <div class="card border-primary">
+                                        <div class="card-body">
+                                            <form id="verifyForm" onsubmit="verifyOTPSetup(event)">
+                                                <div class="form-group">
+                                                    <label for="verifyCode" class="form-label">
+                                                        <i class="fas fa-shield-alt"></i> 請輸入驗證器中顯示的 6 位數驗證碼：
+                                                    </label>
+                                                    <input type="text" 
+                                                           id="verifyCode" 
+                                                           class="form-control form-control-lg text-center font-monospace" 
+                                                           placeholder="000000" 
+                                                           maxlength="6"
+                                                           pattern="[0-9]{6}"
+                                                           required 
+                                                           autocomplete="off"
+                                                           style="font-size: 1.5rem; letter-spacing: 0.5rem;" />
+                                                    <small class="form-text text-muted text-center d-block mt-2">
+                                                        <i class="fas fa-info-circle"></i> 驗證碼每 30 秒會自動更新，請輸入目前顯示的驗證碼
+                                                    </small>
+                                                </div>
+                                                <div class="text-center mt-4">
+                                                    <button type="submit" class="btn btn-primary btn-lg">
+                                                        <i class="fas fa-check"></i> 驗證並啟用 OTP
+                                                    </button>
+                                                </div>
+                                                <div id="verifyResult" class="mt-3"></div>
+                                            </form>
+                                        </div>
+                                    </div>
+                                </div>
+                            </div>
                         </div>
-
-                        <div class="mt-4">
-                            <h5>什麼是 OTP 雙因素驗證？</h5>
-                            <p>OTP（One-Time Password）雙因素驗證是一種安全機制，除了帳號密碼外，還需要輸入驗證器 App 產生的動態驗證碼才能登入，大幅提升帳號安全性。</p>
-                        </div>
-                    }
                 </div>
             </div>
         </div>
     </div>
 </div>
 
-<!-- QR Code 生成庫 -->
-<script src="https://cdn.jsdelivr.net/npm/qrcodejs@1.0.0/qrcode.min.js"></script>
+<!-- OTP 設定教學 Modal -->
+<div class="modal fade" id="otpHelpModal" tabindex="-1" aria-labelledby="otpHelpModalLabel" aria-hidden="true">
+    <div class="modal-dialog modal-lg modal-dialog-scrollable">
+        <div class="modal-content">
+            <div class="modal-header bg-primary text-white">
+                <h5 class="modal-title" id="otpHelpModalLabel">
+                    <i class="fas fa-lightbulb"></i> OTP 雙因素驗證設定教學
+                </h5>
+                <button type="button" class="btn-close btn-close-white" data-bs-dismiss="modal" aria-label="Close"></button>
+            </div>
+            <div class="modal-body">
+                <div class="alert alert-info">
+                    <i class="fas fa-info-circle"></i> 
+                    <strong>什麼是 OTP 雙因素驗證？</strong><br />
+                    OTP（One-Time Password）雙因素驗證是一種安全機制，除了帳號密碼外，還需要輸入驗證器 App 產生的動態驗證碼才能登入，大幅提升帳號安全性。
+                </div>
+
+                <h6 class="mt-4"><i class="fas fa-list-ol"></i> 設定步驟：</h6>
+                <ol style="padding-left: 1.5rem;">
+                    <li class="mb-2">
+                        <strong>安裝驗證器 App</strong>
+                        <ul style="margin-top: 5px;">
+                            <li><strong>手機版：</strong>Google Authenticator、Microsoft Authenticator、Authy</li>
+                            <li><strong>電腦版：</strong>
+                                <ul>
+                                    <li>Chrome 擴充功能：<a href="https://chrome.google.com/webstore/search/authenticator" target="_blank">搜尋 Authenticator</a></li>
+                                    <li>Edge 擴充功能：<a href="https://microsoftedge.microsoft.com/addons/search/authenticator" target="_blank">搜尋 Authenticator</a></li>
+                                    <li>桌面應用程式：WinAuth、KeePass、1Password 等</li>
+                                </ul>
+                            </li>
+                        </ul>
+                    </li>
+                    <li class="mb-2">點擊「<strong>開始設定 OTP</strong>」按鈕（如果尚未設定）</li>
+                    <li class="mb-2">系統會自動生成 QR Code 和 Secret Key</li>
+                    <li class="mb-2">開啟驗證器 App，點擊「<strong>+</strong>」或「<strong>新增帳號</strong>」</li>
+                    <li class="mb-2">選擇「<strong>掃描 QR Code</strong>」</li>
+                    <li class="mb-2">掃描系統顯示的 QR Code</li>
+                    <li class="mb-2">
+                        <strong>App 會自動新增「ERP System」帳號</strong><br />
+                        <small class="text-muted">✅ 不需要手動輸入任何內容，掃描 QR Code 即可完成綁定</small>
+                    </li>
+                    <li class="mb-2">在驗證碼輸入框中輸入驗證器顯示的 6 位數驗證碼</li>
+                    <li class="mb-2">點擊「<strong>驗證並啟用 OTP</strong>」完成設定</li>
+                </ol>
+
+                <div class="alert alert-warning mt-4">
+                    <i class="fas fa-exclamation-triangle"></i> 
+                    <strong>注意事項：</strong>
+                    <ul class="mb-0" style="padding-left: 1.5rem;">
+                        <li>驗證碼每 30 秒會自動更新</li>
+                        <li>請確保手機時間與伺服器時間同步</li>
+                        <li>建議將 Secret Key 備份在安全的地方（僅作為備用方案）</li>
+                    </ul>
+                </div>
+
+                <h6 class="mt-4"><i class="fas fa-question-circle"></i> 常見問題：</h6>
+                <div class="accordion" id="faqAccordion">
+                    <div class="accordion-item">
+                        <h2 class="accordion-header" id="faq1">
+                            <button class="accordion-button collapsed" type="button" data-bs-toggle="collapse" data-bs-target="#faq1Content">
+                                無法掃描 QR Code 怎麼辦？
+                            </button>
+                        </h2>
+                        <div id="faq1Content" class="accordion-collapse collapse" data-bs-parent="#faqAccordion">
+                            <div class="accordion-body">
+                                可以手動輸入 Secret Key 到驗證器 App 中。在新增帳號時選擇「手動輸入金鑰」，然後輸入系統顯示的 Secret Key。
+                            </div>
+                        </div>
+                    </div>
+                    <div class="accordion-item">
+                        <h2 class="accordion-header" id="faq2">
+                            <button class="accordion-button collapsed" type="button" data-bs-toggle="collapse" data-bs-target="#faq2Content">
+                                驗證碼一直錯誤？
+                            </button>
+                        </h2>
+                        <div id="faq2Content" class="accordion-collapse collapse" data-bs-parent="#faqAccordion">
+                            <div class="accordion-body">
+                                請檢查手機時間是否與伺服器時間同步。驗證碼是基於時間產生的，時間不同步會導致驗證失敗。
+                            </div>
+                        </div>
+                    </div>
+                    <div class="accordion-item">
+                        <h2 class="accordion-header" id="faq3">
+                            <button class="accordion-button collapsed" type="button" data-bs-toggle="collapse" data-bs-target="#faq3Content">
+                                換手機後怎麼辦？
+                            </button>
+                        </h2>
+                        <div id="faq3Content" class="accordion-collapse collapse" data-bs-parent="#faqAccordion">
+                            <div class="accordion-body">
+                                如果還保留 Secret Key，可以在新手機的驗證器 App 中手動輸入 Secret Key 來恢復。如果沒有 Secret Key，請聯絡系統管理員重新設定。
+                            </div>
+                        </div>
+                    </div>
+                </div>
+            </div>
+            <div class="modal-footer">
+                <button type="button" class="btn btn-secondary" data-bs-dismiss="modal">關閉</button>
+            </div>
+        </div>
+    </div>
+</div>
+
+<!-- Bootstrap JavaScript (用於 Modal 和折疊功能) -->
+<script src="https://cdn.jsdelivr.net/npm/bootstrap@5.1.3/dist/js/bootstrap.bundle.min.js"></script>
 
 <script>
-    // 生成 QR Code
-    @if (!string.IsNullOrEmpty(Model.QRCodeUrl))
-    {
-        <text>
-        document.addEventListener('DOMContentLoaded', function() {
-            var qrcode = new QRCode(document.getElementById("qrcode"), {
-                text: "@Model.QRCodeUrl",
-                width: 256,
-                height: 256,
-                colorDark: "#000000",
-                colorLight: "#ffffff",
-                correctLevel: QRCode.CorrectLevel.H
-            });
-        });
-        </text>
-    }
 
-    // 驗證 OTP 設定
+    // 驗證 OTP 設定（使用 AJAX）
     function verifyOTPSetup(event) {
         event.preventDefault();
-        var verifyCode = document.getElementById('verifyCode').value;
+        var verifyCode = document.getElementById('verifyCode').value.trim();
+        var resultDiv = document.getElementById('verifyResult');
+        
         if (verifyCode.length !== 6) {
-            alert('請輸入 6 位數驗證碼');
+            resultDiv.innerHTML = '<div class="alert alert-danger"><i class="fas fa-exclamation-circle"></i> 請輸入 6 位數驗證碼</div>';
             return;
         }
 
-        // 這裡應該呼叫後端 API 驗證
-        // 暫時使用表單提交
-        var form = document.createElement('form');
-        form.method = 'POST';
-        form.action = '@Url.Action("VerifyOTP", "Account")';
-        
-        var accountInput = document.createElement('input');
-        accountInput.type = 'hidden';
-        accountInput.name = 'Account';
-        accountInput.value = '@Model.Account';
-        form.appendChild(accountInput);
+        // 顯示載入狀態
+        resultDiv.innerHTML = '<div class="alert alert-info"><i class="fas fa-spinner fa-spin"></i> 驗證中...</div>';
+        var submitBtn = event.target.querySelector('button[type="submit"]');
+        submitBtn.disabled = true;
+        submitBtn.innerHTML = '<i class="fas fa-spinner fa-spin"></i> 驗證中...';
 
-        var codeInput = document.createElement('input');
-        codeInput.type = 'hidden';
-        codeInput.name = 'OTPCode';
-        codeInput.value = verifyCode;
-        form.appendChild(codeInput);
-
-        document.body.appendChild(form);
-        form.submit();
+        // 使用 AJAX 呼叫後端驗證
+        fetch('@Url.Action("VerifyOTP", "Account")', {
+            method: 'POST',
+            headers: {
+                'Content-Type': 'application/x-www-form-urlencoded',
+            },
+            body: new URLSearchParams({
+                'Account': '@Model.Account',
+                'OTPCode': verifyCode
+            })
+        })
+        .then(response => {
+            if (response.redirected) {
+                // 驗證成功，導向目標頁面
+                window.location.href = response.url;
+            } else {
+                return response.text();
+            }
+        })
+        .then(data => {
+            if (data) {
+                // 驗證失敗，顯示錯誤訊息
+                resultDiv.innerHTML = '<div class="alert alert-danger"><i class="fas fa-times-circle"></i> ' + 
+                    (data.includes('驗證碼錯誤') ? '驗證碼錯誤，請重新輸入' : '驗證失敗，請檢查驗證碼是否正確') + 
+                    '</div>';
+                submitBtn.disabled = false;
+                submitBtn.innerHTML = '<i class="fas fa-check"></i> 驗證並啟用 OTP';
+                // 清空輸入框並重新聚焦
+                document.getElementById('verifyCode').value = '';
+                document.getElementById('verifyCode').focus();
+            }
+        })
+        .catch(error => {
+            console.error('Error:', error);
+            resultDiv.innerHTML = '<div class="alert alert-danger"><i class="fas fa-exclamation-triangle"></i> 系統發生錯誤，請稍後再試</div>';
+            submitBtn.disabled = false;
+            submitBtn.innerHTML = '<i class="fas fa-check"></i> 驗證並啟用 OTP';
+        });
     }
 
     // 停用 OTP
@@ -181,12 +387,55 @@
         });
     }
 
-    // 限制驗證碼輸入為數字
+    // 複製 Secret Key
+    function copySecretKey() {
+        var secretKeyInput = document.getElementById('secretKey');
+        var secretKey = secretKeyInput ? secretKeyInput.value : '';
+        if (!secretKey) {
+            alert('無法取得 Secret Key');
+            return;
+        }
+        
+        navigator.clipboard.writeText(secretKey).then(function() {
+            alert('Secret Key 已複製到剪貼簿！');
+        }, function(err) {
+            // 備用方案：使用傳統方法
+            var textArea = document.createElement('textarea');
+            textArea.value = secretKey;
+            textArea.style.position = 'fixed';
+            textArea.style.opacity = '0';
+            document.body.appendChild(textArea);
+            textArea.select();
+            try {
+                document.execCommand('copy');
+                alert('Secret Key 已複製到剪貼簿！');
+            } catch (err) {
+                alert('複製失敗，請手動複製：' + secretKey);
+            }
+            document.body.removeChild(textArea);
+        });
+    }
+
+    // 限制驗證碼輸入為數字，並自動聚焦（手機版優化）
     document.addEventListener('DOMContentLoaded', function() {
         var verifyCodeInput = document.getElementById('verifyCode');
         if (verifyCodeInput) {
+            // 自動聚焦（手機版優化）
+            setTimeout(function() {
+                verifyCodeInput.focus();
+            }, 500);
+            
+            // 限制只能輸入數字
             verifyCodeInput.addEventListener('input', function(e) {
                 this.value = this.value.replace(/[^0-9]/g, '');
+            });
+            
+            // 自動提交（當輸入 6 位數時，可選）
+            verifyCodeInput.addEventListener('input', function(e) {
+                if (this.value.length === 6) {
+                    // 可以選擇自動提交或手動提交
+                    // 這裡不自動提交，讓使用者手動點擊按鈕
+                }
             });
         }
     });

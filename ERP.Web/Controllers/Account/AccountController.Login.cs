@@ -53,30 +53,15 @@ namespace ERP.Web.Controllers.Account
                     return View();
                 }
 
-                // 檢查是否啟用 OTP
-                var isOTPEnabled = !string.IsNullOrEmpty(result.Account) && await _otpService.IsOTPEnabledAsync(result.Account);
+                // 直接啟用 OTP 驗證流程，將登入資訊暫存到 TempData
+                TempData["PendingLogin_Account"] = result.Account;
+                TempData["PendingLogin_EmpID"] = result.EmpID;
+                TempData["PendingLogin_EmpName"] = result.EmpName;
+                TempData["PendingLogin_ReturnUrl"] = model.ReturnUrl;
+                TempData["PendingLogin_AutoLogin"] = model.AutoLogin;
                 
-                if (isOTPEnabled)
-                {
-                    // 需要 OTP 驗證，將登入資訊暫存到 TempData
-                    TempData["PendingLogin_Account"] = result.Account;
-                    TempData["PendingLogin_EmpID"] = result.EmpID;
-                    TempData["PendingLogin_EmpName"] = result.EmpName;
-                    TempData["PendingLogin_ReturnUrl"] = model.ReturnUrl;
-                    TempData["PendingLogin_AutoLogin"] = model.AutoLogin;
-                    
-                    // 導向 OTP 驗證頁面
-                    return RedirectToAction("VerifyOTP", new { account = result.Account, returnUrl = model.ReturnUrl });
-                }
-
-                // 未啟用 OTP，直接完成登入
-                await InitializeUserSessionAsync(result.Account, result.EmpName, result.EmpID);
-
-                // 處理自動登入 Cookie（只記錄帳號，供下次自動登入使用）
-                HandleAutoLoginCookie(model.AutoLogin, result.Account);
-
-                // 導向目標頁面
-                return RedirectToTargetPage(model.ReturnUrl);
+                // 導向 OTP 驗證頁面
+                return RedirectToAction("VerifyOTP", new { account = result.Account, returnUrl = model.ReturnUrl });
             }
             catch (Exception ex)
             {
