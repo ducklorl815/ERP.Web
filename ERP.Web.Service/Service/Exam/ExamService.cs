@@ -1,4 +1,4 @@
-﻿using ERP.Web.Models.Models;
+using ERP.Web.Models.Models;
 using ERP.Web.Models.Respository.Exam;
 using ERP.Web.Service.ViewModels;
 using ERP.Web.Utility.Paging;
@@ -260,14 +260,20 @@ namespace ERP.Web.Service.Service.Exam
 
                 var NewVocabulary = await _examRepo.GetExamDataAsync(ClassName);
 
-                // 新增這段：讓 Question / Answer 有機會對調
+                // 讓 Question / Answer 有機會對調（中翻英 / 英翻中）
                 var random = new Random();
                 foreach (var item in NewVocabulary)
                 {
-                    // 假設 item.Question / item.Answer 是字串屬性
-                    if (random.Next(0, 2) == 1) // 50% 機率對調
+                    if (random.Next(0, 2) == 1) // 50% 機率為英翻中
                     {
-                        (item.Question, item.Answer) = (item.Answer, item.Question);
+                        var origQuestion = item.Question;
+                        var origAnswer = item.Answer;
+                        // 英翻中：題目改為英文（單字時改為音標顯示，讓小孩用念的方式想出中文）
+                        if (item.CategoryType != null && item.CategoryType.Equals("word", StringComparison.OrdinalIgnoreCase))
+                            item.Question = ToPhoneticDisplay(origAnswer);
+                        else
+                            item.Question = origAnswer;
+                        item.Answer = origQuestion;
                     }
                 }
 
@@ -334,6 +340,25 @@ namespace ERP.Web.Service.Service.Exam
             }
 
             return finalQuestions;
+        }
+
+        /// <summary>
+        /// 將英文單字轉成「第一個母音加短音記號 breve」的顯示用音標，供英翻中時出題（小孩用念的方式想出中文）。
+        /// 例如：elephant → ĕlephant，duck → dŭck。
+        /// </summary>
+        private static string ToPhoneticDisplay(string englishWord)
+        {
+            if (string.IsNullOrWhiteSpace(englishWord)) return englishWord;
+            // 第一個母音對應的 breve 字元（小寫）
+            const string vowels = "aeiouAEIOU";
+            const string withBreve = "ăĕĭŏŭĂĔĬŎŬ";
+            for (int i = 0; i < englishWord.Length; i++)
+            {
+                int idx = vowels.IndexOf(englishWord[i]);
+                if (idx >= 0)
+                    return englishWord.Substring(0, i) + withBreve[idx] + englishWord.Substring(i + 1);
+            }
+            return englishWord;
         }
 
         public async Task<bool> GetUploadFileAsync(IFormFile file)
