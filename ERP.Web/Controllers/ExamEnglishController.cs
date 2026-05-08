@@ -53,6 +53,16 @@ namespace ERP.Web.Controllers
         }
 
         /// <summary>
+        /// 複習考：自動撈取當天答錯（Correct=0）的題目組卷
+        /// </summary>
+        public async Task<IActionResult> WrongTest(ExamSearchListViewModel_param param)
+        {
+            param.TestType = TestType;
+            var result = await _examService.GetWrongExamDataAsync(param);
+            return View("~/Views/Exam/Test.cshtml", result);
+        }
+
+        /// <summary>
         /// 複習考試頁面
         /// </summary>
         public async Task<IActionResult> ReExam(ReExamSearchListViewModel_param param)
@@ -94,7 +104,14 @@ namespace ERP.Web.Controllers
         [HttpPost]
         public async Task<IActionResult> GetTestDates(string KidID)
         {
-            var result = await _examService.GetTestDateList(KidID);
+            var result = await _examService.GetTestDateList(KidID, TestType);
+            return Json(result);
+        }
+
+        [HttpPost]
+        public async Task<IActionResult> GetClassesByDate(string KidID, string TestDate)
+        {
+            var result = await _examService.GetClassNameListByDate(KidID, TestDate, TestType);
             return Json(result);
         }
 

@@ -1,48 +1,54 @@
 ﻿@model ERP.Web.Service.ViewModels.ExamSearchListViewModel_result
 
-<link href="~/css/chkboxstyle.css" rel="stylesheet" />
-<!-- 上傳移至獨立頁面 -->
-<div class="mb-2">
-    <a class="btn btn-secondary btn-sm" href="@Url.Action("Index","ExamUpload")">前往上傳 Excel</a>
-</div>
-<div>
-    <form id="generateForm" method="post" action="@Url.Action("GenerateQuestions", ViewContext.RouteData.Values["controller"]?.ToString())">
-        <input type="hidden" name="level" id="levelInput" />
-        <input type="hidden" name="KidID" id="KidIDInput" />
-    </form>
+<link href="~/css/exam.css" rel="stylesheet" />
+<link href="~/StaticFiles/lib/select2/dist/css/select2.css" rel="stylesheet" />
+<link href="~/StaticFiles/lib/select2/dist/css/select2-bootstrap.css" rel="stylesheet" />
 
-    <button onclick="submitGenerateForm(10)">產生 10 級題目</button>
-    <button onclick="submitGenerateForm(9)">產生 9 級題目</button>
-</div>
+<!-- 單純出考卷：選考卷 / 題數 / 學生，送出即產生考卷 -->
+<div class="wrapper wrapper-content animated fadeIn">
+    <div class="row">
+        <div class="col-lg-12">
+            <div class="ibox">
+                <div class="ibox-title">
+                    <h5>出考卷</h5>
+                </div>
+                <div class="ibox-content">
+                    <div class="mb-3">
+                        <a class="btn btn-secondary btn-sm" href="@Url.Action("Index","ExamUpload")">上傳題目</a>
+                    </div>
 
-<!-- 取得考卷 -->
-<div>
-    <partial name="~/Views/Exam/_GetTest.cshtml" model="Model">
-</div>
+                    <div class="card mb-3">
+                        <div class="card-body">
+                            <div class="d-flex flex-wrap align-items-end gap-3">
+                                <div>
+                                    <span class="badge bg-warning text-dark">複習考</span>
+                                </div>
+                                <div>
+                                    <label class="form-label mb-1" for="WrongTestNumber">題數</label>
+                                    <input id="WrongTestNumber" type="number" class="form-control" value="18" min="1" style="width:120px;" />
+                                </div>
+                                <div>
+                                    <button id="btnWrongTest" type="button" class="btn btn-warning">
+                                        複習考（答錯題）
+                                    </button>
+                                </div>
+                                <div class="text-muted small">
+                                    依「學生」自動抓歷史英文答錯（Correct=0）的題目組卷（不限定日期）。
+                                </div>
+                            </div>
+                        </div>
+                    </div>
 
-
-<!-- 字庫區 -->
-<div class="col-4">
-    <label for="SelectNewClassNameList" class="form-label">選擇考卷：</label>
-    <select id="SelectNewClassNameList" name="NewClassNameList" class="form-select">
-        @if (Model.ClassNameList != null)
-        {
-            <option value="">請選擇</option>
-            @foreach (var className in Model.ClassNameList)
-            {
-                <option value="@className">@className</option>
-            }
-        }
-    </select>
-</div>
-
-<div id="partialContainer" class="ibox-content ibox-list-content">
-    <partial name="~/Views/Exam/_NewTest.cshtml" model="Model">
+                    <partial name="~/Views/Exam/_GetTest.cshtml" model="Model" />
+                </div>
+            </div>
+        </div>
+    </div>
 </div>
 
 <script src="~/StaticFiles/lib/select2/dist/js/select2.min.js"></script>
-<script src="~/js/exam.shared.js"></script>
 <script>
+    // 套用 Select2 到「選擇考卷」下拉，避免原生 multiple 撐版
     $(function () {
         var $select2ClassList = $('#Select2ClassNameList');
         if ($select2ClassList.length) {
@@ -54,113 +60,21 @@
             });
         }
 
-        var $selectNewClassList = $('#SelectNewClassNameList');
-        if ($selectNewClassList.length) {
-            $selectNewClassList.select2({
-                placeholder: '選擇考卷',
-                allowClear: true,
-                closeOnSelect: false,
-                width: '100%'
-            });
-        }
-    });
+        // 複習考：按鈕跳轉到 WrongTest
+        $('#btnWrongTest').on('click', function () {
+            var kidId = $('#KidID').val();
+            var testNumber = $('#WrongTestNumber').val() || 18;
 
-    $(document).ready(function () {
-        // 上傳改為獨立頁面，移除本頁的上傳事件處理
-
-        var debouncedReloadNewTest = ExamShared.debounce(function () {
-            var ClassNameList = $("#SelectNewClassNameList").val() || [];
-            var KidID = $("#KidID").val();
-            $.ajax({
-                url: '@Url.Action("NewTest", ViewContext.RouteData.Values["controller"]?.ToString())',
-                type: 'GET',
-                traditional: true, // 讓 jQuery 正確傳遞陣列
-                data: {
-                    ClassNameList: ClassNameList,
-                    KidID: KidID
-                }
-            }).done(function (result) {
-                $('#partialContainer').html(result);
-            });
-        }, 200);
-
-        $(document).on("change", "#SelectNewClassNameList , #KidID", debouncedReloadNewTest);
-
-
-
-        var callback = function () {
-            var ClassName = $("#Class").val();
-            var CorrectType = $("#CorrectType").val();
-            var KidID = $("#KidID").val();
-            return {
-                method: "get",
-                url: '@Url.Action("NewTest", ViewContext.RouteData.Values["controller"]?.ToString())',
-                footable: true,
-                data: {
-                    ClassName: ClassName,
-                    CorrectType: CorrectType,
-                    KidID: KidID
-                }
-            };
-        };
-        PageTurning(callback);
-
-    });
-
-    function CodeMainSave(e) {
-        const $row = $(e).closest("tr");
-        const wordID = $(e).data("wordid");
-        const isFocus = $row.find(".focus-checkbox").prop("checked");
-        const question = $row.find(".question").val();
-        const answer = $row.find(".answer").val();
-        const kidID = $("#KidID").val();
-
-        if (!wordID) {
-            alert("請輸入考券名稱！");
-            return;
-        }
-
-        if (!kidID) {
-            alert("請選擇學生！");
-            return;
-        }
-
-        if (!question || !answer) {
-            alert("欄位資訊不可空白！");
-            return;
-        }
-        $.ajax({
-            url: '@Url.Action("UpdateNewTestWord", "Exam")',
-            type: 'POST',
-            data: {
-                WordID: wordID,
-                KidID: kidID,
-                Focus: isFocus,
-                Question: question,
-                Answer: answer
-            },
-            success: function () {
-                alert("資料已成功提交！");
-            },
-            error: function () {
-                alert("提交失敗，請再試一次！");
+            if (!kidId) {
+                alert('請先選擇學生');
+                return;
             }
+
+            var url = '@Url.Action("WrongTest", ViewContext.RouteData.Values["controller"]?.ToString())'
+                + '?KidID=' + encodeURIComponent(kidId)
+                + '&TestNumber=' + encodeURIComponent(testNumber);
+
+            window.location.href = url;
         });
-    }
-
-
-
-    function submitGenerateForm(level) {
-        var KidID = $("#KidID").val();
-
-        if (!KidID) {
-            alert("請先輸入 KidID！");
-            return;
-        }
-        // 寫入 hidden 欄位
-        $("#levelInput").val(level);
-        $("#KidIDInput").val(KidID);
-
-        $("#generateForm").submit();
-    }
+    });
 </script>

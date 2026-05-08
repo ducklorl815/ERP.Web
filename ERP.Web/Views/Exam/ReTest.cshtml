@@ -1,41 +1,93 @@
 ﻿@model ERP.Web.Service.ViewModels.ExamSearchListViewModel_result
 
-<!-- 這裡是放置 _Customize Modal 的地方 -->
 <link href="~/css/chkboxstyle.css" rel="stylesheet" />
 <link href="~/css/exam.css" rel="stylesheet" />
+<link href="~/StaticFiles/lib/select2/dist/css/select2.css" rel="stylesheet" />
+<link href="~/StaticFiles/lib/select2/dist/css/select2-bootstrap.css" rel="stylesheet" />
+<style>
+    /* 讓 Select2 在 Bootstrap 版面中維持對齊與高度 */
+    .select2-container { width: 100% !important; }
+    .select2-container--default .select2-selection--multiple {
+        min-height: calc(2.25rem + 2px);
+        border: 1px solid #ced4da;
+        border-radius: .375rem;
+        padding: .25rem .5rem;
+    }
+    .select2-container--default.select2-container--focus .select2-selection--multiple {
+        border-color: #86b7fe;
+        box-shadow: 0 0 0 .25rem rgba(13,110,253,.25);
+    }
+    .select2-container--default .select2-selection--multiple .select2-selection__choice {
+        background-color: #e9ecef;
+        border: 1px solid #dee2e6;
+        border-radius: .375rem;
+        margin-top: .25rem;
+    }
+
+    /* 篩選列小幅美化 */
+    .retake-filter-card {
+        border: 1px solid rgba(0,0,0,.08);
+        border-radius: .5rem;
+        background: #fff;
+        padding: 1rem;
+        margin-bottom: 1rem;
+    }
+    .retake-filter-card .form-label { font-weight: 600; }
+</style>
 <div class="wrapper wrapper-content animated fadeIn">
     <div class="row">
         <div class="col-lg-12">
             <div class="ibox">
+                <div class="ibox-title">
+                    <h5>複習測驗（ReTest）</h5>
+                </div>
                 <div class="ibox-content">
-                    <div>
-                        <label for="KidID" class="mt-3">選擇學生：</label>
-                        <select id="KidID" name="KidID" class="form-select">
-                            <option value="">請選擇</option>
-                            @foreach (var kid in Model.KidList)
-                            {
-                                <option value="@kid.Value">@kid.Text</option>
-                            }
-                        </select>
-                        <label for="TestDate" class="mt-3">選擇日期：</label>
-                        <select id="TestDate" name="TestDate" class="form-select">
-                            <option value="">請選擇</option>
-                            @foreach (var TestDate in Model.TestDateList)
-                            {
-                                <option value="@TestDate.Value">@TestDate.Text</option>
-                            }
-                        </select>
-                        <partial name="~/Views/Exam/_Customize.cshtml" model="Model">
-                    </div>
-                    <div class="row">
-                        <div class="col-lg-12">
-                            <div class="ibox">
-                                <div id="partial" class="ibox-content ibox-list-content">
+                    <div class="retake-filter-card">
+                        <div class="row g-3 align-items-end">
+                            <div class="col-12 col-md-4 col-lg-3">
+                                <label for="KidID" class="form-label mb-1">選擇學生</label>
+                                <select id="KidID" name="KidID" class="form-select">
+                                    <option value="">請選擇</option>
+                                    @foreach (var kid in Model.KidList)
+                                    {
+                                        <option value="@kid.Value">@kid.Text</option>
+                                    }
+                                </select>
+                            </div>
 
-                                    <partial name="~/Views/Exam/_ReTest.cshtml" model="Model">
-                                </div>
+                            <div class="col-12 col-md-4 col-lg-3">
+                                <label for="TestDate" class="form-label mb-1">選擇日期</label>
+                                <select id="TestDate" name="TestDate" class="form-select">
+                                    <option value="">請選擇</option>
+                                    @foreach (var TestDate in Model.TestDateList)
+                                    {
+                                        <option value="@TestDate.Value">@TestDate.Text</option>
+                                    }
+                                </select>
+                            </div>
+
+                            <div class="col-12 col-md-4 col-lg-6">
+                                <label for="Select2ClassNameList" class="form-label mb-1">當天課程（可複選）</label>
+                                <select id="Select2ClassNameList" name="ClassNameList" class="form-select" multiple>
+                                    @if (Model.ClassNameList != null)
+                                    {
+                                        @foreach (var className in Model.ClassNameList)
+                                        {
+                                            <option value="@className">@className</option>
+                                        }
+                                    }
+                                </select>
+                                <div class="form-text">先選日期，系統會載入該日有考過的課程。</div>
                             </div>
                         </div>
+                    </div>
+
+                    <div class="mb-3">
+                        <partial name="~/Views/Exam/_Customize.cshtml" model="Model">
+                    </div>
+
+                    <div id="partial" class="ibox-content ibox-list-content p-0">
+                        <partial name="~/Views/Exam/_ReTest.cshtml" model="Model">
                     </div>
                 </div>
             </div>
@@ -43,10 +95,24 @@
     </div>
 </div>
 
+<script src="~/StaticFiles/lib/select2/dist/js/select2.min.js"></script>
 <script src="~/js/exam.shared.js"></script>
 <script>
     // 全域變數
     var selectedWordIDs = window.selectedWordIDs || [];
+
+    // Select2 初始化（只需一次）
+    $(function () {
+        var $class = $('#Select2ClassNameList');
+        if ($class.length) {
+            $class.select2({
+                placeholder: '選擇考卷',
+                allowClear: true,
+                closeOnSelect: false,
+                width: '100%'
+            });
+        }
+    });
 
     // 事件委派綁定，放在 DOMContentLoaded 內，只需綁定一次
     document.addEventListener('DOMContentLoaded', function () {
@@ -91,7 +157,7 @@
         if (selectedKidId !== "") {
             $.ajax({
                 type: 'POST',
-                url: '/Exam/GetTestDates', // 換成你的實際 Controller 路徑
+                url: '@Url.Action("GetTestDates", ViewContext.RouteData.Values["controller"]?.ToString())',
                 data: { KidID: selectedKidId },
                 success: function (data) {
                     var $testDate = $('#TestDate');
@@ -100,6 +166,8 @@
                     $.each(data, function (i, item) {
                         $testDate.append($('<option>', { value: item.value, text: item.text }));
                     });
+                    // 清空當天課程清單
+                    $('#Select2ClassNameList').empty();
                     // 同步載入該 Kid 的 Cookie 選取狀態
                     ExamShared.loadSelectedIdsFromCookie(selectedKidId);
                 },
@@ -110,15 +178,50 @@
         } else {
             // 清空 TestDate
             $('#TestDate').empty().append($('<option>', { value: '', text: '請選擇' }));
+            $('#Select2ClassNameList').empty();
             // 清空本地選取狀態
             ExamShared.loadSelectedIdsFromCookie(null);
         }
     });
 
+    // 選擇日期後，載入當天考過哪些科目/課程
+    $('#TestDate').on('change', function () {
+        var kidId = $('#KidID').val();
+        var testDate = $('#TestDate').val();
+        if (!kidId || !testDate) {
+            $('#Select2ClassNameList').empty();
+            return;
+        }
+
+        $.ajax({
+            type: 'POST',
+            url: '@Url.Action("GetClassesByDate", ViewContext.RouteData.Values["controller"]?.ToString())',
+            data: { KidID: kidId, TestDate: testDate },
+            success: function (data) {
+                var $class = $('#Select2ClassNameList');
+                $class.empty();
+                $.each(data, function (i, item) {
+                    $class.append($('<option>', { value: item.value, text: item.text }));
+                });
+                // 預設選第一個課程，避免「有選項但未選取」導致後端 ClassNameList 為空
+                var firstVal = $class.find('option:first').val();
+                if (firstVal) {
+                    $class.val([firstVal]);
+                }
+
+                // 觸發查詢刷新
+                $class.trigger('change');
+            },
+            error: function () {
+                alert('載入當天課程失敗，請稍後再試。');
+            }
+        });
+    });
+
 
     $(document).ready(function () {
-        $(document).on("change", "#Class, #CorrectType, #KidID, #TestDate", function () {
-            var ClassNameList = $("#Class").val() || [];
+        $(document).on("change", "#Select2ClassNameList, #CorrectType, #KidID, #TestDate", function () {
+            var ClassNameList = $("#Select2ClassNameList").val() || [];
             var CorrectType = $("#CorrectType").val();
             var KidID = $("#KidID").val();
             var TestDate = $("#TestDate").val();
@@ -140,7 +243,7 @@
 
 
         var callback = function () {
-            var ClassName = $("#Class").val();
+            var ClassNameList = $("#Select2ClassNameList").val() || [];
             var CorrectType = $("#CorrectType").val();
             var KidID = $("#KidID").val();
             var TestDate = $("#TestDate").val();
@@ -149,7 +252,7 @@
                 url: '@Url.Action("ReTest", ViewContext.RouteData.Values["controller"]?.ToString())',
                 footable: true,
                 data: {
-                    ClassName: ClassName,
+                    ClassNameList: ClassNameList,
                     CorrectType: CorrectType,
                     KidID: KidID,
                     TestDate: TestDate
@@ -168,7 +271,7 @@
 
         if (WordID) {
             $.ajax({
-                url: '@Url.Action("UpdateExamWord", "Exam")',  // 更改為您的提交動作
+                url: '@Url.Action("UpdateExamWord", ViewContext.RouteData.Values["controller"]?.ToString())',
                 type: 'POST',
                 data: {
                     WordID: WordID,

@@ -104,7 +104,14 @@ namespace ERP.Web.Controllers
         [HttpPost]
         public async Task<IActionResult> GetTestDates(string KidID)
         {
-            var result = await _examService.GetTestDateList(KidID);
+            var result = await _examService.GetTestDateList(KidID, TestType);
+            return Json(result);
+        }
+
+        [HttpPost]
+        public async Task<IActionResult> GetClassesByDate(string KidID, string TestDate)
+        {
+            var result = await _examService.GetClassNameListByDate(KidID, TestDate, TestType);
             return Json(result);
         }
 

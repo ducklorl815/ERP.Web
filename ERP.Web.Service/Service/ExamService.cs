@@ -44,6 +44,17 @@ namespace ERP.Web.Service.Service
                 TestDateList = new List<SelectListItem>(),
                 TestDate = param.TestDate
             };
+
+            // 若該日只存在 KidTestIndex 但沒有 KidExamWordIndex，ReTest 會查不到資料。
+            // 這裡先嘗試補齊明細，避免「無報錯但列表為空」。
+            if (!string.IsNullOrEmpty(param.KidID) && !string.IsNullOrEmpty(param.TestDate))
+            {
+                if (DateTime.TryParse(param.TestDate, out var parsedDate))
+                {
+                    await _examRepo.BackfillKidExamWordIndexAsync(param.KidID, parsedDate, param.TestType);
+                }
+            }
+
             //分頁功能
             var ExamKeyword = new ExamMainKeyword
             {
@@ -205,6 +216,16 @@ namespace ERP.Web.Service.Service
             //取得考試資料
             result.VocabularyList = await GetExamData(param);
 
+            // 題目為空：不計分、不寫入考卷紀錄，直接回傳避免拋例外
+            if (result.VocabularyList == null || result.VocabularyList.Count == 0)
+            {
+                result.VocabularyList = new List<Vocabulary>();
+                result.scoreTable.WordScore = 0;
+                result.scoreTable.PhraseScore = 0;
+                result.scoreTable.MentalMathScore = 0;
+                return result;
+            }
+
             await CalculateScore(result.VocabularyList, result);
 
             Guid LessionID = await _examRepo.GetLessionID(result.Title);
@@ -249,6 +270,9 @@ namespace ERP.Web.Service.Service
             List<Vocabulary> finalQuestions = new List<Vocabulary>(), listVocabulary = new List<Vocabulary>();
             string FirstClassName = string.Empty;
 
+            if (param?.ClassNameList == null || param.ClassNameList.Count == 0)
+                return finalQuestions;
+
             for (int i = 0; i < param.ClassNameList.Count(); i++)
             {
                 string ClassName = param.ClassNameList[i];
@@ -261,8 +285,12 @@ namespace ERP.Web.Service.Service
 
                 var NewVocabulary = await _examRepo.GetExamDataAsync(ClassName);
 
-                listVocabulary.AddRange(NewVocabulary);
+                if (NewVocabulary != null)
+                    listVocabulary.AddRange(NewVocabulary);
             }
+
+            if (listVocabulary.Count == 0)
+                return finalQuestions;
 
             // 依 ClassNum 降序排列（最新的在前）
             var groupedByClass = listVocabulary
@@ -279,7 +307,12 @@ namespace ERP.Web.Service.Service
                         : 1.0 / groupedByClass.Count()         // 用 1.0 確保浮點數除法
                 );
 
-            int totalQuestions = param.ClassNameList.Count() == 1 ? groupedByClass[0].Count() : param.TestNumber;
+            int totalQuestions = param.ClassNameList.Count() == 1
+                ? groupedByClass.FirstOrDefault()?.Count() ?? 0
+                : param.TestNumber;
+
+            if (totalQuestions <= 0)
+                return finalQuestions;
 
 
             // 先處理前三個課程（依據 distribution 權重）
@@ -323,6 +356,38 @@ namespace ERP.Web.Service.Service
             }
 
             return finalQuestions;
+        }
+
+        public async Task<ExamDataViewModel_result> GetWrongExamDataAsync(ExamSearchListViewModel_param param)
+        {
+            var result = new ExamDataViewModel_result
+            {
+                scoreTable = new ScoreTable(),
+                VocabularyList = new List<Vocabulary>(),
+                Title = "複習考_" + DateTime.Now.ToString("yyyyMMdd")
+            };
+
+            if (param == null || string.IsNullOrWhiteSpace(param.KidID))
+                return result;
+
+            // 依「學生」抓取歷史答錯題目（不限定日期）
+            var pool = await _examRepo.GetWrongVocabularyByKid(param.KidID, param.TestType);
+            if (pool == null || pool.Count == 0)
+                return result;
+
+            var take = param.TestNumber > 0 ? param.TestNumber : 18;
+            // 優先出 ReTest 較少的題目，再用隨機打散
+            result.VocabularyList = pool
+                .OrderBy(x => x.ReTest)
+                .ThenBy(_ => Guid.NewGuid())
+                .Take(take)
+                .ToList();
+
+            // 本次複習考抽到的題目，ReTest + 1（用於下次優先挑 ReTest 較少者）
+            await _examRepo.IncreaseReTestAsync(param.KidID, result.VocabularyList.Select(x => x.WordID).Distinct().ToList(), param.TestType);
+
+            await CalculateScore(result.VocabularyList, result);
+            return result;
         }
 
         public async Task<bool> GetUploadFileAsync(IFormFile file)
@@ -429,7 +494,7 @@ namespace ERP.Web.Service.Service
             if (string.IsNullOrEmpty(param.WordID))
                 return false;
 
-            bool ChkUpdate = await _examRepo.UpdateExamWord(param.WordID, param.KidID, param.TestDate, param.Correct);
+            bool ChkUpdate = await _examRepo.UpdateExamWord(param.WordID, param.KidID, param.TestDate, !param.Correct);
 
             return ChkUpdate;
         }
@@ -511,7 +576,12 @@ namespace ERP.Web.Service.Service
         public async Task<ExamDataViewModel_result> CalculateScore(List<Vocabulary> vocabularyList, ExamDataViewModel_result result)
         {
             if (vocabularyList == null || vocabularyList.Count == 0)
-                throw new ArgumentException("Vocabulary list cannot be empty.");
+            {
+                result.scoreTable.WordScore = 0;
+                result.scoreTable.PhraseScore = 0;
+                result.scoreTable.MentalMathScore = 0;
+                return result;
+            }
 
             // 題型分類
             int wordCount = vocabularyList.Count(x => x.CategoryType.Equals("word", StringComparison.OrdinalIgnoreCase));
@@ -539,6 +609,15 @@ namespace ERP.Web.Service.Service
             }
             else
             {
+                // 如果兩種題型都為 0，代表資料不完整，直接回傳 0 分避免除以 0
+                if (wordCount == 0 && phraseCount == 0)
+                {
+                    result.scoreTable.WordScore = 0;
+                    result.scoreTable.PhraseScore = 0;
+                    result.scoreTable.MentalMathScore = MentalMathScore;
+                    return result;
+                }
+
                 //有兩種題型時，依比重分配
                 double totalWeight = result.scoreTable.wordWeight + result.scoreTable.phraseWeight;
                 if (Math.Abs(totalWeight - 1.0) > 0.0001)
@@ -657,19 +736,30 @@ namespace ERP.Web.Service.Service
             return result;
         }
 
-        public async Task<List<SelectListItem>> GetTestDateList(string kidID)
+        public async Task<List<SelectListItem>> GetTestDateList(string kidID, string testType)
         {
-            var testDateListTask = await _examRepo.GetTestDateList(kidID);
-
-            var TestDateList = testDateListTask
-            .Select(x => new SelectListItem
+            var dates = await _examRepo.GetTestDateOnlyList(kidID, testType);
+            return dates.Select(d => new SelectListItem
             {
-                Text = x.Item1.ToString("yyyy-MM-dd") + " : " + x.Item2,
-                Value = x.Item1.ToString("yyyy-MM-dd")
+                Text = d.ToString("yyyy-MM-dd"),
+                Value = d.ToString("yyyy-MM-dd")
             }).ToList();
-            if (TestDateList != null)
-                return TestDateList;
-            return null;
+        }
+
+        public async Task<List<SelectListItem>> GetClassNameListByDate(string kidID, string testDate, string testType)
+        {
+            if (string.IsNullOrWhiteSpace(kidID) || string.IsNullOrWhiteSpace(testDate))
+                return new List<SelectListItem>();
+
+            if (!DateTime.TryParse(testDate, out var parsedDate))
+                return new List<SelectListItem>();
+
+            var classNames = await _examRepo.GetClassNameListByDate(kidID, parsedDate, testType);
+            return classNames.Select(c => new SelectListItem
+            {
+                Text = c,
+                Value = c
+            }).ToList();
         }
     }
 

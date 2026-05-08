@@ -176,6 +176,81 @@ namespace ERP.Web.Models.Respository
             }
         }
 
+        /// <summary>
+        /// 補齊 KidExamWordIndex（當只有 KidTestIndex 但沒有題目明細時）
+        /// </summary>
+        /// <remarks>
+        /// ReTest 的資料來源是 KidExamWordIndex + Vocabulary + KidTestIndex。
+        /// 若系統曾在產生考卷時中途失敗，可能會只留下 KidTestIndex，導致 ReTest 查不到任何資料。
+        /// </remarks>
+        public async Task<int> BackfillKidExamWordIndexAsync(string kidID, DateTime testDate, string testType)
+        {
+            if (!Guid.TryParse(kidID, out var kidMainId))
+                return 0;
+
+            var sqlparam = new DynamicParameters();
+            sqlparam.Add("KidMainID", kidMainId);
+            sqlparam.Add("TestDate", testDate.Date);
+            sqlparam.Add("TestType", (testType ?? string.Empty).ToLower());
+
+            // 只針對「指定孩子 + 指定日期 + 指定 TestType」的考卷索引補明細
+            var sql = @"
+                ;WITH TargetKidTest AS (
+                    SELECT kti.ID, kti.LessionID
+                    FROM KidsWorld.dbo.KidTestIndex kti
+                    JOIN KidsWorld.dbo.Lession les ON les.ID = kti.LessionID
+                    WHERE kti.KidMainID = @KidMainID
+                      AND kti.Enabled = 1 AND kti.Deleted = 0
+                      AND les.Enabled = 1 AND les.Deleted = 0
+                      AND les.TestType = @TestType
+                      AND CONVERT(date, kti.TestDate) = @TestDate
+                )
+                INSERT INTO KidsWorld.dbo.KidExamWordIndex
+                (
+                    ID,
+                    ExamID,
+                    KidTestIndexID,
+                    Correct,
+                    ReTest,
+                    CreateDate,
+                    ModifyDate,
+                    Enabled,
+                    Deleted
+                )
+                SELECT
+                    NEWID(),
+                    v.ID AS ExamID,
+                    t.ID AS KidTestIndexID,
+                    0 AS Correct,
+                    0 AS ReTest,
+                    GETDATE(),
+                    GETDATE(),
+                    1 AS Enabled,
+                    0 AS Deleted
+                FROM TargetKidTest t
+                JOIN KidsWorld.dbo.Vocabulary v ON v.LessionID = t.LessionID
+                WHERE NOT EXISTS (
+                    SELECT 1
+                    FROM KidsWorld.dbo.KidExamWordIndex kwi
+                    WHERE kwi.KidTestIndexID = t.ID
+                      AND kwi.ExamID = v.ID
+                      AND kwi.Enabled = 1 AND kwi.Deleted = 0
+                );
+
+                SELECT @@ROWCOUNT;
+            ";
+
+            using var conn = new SqlConnection(_dBList.erp);
+            try
+            {
+                return await conn.QueryFirstOrDefaultAsync<int>(sql, sqlparam);
+            }
+            catch
+            {
+                return 0;
+            }
+        }
+
         public async Task<List<ExamListModel>> GetExamListAsync()
         {
             var sql = @"
@@ -244,7 +319,7 @@ namespace ERP.Web.Models.Respository
             #region 關鍵字搜尋
             if (param.ClassNameList?.Any() == true)
             {
-                sql += " AND kti.Class IN @Class";
+                sql += " AND les.ClassName IN @Class";
                 sqlparam.Add("Class", param.ClassNameList);
             }
             if (!string.IsNullOrEmpty(param.KidID))
@@ -365,7 +440,7 @@ namespace ERP.Web.Models.Respository
             #region 關鍵字搜尋
             if (param.ClassNameList?.Any() == true)
             {
-                sql += " AND les.ClassName IN @ClassName";
+                sql += " AND les.ClassName IN @Class";
                 sqlparam.Add("Class", param.ClassNameList);
             }
 
@@ -407,7 +482,7 @@ namespace ERP.Web.Models.Respository
             }
             catch (Exception)
             {
-                return null;
+                return new List<ExamMainModel>();
             }
 
         }
@@ -439,6 +514,222 @@ namespace ERP.Web.Models.Respository
             catch
             {
                 return null;
+            }
+        }
+
+        public async Task<List<DateTime>> GetTestDateOnlyList(string KidID, string testType)
+        {
+            var sqlparam = new DynamicParameters();
+            sqlparam.Add("KidMainID", KidID);
+            sqlparam.Add("TestType", (testType ?? string.Empty).ToLower());
+
+            var sql = @"
+                SELECT DISTINCT CONVERT(date, kti.TestDate) as TestDate
+                FROM KidsWorld.dbo.KidTestIndex kti
+                JOIN KidsWorld.dbo.Lession ls ON ls.ID = kti.LessionID
+                WHERE kti.KidMainID = @KidMainID
+                  AND kti.Enabled = 1 AND kti.Deleted = 0
+                  AND ls.Enabled = 1 AND ls.Deleted = 0
+                  AND ls.TestType = @TestType
+                ORDER BY TestDate desc
+            ";
+
+            using var conn = new SqlConnection(_dBList.erp);
+            try
+            {
+                var result = await conn.QueryAsync<DateTime>(sql, sqlparam);
+                return result.ToList();
+            }
+            catch
+            {
+                return new List<DateTime>();
+            }
+        }
+
+        public async Task<List<string>> GetClassNameListByDate(string KidID, DateTime testDate, string testType)
+        {
+            var sqlparam = new DynamicParameters();
+            sqlparam.Add("KidMainID", KidID);
+            sqlparam.Add("TestDate", testDate.Date);
+            sqlparam.Add("TestType", (testType ?? string.Empty).ToLower());
+
+            var sql = @"
+                SELECT DISTINCT ls.ClassName
+                FROM KidsWorld.dbo.KidTestIndex kti
+                JOIN KidsWorld.dbo.Lession ls ON ls.ID = kti.LessionID
+                WHERE kti.KidMainID = @KidMainID
+                  AND kti.Enabled = 1 AND kti.Deleted = 0
+                  AND ls.Enabled = 1 AND ls.Deleted = 0
+                  AND ls.TestType = @TestType
+                  AND CONVERT(date, kti.TestDate) = @TestDate
+                ORDER BY ls.ClassName
+            ";
+
+            using var conn = new SqlConnection(_dBList.erp);
+            try
+            {
+                var result = await conn.QueryAsync<string>(sql, sqlparam);
+                return result.Where(s => !string.IsNullOrWhiteSpace(s)).Distinct().ToList();
+            }
+            catch
+            {
+                return new List<string>();
+            }
+        }
+
+        public async Task<List<Vocabulary>> GetWrongVocabularyByDate(string kidID, DateTime testDate, string testType)
+        {
+            if (!Guid.TryParse(kidID, out var kidMainId))
+                return new List<Vocabulary>();
+
+            var sqlparam = new DynamicParameters();
+            sqlparam.Add("KidMainID", kidMainId);
+            sqlparam.Add("TestDate", testDate.Date);
+            sqlparam.Add("TestType", (testType ?? string.Empty).ToLower());
+
+            // 只撈「指定孩子 + 指定日期 + 指定 TestType」且 Correct=0（答錯）的題目
+            var sql = @"
+                SELECT 
+                    w.ID as WordID,
+                    les.TestType,
+                    w.CategoryType,
+                    les.ClassName,
+                    w.Question,
+                    w.Answer,
+                    km.ID as KidID,
+                    wl.Correct
+                FROM KidsWorld.dbo.KidExamWordIndex wl
+                LEFT JOIN KidsWorld.dbo.Vocabulary w ON w.ID = wl.ExamID
+                LEFT JOIN KidsWorld.dbo.Lession les ON les.ID = w.LessionID
+                LEFT JOIN KidsWorld.dbo.KidTestIndex kti ON kti.ID = wl.KidTestIndexID
+                LEFT JOIN KidsWorld.dbo.KidMain km ON km.ID = kti.KidMainID
+                WHERE wl.Enabled = 1
+                  AND wl.Deleted = 0
+                  AND kti.Enabled = 1
+                  AND kti.Deleted = 0
+                  AND km.ID = @KidMainID
+                  AND wl.Correct = 0
+                  AND les.TestType = @TestType
+                  AND CONVERT(date, kti.TestDate) = @TestDate
+            ";
+
+            using var conn = new SqlConnection(_dBList.erp);
+            try
+            {
+                var result = await conn.QueryAsync<Vocabulary>(sql, sqlparam);
+                return result?.ToList() ?? new List<Vocabulary>();
+            }
+            catch
+            {
+                return new List<Vocabulary>();
+            }
+        }
+
+        public async Task<List<Vocabulary>> GetWrongVocabularyByKid(string kidID, string testType)
+        {
+            if (!Guid.TryParse(kidID, out var kidMainId))
+                return new List<Vocabulary>();
+
+            var sqlparam = new DynamicParameters();
+            sqlparam.Add("KidMainID", kidMainId);
+            sqlparam.Add("TestType", (testType ?? string.Empty).ToLower());
+
+            // 撈「指定孩子 + 指定 TestType」且 Correct=0（答錯）的歷史題目（不限定日期）
+            // 重要：以 ExamID 去重，避免同一題在不同考卷索引出現多筆影響排序
+            var sql = @"
+                ;WITH WrongPool AS (
+                    SELECT
+                        wl.ExamID,
+                        MIN(ISNULL(wl.ReTest, 0)) AS ReTest
+                    FROM KidsWorld.dbo.KidExamWordIndex wl
+                    JOIN KidsWorld.dbo.KidTestIndex kti ON kti.ID = wl.KidTestIndexID
+                    JOIN KidsWorld.dbo.KidMain km ON km.ID = kti.KidMainID
+                    JOIN KidsWorld.dbo.Vocabulary w ON w.ID = wl.ExamID
+                    JOIN KidsWorld.dbo.Lession les ON les.ID = w.LessionID
+                    WHERE wl.Enabled = 1 AND wl.Deleted = 0
+                      AND kti.Enabled = 1 AND kti.Deleted = 0
+                      AND km.ID = @KidMainID
+                      AND wl.Correct = 0
+                      AND les.TestType = @TestType
+                    GROUP BY wl.ExamID
+                )
+                SELECT
+                    w.ID AS WordID,
+                    les.TestType,
+                    w.CategoryType,
+                    les.ClassName,
+                    w.Question,
+                    w.Answer,
+                    @KidMainID AS KidID,
+                    0 AS Correct,
+                    p.ReTest
+                FROM WrongPool p
+                JOIN KidsWorld.dbo.Vocabulary w ON w.ID = p.ExamID
+                JOIN KidsWorld.dbo.Lession les ON les.ID = w.LessionID
+            ";
+
+            using var conn = new SqlConnection(_dBList.erp);
+            try
+            {
+                var result = await conn.QueryAsync<Vocabulary>(sql, sqlparam);
+                return result?.ToList() ?? new List<Vocabulary>();
+            }
+            catch
+            {
+                return new List<Vocabulary>();
+            }
+        }
+
+        public async Task<int> IncreaseReTestAsync(string kidID, List<Guid> examIDs, string testType)
+        {
+            if (!Guid.TryParse(kidID, out var kidMainId))
+                return 0;
+            if (examIDs == null || examIDs.Count == 0)
+                return 0;
+
+            var sqlparam = new DynamicParameters();
+            sqlparam.Add("KidMainID", kidMainId);
+            sqlparam.Add("ExamIDs", examIDs);
+            sqlparam.Add("TestType", (testType ?? string.Empty).ToLower());
+
+            // 針對每個 ExamID 更新「最新的一筆」KidExamWordIndex：ReTest + 1
+            var sql = @"
+                ;WITH Latest AS (
+                    SELECT
+                        wl.ID,
+                        ROW_NUMBER() OVER (
+                            PARTITION BY wl.ExamID
+                            ORDER BY wl.ModifyDate DESC, wl.CreateDate DESC
+                        ) AS rn
+                    FROM KidsWorld.dbo.KidExamWordIndex wl
+                    JOIN KidsWorld.dbo.KidTestIndex kti ON kti.ID = wl.KidTestIndexID
+                    JOIN KidsWorld.dbo.KidMain km ON km.ID = kti.KidMainID
+                    JOIN KidsWorld.dbo.Vocabulary w ON w.ID = wl.ExamID
+                    JOIN KidsWorld.dbo.Lession les ON les.ID = w.LessionID
+                    WHERE wl.Enabled = 1 AND wl.Deleted = 0
+                      AND kti.Enabled = 1 AND kti.Deleted = 0
+                      AND km.ID = @KidMainID
+                      AND wl.ExamID IN @ExamIDs
+                      AND les.TestType = @TestType
+                )
+                UPDATE wl
+                SET wl.ReTest = ISNULL(wl.ReTest, 0) + 1,
+                    wl.ModifyDate = GETDATE()
+                FROM KidsWorld.dbo.KidExamWordIndex wl
+                JOIN Latest l ON l.ID = wl.ID
+                WHERE l.rn = 1;
+
+                SELECT @@ROWCOUNT;
+            ";
+
+            using var conn = new SqlConnection(_dBList.erp);
+            try
+            {
+                return await conn.QueryFirstOrDefaultAsync<int>(sql, sqlparam);
+            }
+            catch
+            {
+                return 0;
             }
         }
 
@@ -517,9 +808,9 @@ namespace ERP.Web.Models.Respository
             var sqlparam = new DynamicParameters();
             sqlparam.Add("ExamID", param.WordID);
             sqlparam.Add("KidTestIndexID", param.NewKidTestID);
-            var Correct = param.Correct != null ? param.Correct : 0;
+            var Correct = 1;
             sqlparam.Add("Correct", Correct);
-            var ReTest = param.ReTest != null ? param.ReTest + 1 : 0;
+            var ReTest =  0;
             sqlparam.Add("ReTest", ReTest);
 
             var sql = @"
