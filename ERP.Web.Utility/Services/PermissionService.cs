@@ -13,6 +13,7 @@ namespace ERP.Web.Utility.Services
     public class PermissionService : IPermissionService
     {
         private readonly ControllerUtilityRepo _controllerUtilityRepo;
+        private readonly IConfiguration _configuration;
 
         private readonly IHttpContextAccessor _httpContextAccessor;
         private readonly TimeSpan _cacheExpiration = TimeSpan.FromMinutes(30); // 快取 30 分鐘
@@ -22,8 +23,14 @@ namespace ERP.Web.Utility.Services
             IMemoryCache cache,
             IHttpContextAccessor httpContextAccessor)
         {
+            _configuration = configuration;
             _controllerUtilityRepo = new ControllerUtilityRepo(configuration.GetConnectionString("UtilityERP"));
             _httpContextAccessor = httpContextAccessor;
+        }
+
+        private bool IsBypassEnabled()
+        {
+            return _configuration.GetValue<bool>("Permission:Bypass");
         }
 
         /// <summary>
@@ -31,6 +38,9 @@ namespace ERP.Web.Utility.Services
         /// </summary>
         public async Task<bool> HasPermissionAsync(string userName, string controller, string action)
         {
+            if (IsBypassEnabled())
+                return true;
+
             if (string.IsNullOrEmpty(userName) || string.IsNullOrEmpty(controller) || string.IsNullOrEmpty(action))
                 return false;
 
@@ -46,6 +56,9 @@ namespace ERP.Web.Utility.Services
         /// </summary>
         public async Task<HashSet<string>> GetUserPermissionsAsync(string userName)
         {
+            if (IsBypassEnabled())
+                return new HashSet<string>(StringComparer.OrdinalIgnoreCase) { "*" };
+
             if (string.IsNullOrEmpty(userName))
                 return new HashSet<string>();
 
@@ -147,6 +160,9 @@ namespace ERP.Web.Utility.Services
         /// </summary>
         public async Task<bool> HasPermissionByIdAsync(string userName, Guid controllerMainID)
         {
+            if (IsBypassEnabled())
+                return true;
+
             if (string.IsNullOrEmpty(userName) || controllerMainID == Guid.Empty)
                 return false;
 
@@ -178,6 +194,7 @@ namespace ERP.Web.Utility.Services
             if (string.IsNullOrWhiteSpace(userName))
                 return;
 
+            // 測試繞過模式下不需要清快取，但仍保留原本流程以避免呼叫端行為改變
             var context = _httpContextAccessor.HttpContext;
             if (context == null)
                 return;

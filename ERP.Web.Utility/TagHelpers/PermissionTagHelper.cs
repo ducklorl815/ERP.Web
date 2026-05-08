@@ -3,6 +3,7 @@ using Microsoft.AspNetCore.Http;
 using Microsoft.AspNetCore.Razor.TagHelpers;
 using System;
 using System.Threading.Tasks;
+using Microsoft.Extensions.Configuration;
 
 namespace ERP.Web.Utility.TagHelpers
 {
@@ -24,13 +25,16 @@ namespace ERP.Web.Utility.TagHelpers
     {
         private readonly IPermissionService _permissionService;
         private readonly IHttpContextAccessor _httpContextAccessor;
+        private readonly IConfiguration _configuration;
 
         public PermissionTagHelper(
             IPermissionService permissionService,
-            IHttpContextAccessor httpContextAccessor)
+            IHttpContextAccessor httpContextAccessor,
+            IConfiguration configuration)
         {
             _permissionService = permissionService;
             _httpContextAccessor = httpContextAccessor;
+            _configuration = configuration;
         }
 
         /// <summary>
@@ -60,6 +64,10 @@ namespace ERP.Web.Utility.TagHelpers
 
         public override async Task ProcessAsync(TagHelperContext context, TagHelperOutput output)
         {
+            // 測試階段：允許透過設定繞過權限檢查，全部顯示
+            if (_configuration.GetValue<bool>("Permission:Bypass"))
+                return;
+
             // 取得當前使用者
             var userName = _httpContextAccessor.HttpContext?.User?.Identity?.Name;
             userName = "4DC64990-C818-4A28-AAEC-4C726F5E6CEB";

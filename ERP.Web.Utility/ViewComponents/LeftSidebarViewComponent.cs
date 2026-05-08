@@ -71,6 +71,12 @@ namespace ERP.Web.Utility.ViewComponents
 
             var userMenuKey = _configuration.GetSection("RedisSessionKey:UserMenu").Value;
 
+            // 測試階段：允許透過設定繞過權限與選單資料庫查詢，避免資料庫尚未就緒造成整站無法使用
+            if (_configuration.GetValue<bool>("Permission:Bypass"))
+            {
+                return View(result);
+            }
+
             string NodeJson = await _controllerUtilityRepo.GetBoundAccessGroupData(HttpContext.User.Identity.Name);
             IEnumerable<dynamic> menuData = null;
             List<string> ControllerIDList = new List<string>(); 
