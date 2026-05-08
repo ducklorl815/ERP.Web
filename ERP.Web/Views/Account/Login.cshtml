@@ -1,0 +1,851 @@
+@{
+    Layout = null; // 登入頁面不使用主版面配置
+}
+
+<!DOCTYPE html>
+<html lang="zh-hant-TW">
+<head>
+    <meta charset="utf-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+    <title>使用者登入 - ERP.Web</title>
+
+    <!-- Bootstrap 樣式 -->
+    <link rel="stylesheet" href="~/StaticFiles/lib/bootstrap/dist/css/bootstrap.css" />
+    
+    <!-- Font Awesome 圖示 -->
+    <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/7.0.1/css/all.min.css" />
+    
+    <!-- Google Fonts - 閃電速度感字體 -->
+    <link rel="preconnect" href="https://fonts.googleapis.com">
+    <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+    <link href="https://fonts.googleapis.com/css2?family=Righteous&family=Orbitron:wght@900&family=Audiowide&display=swap" rel="stylesheet">
+    
+    <!-- Animate.css 動畫特效 -->
+    <link rel="stylesheet" href="~/StaticFiles/css/animate.css" />
+    
+    <!-- 自訂樣式 -->
+    <link rel="stylesheet" href="~/StaticFiles/css/style.css" />
+
+    <style>
+        /* 登入頁面專用樣式 - 左右分割布局 */
+        .login-container {
+            min-height: 100vh;
+            display: flex;
+            align-items: stretch;
+            justify-content: space-between;
+            background: linear-gradient(135deg, #0a0a0a 0%, #1a1a2e 100%);
+            position: relative;
+            overflow: hidden;
+        }
+        
+        /* 左側 - 中文說明區域（白色背景） */
+        .description-section {
+            flex: 1;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            padding: 60px;
+            position: relative;
+            overflow: hidden;
+            background: #ffffff;
+        }
+        
+        /* 左側裝飾性背景 */
+        .description-section::before {
+            content: '';
+            position: absolute;
+            width: 200%;
+            height: 200%;
+            background: radial-gradient(circle, rgba(0, 212, 255, 0.02) 1px, transparent 1px);
+            background-size: 40px 40px;
+            animation: backgroundMove 30s ease-in-out infinite;
+        }
+        
+        @@keyframes backgroundMove {
+            0% { 
+                transform: translate(0, 0);
+            }
+            50% {
+                transform: translate(40px, 40px);
+            }
+            100% { 
+                transform: translate(0, 0);
+            }
+        }
+        
+        /* 中文說明內容 */
+        .description-content {
+            position: relative;
+            z-index: 1;
+            max-width: 600px;
+        }
+        
+        .description-title {
+            font-size: 42px;
+            font-weight: 700;
+            color: #1a1a2e;
+            margin-bottom: 25px;
+        }
+        
+        .description-subtitle {
+            font-size: 24px;
+            color: #00d4ff;
+            margin-bottom: 40px;
+            font-weight: 300;
+        }
+        
+        .description-text {
+            font-size: 16px;
+            line-height: 1.8;
+            color: #555;
+            margin-bottom: 20px;
+        }
+        
+        .feature-list {
+            list-style: none;
+            padding: 0;
+            margin: 30px 0;
+        }
+        
+        .feature-item {
+            padding: 15px 0;
+            padding-left: 35px;
+            position: relative;
+            color: #666;
+            font-size: 15px;
+            line-height: 1.6;
+        }
+        
+        .feature-item::before {
+            content: '⚡';
+            position: absolute;
+            left: 0;
+            color: #00d4ff;
+            font-size: 20px;
+        }
+        
+        /* 右側 - 登入區域（招牌 + 表單）（深色背景） */
+        .login-section {
+            flex: 0 0 480px;
+            display: flex;
+            flex-direction: column;
+            background: linear-gradient(180deg, #1a1a2e 0%, #0a0a0a 100%);
+            box-shadow: -5px 0 30px rgba(0, 0, 0, 0.5);
+            position: relative;
+            z-index: 2;
+        }
+        
+        /* 右側背景效果 */
+        .login-section::before {
+            content: '';
+            position: absolute;
+            top: 0;
+            left: 0;
+            right: 0;
+            bottom: 0;
+            background: radial-gradient(ellipse at center, rgba(0, 212, 255, 0.08) 0%, transparent 70%);
+            pointer-events: none;
+        }
+        
+        /* 招牌區（右上方） */
+        .brand-header {
+            padding: 40px 50px 30px;
+            text-align: center;
+            border-bottom: 2px solid rgba(0, 212, 255, 0.2);
+            background: linear-gradient(180deg, rgba(26, 26, 46, 0.8) 0%, rgba(26, 26, 46, 0.4) 100%);
+            position: relative;
+            z-index: 1;
+        }
+        
+        /* 表單區（招牌下方） */
+        .login-form-wrapper {
+            flex: 1;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            padding: 50px;
+            position: relative;
+            z-index: 1;
+        }
+        
+        .login-box {
+            width: 100%;
+            max-width: 380px;
+            animation: fadeInRight 1s cubic-bezier(0.4, 0, 0.2, 1);
+        }
+        
+        @@keyframes fadeInRight {
+            from {
+                opacity: 0;
+                transform: translateX(50px) translateY(10px);
+            }
+            to {
+                opacity: 1;
+                transform: translateX(0) translateY(0);
+            }
+        }
+        
+        /* 頁面元素依序淡入 */
+        .form-group {
+            animation: fadeInUp 0.6s cubic-bezier(0.4, 0, 0.2, 1) backwards;
+        }
+        
+        .form-group:nth-child(1) { animation-delay: 0.1s; }
+        .form-group:nth-child(2) { animation-delay: 0.2s; }
+        .form-group:nth-child(3) { animation-delay: 0.3s; }
+        
+        @@keyframes fadeInUp {
+            from {
+                opacity: 0;
+                transform: translateY(20px);
+            }
+            to {
+                opacity: 1;
+                transform: translateY(0);
+            }
+        }
+        
+        /* 響應式設計 - 平板以下改為上下排列 */
+        @@media (max-width: 992px) {
+            .login-container {
+                flex-direction: column;
+            }
+            
+            .description-section {
+                min-height: 50vh;
+                padding: 40px 30px;
+            }
+            
+            .description-title {
+                font-size: 32px;
+            }
+            
+            .description-subtitle {
+                font-size: 20px;
+            }
+            
+            .login-section {
+                flex: 1;
+            }
+            
+            .brand-header {
+                padding: 30px 30px 20px;
+            }
+            
+            .login-form-wrapper {
+                padding: 30px;
+            }
+        }
+        
+        /* FlashWolf 招牌效果 - 真實霓虹燈風格 */
+        .brand-logo {
+            text-align: center;
+            position: relative;
+            z-index: 1;
+        }
+        
+        .brand-image {
+            max-width: 280px;
+            width: 100%;
+            height: auto;
+            display: inline-block;
+            position: relative;
+            filter: drop-shadow(0 0 20px rgba(0, 212, 255, 0.9))
+                    drop-shadow(0 0 40px rgba(0, 212, 255, 0.7))
+                    drop-shadow(0 0 70px rgba(0, 153, 255, 0.5));
+            animation: neonBreath 10s ease-in-out infinite;
+        }
+        
+        /* 霓虹燈呼吸動畫 - 簡潔優雅版 */
+        @@keyframes neonBreath {
+            0%, 100% {
+                filter: drop-shadow(0 0 20px rgba(0, 212, 255, 0.9))
+                        drop-shadow(0 0 40px rgba(0, 212, 255, 0.7))
+                        drop-shadow(0 0 70px rgba(0, 153, 255, 0.5))
+                        blur(0px);
+                opacity: 1;
+                transform: scale(1);
+            }
+            
+            50% {
+                filter: drop-shadow(0 0 35px rgba(0, 212, 255, 0.7))
+                        drop-shadow(0 0 70px rgba(0, 212, 255, 0.5))
+                        drop-shadow(0 0 120px rgba(0, 153, 255, 0.3))
+                        blur(0.8px);
+                opacity: 0.75;
+                transform: scale(1.02);
+            }
+            
+            85% {
+                filter: drop-shadow(0 0 15px rgba(0, 212, 255, 0.5))
+                        drop-shadow(0 0 30px rgba(0, 212, 255, 0.3))
+                        drop-shadow(0 0 50px rgba(0, 153, 255, 0.2))
+                        blur(0.3px);
+                opacity: 0.6;
+                transform: scale(0.99);
+            }
+            
+            87% {
+                filter: drop-shadow(0 0 25px rgba(0, 212, 255, 1))
+                        drop-shadow(0 0 50px rgba(0, 212, 255, 0.8))
+                        drop-shadow(0 0 80px rgba(0, 153, 255, 0.6))
+                        blur(0px);
+                opacity: 1;
+                transform: scale(1.01);
+            }
+        }
+        
+        /* 備用文字招牌 - 右上方小型版本 */
+        .brand-name-text {
+            font-family: 'Righteous', sans-serif;
+            font-size: 44px;
+            /* 霓虹燈管本體顏色 - 帶點藍色調，不是純白 */
+            color: #e0f7ff;
+            font-style: italic;
+            transform: skewX(-8deg);
+            font-weight: 900;
+            letter-spacing: 3px;
+            margin: 0;
+            position: relative;
+            display: inline-block;
+            /* 霓虹燈管描邊效果 */
+            -webkit-text-stroke: 1.5px #00d4ff;
+            text-stroke: 1.5px #00d4ff;
+            /* 多層發光效果（縮小版） */
+            text-shadow: 
+                /* 內層強光 */
+                0 0 4px #b3e5ff,
+                0 0 8px #80d4ff,
+                /* 中層霓虹藍光 */
+                0 0 15px #00d4ff,
+                0 0 25px #00d4ff,
+                0 0 35px #00d4ff,
+                /* 外層擴散光暈 */
+                0 0 50px #0099ff,
+                0 0 65px #0099ff,
+                0 0 85px #0066ff,
+                /* 遠距離光暈 */
+                0 0 110px rgba(0, 102, 255, 0.5);
+            animation: neonTextDream 12s cubic-bezier(0.4, 0, 0.2, 1) infinite;
+        }
+        
+        /* 文字霓虹燈迷濛動畫 */
+        @@keyframes neonTextDream {
+            /* 0-30%: 清晰明亮狀態 */
+            0% {
+                color: #e0f7ff;
+                filter: blur(0px);
+                text-shadow: 
+                    0 0 5px #b3e5ff,
+                    0 0 10px #80d4ff,
+                    0 0 20px #00d4ff,
+                    0 0 30px #00d4ff,
+                    0 0 40px #00d4ff,
+                    0 0 60px #0099ff,
+                    0 0 80px #0099ff,
+                    0 0 100px #0066ff,
+                    0 0 150px rgba(0, 102, 255, 0.5);
+                opacity: 1;
+            }
+            30% {
+                color: #e0f7ff;
+                filter: blur(0px);
+                text-shadow: 
+                    0 0 5px #b3e5ff,
+                    0 0 10px #80d4ff,
+                    0 0 20px #00d4ff,
+                    0 0 30px #00d4ff,
+                    0 0 40px #00d4ff,
+                    0 0 60px #0099ff,
+                    0 0 80px #0099ff,
+                    0 0 100px #0066ff,
+                    0 0 150px rgba(0, 102, 255, 0.5);
+                opacity: 1;
+            }
+            
+            /* 30-50%: 開始產生模糊迷濛感 */
+            40% {
+                color: #d0ecff;
+                filter: blur(0.3px);
+                text-shadow: 
+                    0 0 8px #b3e5ff,
+                    0 0 15px #80d4ff,
+                    0 0 25px #00d4ff,
+                    0 0 40px #00d4ff,
+                    0 0 55px #0099ff,
+                    0 0 75px #0099ff,
+                    0 0 100px #0066ff,
+                    0 0 180px rgba(0, 102, 255, 0.6);
+                opacity: 0.95;
+            }
+            50% {
+                color: #c0e4ff;
+                filter: blur(0.6px);
+                text-shadow: 
+                    0 0 10px #b3e5ff,
+                    0 0 20px #80d4ff,
+                    0 0 30px #00d4ff,
+                    0 0 50px #00d4ff,
+                    0 0 70px #0099ff,
+                    0 0 90px #0099ff,
+                    0 0 120px #0066ff,
+                    0 0 200px rgba(0, 102, 255, 0.5);
+                opacity: 0.9;
+            }
+            
+            /* 50-70%: 迷濛感加深，光暈擴散 */
+            60% {
+                color: #b0dcff;
+                filter: blur(0.9px);
+                text-shadow: 
+                    0 0 15px #b3e5ff,
+                    0 0 25px #80d4ff,
+                    0 0 40px #00d4ff,
+                    0 0 60px #00d4ff,
+                    0 0 85px #0099ff,
+                    0 0 110px #0099ff,
+                    0 0 140px #0066ff,
+                    0 0 220px rgba(0, 102, 255, 0.4);
+                opacity: 0.8;
+            }
+            70% {
+                color: #a0d4ff;
+                filter: blur(1.2px);
+                text-shadow: 
+                    0 0 20px #b3e5ff,
+                    0 0 30px #80d4ff,
+                    0 0 50px #00d4ff,
+                    0 0 70px #00d4ff,
+                    0 0 100px #0099ff,
+                    0 0 130px #0099ff,
+                    0 0 160px #0066ff,
+                    0 0 240px rgba(0, 102, 255, 0.3);
+                opacity: 0.7;
+            }
+            
+            /* 70-85%: 慢慢暗淡下去 */
+            80% {
+                color: #90c8e8;
+                filter: blur(0.9px);
+                text-shadow: 
+                    0 0 12px #80d4ff,
+                    0 0 20px #00d4ff,
+                    0 0 35px #00d4ff,
+                    0 0 50px #0099ff,
+                    0 0 70px #0099ff,
+                    0 0 90px #0066ff,
+                    0 0 120px rgba(0, 102, 255, 0.2);
+                opacity: 0.6;
+            }
+            85% {
+                color: #80bcdc;
+                filter: blur(0.6px);
+                text-shadow: 
+                    0 0 8px #80d4ff,
+                    0 0 15px #00d4ff,
+                    0 0 25px #00d4ff,
+                    0 0 40px #0099ff,
+                    0 0 55px #0099ff,
+                    0 0 70px #0066ff,
+                    0 0 90px rgba(0, 102, 255, 0.15);
+                opacity: 0.5;
+            }
+            
+            /* 85-90%: 最暗狀態 */
+            90% {
+                color: #70b0d0;
+                filter: blur(0.3px);
+                text-shadow: 
+                    0 0 5px #80d4ff,
+                    0 0 10px #00d4ff,
+                    0 0 15px #00d4ff,
+                    0 0 25px #0099ff,
+                    0 0 35px #0099ff,
+                    0 0 50px rgba(0, 102, 255, 0.1);
+                opacity: 0.4;
+            }
+            
+            /* 90-92%: 快速閃爍 */
+            91% {
+                color: #e0f7ff;
+                filter: blur(0px);
+                text-shadow: 
+                    0 0 5px #b3e5ff,
+                    0 0 10px #80d4ff,
+                    0 0 20px #00d4ff,
+                    0 0 30px #00d4ff,
+                    0 0 40px #00d4ff,
+                    0 0 60px #0099ff,
+                    0 0 80px #0099ff,
+                    0 0 100px #0066ff,
+                    0 0 150px rgba(0, 102, 255, 0.6);
+                opacity: 1;
+            }
+            93% {
+                color: #a0d4ff;
+                filter: blur(0.3px);
+                text-shadow: 
+                    0 0 3px #80d4ff,
+                    0 0 8px #00d4ff,
+                    0 0 15px #0099ff,
+                    0 0 25px rgba(0, 102, 255, 0.4);
+                opacity: 0.7;
+            }
+            
+            /* 92-100%: 恢復明亮，準備下次循環 */
+            95% {
+                color: #e0f7ff;
+                filter: blur(0px);
+                text-shadow: 
+                    0 0 5px #b3e5ff,
+                    0 0 10px #80d4ff,
+                    0 0 20px #00d4ff,
+                    0 0 30px #00d4ff,
+                    0 0 40px #00d4ff,
+                    0 0 60px #0099ff,
+                    0 0 80px #0099ff,
+                    0 0 100px #0066ff,
+                    0 0 150px rgba(0, 102, 255, 0.5);
+                opacity: 1;
+            }
+            100% {
+                color: #e0f7ff;
+                filter: blur(0px);
+                text-shadow: 
+                    0 0 5px #b3e5ff,
+                    0 0 10px #80d4ff,
+                    0 0 20px #00d4ff,
+                    0 0 30px #00d4ff,
+                    0 0 40px #00d4ff,
+                    0 0 60px #0099ff,
+                    0 0 80px #0099ff,
+                    0 0 100px #0066ff,
+                    0 0 150px rgba(0, 102, 255, 0.5);
+                opacity: 1;
+            }
+        }
+        
+        /* 副標題 - 小型狼爪圖示 */
+        .brand-subtitle {
+            color: #6b9cb8;
+            font-size: 16px;
+            margin-top: 25px;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            gap: 10px;
+            text-shadow: 0 0 10px rgba(0, 212, 255, 0.3);
+        }
+        
+        .brand-subtitle i {
+            color: #00d4ff;
+            filter: drop-shadow(0 0 8px rgba(0, 212, 255, 0.6));
+            animation: pulse 2s ease-in-out infinite;
+        }
+        
+        @@keyframes pulse {
+            0%, 100% { 
+                transform: scale(1);
+                filter: drop-shadow(0 0 8px rgba(0, 212, 255, 0.6));
+            }
+            50% { 
+                transform: scale(1.2);
+                filter: drop-shadow(0 0 18px rgba(0, 212, 255, 1));
+            }
+        }
+        
+        .brand-subtitle i {
+            transition: transform 0.3s cubic-bezier(0.4, 0, 0.2, 1);
+        }
+        
+        .brand-subtitle i:hover {
+            transform: scale(1.3) rotate(12deg);
+        }
+        
+        /* 右側登入表單樣式（深色背景） */
+        .login-title {
+            text-align: center;
+            font-size: 28px;
+            font-weight: 700;
+            color: #e0f7ff;
+            margin-bottom: 10px;
+            text-shadow: 0 2px 10px rgba(0, 212, 255, 0.3);
+        }
+        
+        .login-subtitle {
+            text-align: center;
+            font-size: 14px;
+            color: #80d4ff;
+            margin-bottom: 35px;
+        }
+        
+        .form-group {
+            margin-bottom: 20px;
+        }
+        
+        .form-label {
+            font-weight: 500;
+            color: #b3d9f0;
+            margin-bottom: 8px;
+            display: block;
+        }
+        
+        .form-control {
+            height: 45px;
+            padding: 10px 15px;
+            font-size: 14px;
+            border: 1px solid rgba(0, 212, 255, 0.3);
+            border-radius: 5px;
+            transition: all 0.4s cubic-bezier(0.4, 0, 0.2, 1);
+            background-color: rgba(26, 26, 46, 0.5);
+            color: #e0f7ff;
+        }
+        
+        .form-control::placeholder {
+            color: rgba(128, 212, 255, 0.5);
+        }
+        
+        .form-control:focus {
+            border-color: #00d4ff;
+            box-shadow: 0 0 0 0.2rem rgba(0, 212, 255, 0.25);
+            background-color: rgba(26, 26, 46, 0.7);
+        }
+        
+        .input-group-text {
+            background-color: rgba(26, 26, 46, 0.5);
+            border: 1px solid rgba(0, 212, 255, 0.3);
+            border-right: none;
+            color: #00d4ff;
+        }
+        
+        .input-group .form-control {
+            border-left: none;
+        }
+        
+        .input-group .form-control:focus {
+            border-left: none;
+        }
+        
+        .form-check-label {
+            color: #b3d9f0;
+        }
+        
+        .form-check-input {
+            border-color: rgba(0, 212, 255, 0.3);
+        }
+        
+        .form-check-input:checked {
+            background-color: #00d4ff;
+            border-color: #00d4ff;
+        }
+        
+        .btn-login {
+            width: 100%;
+            height: 45px;
+            background: linear-gradient(135deg, #00d4ff 0%, #0099ff 100%);
+            border: none;
+            border-radius: 5px;
+            color: white;
+            font-size: 16px;
+            font-weight: 600;
+            transition: all 0.4s cubic-bezier(0.4, 0, 0.2, 1);
+            cursor: pointer;
+            box-shadow: 0 4px 15px rgba(0, 212, 255, 0.3);
+        }
+        
+        .btn-login:hover {
+            transform: translateY(-3px) scale(1.01);
+            box-shadow: 0 10px 30px rgba(0, 212, 255, 0.6);
+            background: linear-gradient(135deg, #00b4ff 0%, #0077ff 100%);
+        }
+        
+        .btn-login:active {
+            transform: translateY(-1px) scale(0.99);
+            transition: all 0.15s cubic-bezier(0.4, 0, 0.2, 1);
+        }
+        
+        .login-footer {
+            text-align: center;
+            margin-top: 30px;
+            padding-top: 25px;
+            border-top: 1px solid rgba(0, 212, 255, 0.2);
+            color: #6b9cb8;
+            font-size: 13px;
+        }
+        
+        .login-footer p {
+            margin: 0;
+        }
+        
+        .error-message {
+            color: #ff6b6b;
+            font-size: 14px;
+            margin-top: 10px;
+            margin-bottom: 15px;
+            padding: 10px;
+            background-color: rgba(255, 107, 107, 0.15);
+            border-radius: 5px;
+            border-left: 3px solid #ff6b6b;
+            display: none;
+        }
+    </style>
+</head>
+<body>
+    <div class="login-container">
+        <!-- 左側 - 中文說明區域 -->
+        <div class="description-section">
+            <div class="description-content">
+                <h1 class="description-title">FlashWolf ERP 系統</h1>
+                <h2 class="description-subtitle">企業資源規劃整合平台</h2>
+                
+                <p class="description-text">
+                    FlashWolf ERP 提供完整的企業管理解決方案，整合人力資源、財務管理、庫存控制等核心功能，
+                    協助企業提升營運效率，實現數位轉型目標。
+                </p>
+                
+                <ul class="feature-list">
+                    <li class="feature-item">智慧化資料分析與即時報表</li>
+                    <li class="feature-item">多平台支援，隨時隨地存取系統</li>
+                    <li class="feature-item">高度安全性的權限控管機制</li>
+                    <li class="feature-item">客製化模組，符合企業需求</li>
+                    <li class="feature-item">專業技術團隊提供全方位支援</li>
+                </ul>
+                
+                <p class="description-text" style="margin-top: 40px; font-size: 14px; opacity: 0.8;">
+                    © @DateTime.Now.Year FlashWolf Technology Co., Ltd. All rights reserved.
+                </p>
+            </div>
+        </div>
+        
+        <!-- 右側 - 登入區域 -->
+        <div class="login-section">
+            <!-- 招牌區（右上方） -->
+            <div class="brand-header">
+                <div class="brand-logo">
+                    <!-- 方案一：使用霓虹燈圖片（推薦） -->
+                    <!-- 將您的霓虹燈圖片放在 wwwroot/images/flashwolf-neon.png -->
+                    <img src="~/images/flashwolf-neon.png" 
+                         alt="FlashWolf" 
+                         class="brand-image"
+                         onerror="this.style.display='none'; document.querySelector('.brand-name-text').style.display='inline-block';" />
+                    
+
+                </div>
+            </div>
+            
+            <!-- 表單區（招牌下方） -->
+            <div class="login-form-wrapper">
+                <div class="login-box">
+                    <!-- 標題 -->
+                    <h2 class="login-title">歡迎回來</h2>
+                    <p class="login-subtitle">請輸入您的帳號密碼登入系統</p>
+            
+            <!-- 登入表單 -->
+            <form id="loginForm" method="post" asp-action="Login" asp-controller="Account">
+                <!-- 帳號欄位 -->
+                <div class="form-group">
+                    <label class="form-label" for="username">
+                        <i class="fas fa-user"></i> 帳號
+                    </label>
+                    <div class="input-group">
+                        <span class="input-group-text">
+                            <i class="fas fa-user"></i>
+                        </span>
+                        <input type="text" 
+                               class="form-control" 
+                               id="username" 
+                               name="username" 
+                               placeholder="請輸入帳號" 
+                               required 
+                               autocomplete="username" />
+                    </div>
+                </div>
+                
+                <!-- 密碼欄位 -->
+                <div class="form-group">
+                    <label class="form-label" for="password">
+                        <i class="fas fa-lock"></i> 密碼
+                    </label>
+                    <div class="input-group">
+                        <span class="input-group-text">
+                            <i class="fas fa-lock"></i>
+                        </span>
+                        <input type="password" 
+                               class="form-control" 
+                               id="password" 
+                               name="password" 
+                               placeholder="請輸入密碼" 
+                               required 
+                               autocomplete="current-password" />
+                    </div>
+                </div>
+                
+                <!-- 記住我選項 -->
+                <div class="form-group">
+                    <div class="form-check">
+                        <input type="checkbox" class="form-check-input" id="rememberMe" name="rememberMe" />
+                        <label class="form-check-label" for="rememberMe">
+                            自動登入
+                        </label>
+                    </div>
+                </div>
+                
+                <!-- 錯誤訊息顯示區域 -->
+                <div class="error-message" id="errorMessage">
+                    @TempData["ErrorMessage"]
+                </div>
+                
+                    <!-- 登入按鈕 -->
+                    <button type="submit" class="btn btn-login">
+                        <i class="fas fa-sign-in-alt"></i> 登入
+                    </button>
+                </form>
+                
+                    <!-- 頁尾資訊 -->
+                    <div class="login-footer">
+                        <p>&copy; @DateTime.Now.Year FlashWolf ERP 系統</p>
+                    </div>
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <!-- jQuery -->
+    <script src="~/StaticFiles/lib/jquery/dist/jquery-3.7.1.min.js"></script>
+    
+    <!-- Bootstrap JS -->
+    <script src="~/StaticFiles/lib/bootstrap/dist/js/bootstrap.js"></script>
+
+    <script>
+        $(document).ready(function () {
+            // 如果有錯誤訊息，顯示出來
+            var errorMsg = '@TempData["ErrorMessage"]';
+            if (errorMsg && errorMsg.trim() !== '') {
+                $('#errorMessage').text(errorMsg).show();
+            }
+
+            // 表單驗證
+            $('#loginForm').on('submit', function (e) {
+                var username = $('#username').val().trim();
+                var password = $('#password').val().trim();
+                
+                // 檢查欄位是否為空
+                if (username === '' || password === '') {
+                    e.preventDefault();
+                    $('#errorMessage').text('請輸入帳號和密碼').show();
+                    return false;
+                }
+                
+                // 隱藏錯誤訊息
+                $('#errorMessage').hide();
+            });
+
+            // 輸入時隱藏錯誤訊息
+            $('#username, #password').on('input', function () {
+                $('#errorMessage').hide();
+            });
+        });
+    </script>
+</body>
+</html>
+
