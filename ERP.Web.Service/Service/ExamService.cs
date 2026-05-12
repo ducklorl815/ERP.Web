@@ -307,9 +307,13 @@ namespace ERP.Web.Service.Service
                         : 1.0 / groupedByClass.Count()         // 用 1.0 確保浮點數除法
                 );
 
-            int totalQuestions = param.ClassNameList.Count() == 1
-                ? groupedByClass.FirstOrDefault()?.Count() ?? 0
-                : param.TestNumber;
+            int totalQuestions = param.TestNumber > 0
+                ? param.TestNumber
+                : (
+                    param.ClassNameList.Count() == 1
+                        ? groupedByClass.FirstOrDefault()?.Count() ?? 0
+                        : 0
+                  );
 
             if (totalQuestions <= 0)
                 return finalQuestions;

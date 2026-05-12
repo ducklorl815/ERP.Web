@@ -808,10 +808,6 @@ namespace ERP.Web.Models.Respository
             var sqlparam = new DynamicParameters();
             sqlparam.Add("ExamID", param.WordID);
             sqlparam.Add("KidTestIndexID", param.NewKidTestID);
-            var Correct = 1;
-            sqlparam.Add("Correct", Correct);
-            var ReTest =  0;
-            sqlparam.Add("ReTest", ReTest);
 
             var sql = @"
                     INSERT INTO KidsWorld.dbo.KidExamWordIndex
@@ -831,8 +827,8 @@ namespace ERP.Web.Models.Respository
 		                       NEWID()
                                ,@ExamID
                                ,@KidTestIndexID
-                               ,@Correct
-                               ,@ReTest
+                               ,1
+                               ,0
                                ,GETDATE()
                                ,GETDATE()
                                ,1
