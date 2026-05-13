@@ -28,7 +28,7 @@
                 <td><input type="text" class="form-control borderless" value="@item.Question" /></td>
                 <td><input type="text" class="form-control borderless" value="@item.Answer" /></td>
                 <td class="text-center align-middle">
-                    <input type="checkbox" class="form-check-input checkbox-light correct-checkbox" @(item.Correct == 1 ? "checked" : "") />
+                    <input type="checkbox" class="form-check-input checkbox-light correct-checkbox" @(item.Correct == 1 ? "" : "checked") />
                 </td>
                 <td class="text-center align-middle" data-testdate="@item.TestDate">@item.TestDate.ToString("yyyy/MM/dd")</td>
                 <td class="text-center align-middle">

@@ -116,7 +116,8 @@ namespace ERP.Web.Models.Respository
 				Answer,
 				case when wi.Focus is not null then wi.Focus else 0 end as Focus,
 				km.ID as KidID,
-				case when kwi.Correct is not null then kwi.Correct else 0 end as Correct
+				case when kwi.Correct is not null then kwi.Correct else 0 end as Correct,
+				case when kwi.ReTest is not null then kwi.ReTest else 0 end as ReTest
                 FROM KidsWorld.dbo.Vocabulary w
 				LEFT JOIN KidsWorld.dbo.VocabularyIndex wi ON wi.WordID = w.ID 
 				JOIN KidsWorld.dbo.Lession les ON les.ID = w.LessionID
@@ -124,6 +125,7 @@ namespace ERP.Web.Models.Respository
                 LEFT JOIN KidsWorld.dbo.KidTestIndex kti ON kti.ID = kwi.KidTestIndexID
                 LEFT JOIN KidsWorld.dbo.KidMain km ON km.ID = kti.KidMainID
                 WHERE ClassName = @ClassName
+		        ORDER BY Correct , ReTest 
             ";
 
 
@@ -182,6 +184,7 @@ namespace ERP.Web.Models.Respository
         /// <remarks>
         /// ReTest 的資料來源是 KidExamWordIndex + Vocabulary + KidTestIndex。
         /// 若系統曾在產生考卷時中途失敗，可能會只留下 KidTestIndex，導致 ReTest 查不到任何資料。
+        /// 僅在該考卷索引尚無任何明細時才補入；已存在部分題目（例如依 TestNumber 抽題）時不得再補滿整課單字。
         /// </remarks>
         public async Task<int> BackfillKidExamWordIndexAsync(string kidID, DateTime testDate, string testType)
         {
@@ -193,7 +196,9 @@ namespace ERP.Web.Models.Respository
             sqlparam.Add("TestDate", testDate.Date);
             sqlparam.Add("TestType", (testType ?? string.Empty).ToLower());
 
-            // 只針對「指定孩子 + 指定日期 + 指定 TestType」的考卷索引補明細
+            // 只針對「指定孩子 + 指定日期 + 指定 TestType」的考卷索引補明細。
+            // 重要：僅在該 KidTestIndex 尚「完全沒有」KidExamWordIndex 明細時才整批補入課程單字。
+            // 若考卷刻意只抽部分題（例如 TestNumber），已有明細時不可再補其餘單字，否則 ReTest 會變成整課題數。
             var sql = @"
                 ;WITH TargetKidTest AS (
                     SELECT kti.ID, kti.LessionID
@@ -204,6 +209,16 @@ namespace ERP.Web.Models.Respository
                       AND les.Enabled = 1 AND les.Deleted = 0
                       AND les.TestType = @TestType
                       AND CONVERT(date, kti.TestDate) = @TestDate
+                ),
+                KidTestNeedingBackfill AS (
+                    SELECT t.ID, t.LessionID
+                    FROM TargetKidTest t
+                    WHERE NOT EXISTS (
+                        SELECT 1
+                        FROM KidsWorld.dbo.KidExamWordIndex kwi
+                        WHERE kwi.KidTestIndexID = t.ID
+                          AND kwi.Enabled = 1 AND kwi.Deleted = 0
+                    )
                 )
                 INSERT INTO KidsWorld.dbo.KidExamWordIndex
                 (
@@ -227,7 +242,7 @@ namespace ERP.Web.Models.Respository
                     GETDATE(),
                     1 AS Enabled,
                     0 AS Deleted
-                FROM TargetKidTest t
+                FROM KidTestNeedingBackfill t
                 JOIN KidsWorld.dbo.Vocabulary v ON v.LessionID = t.LessionID
                 WHERE NOT EXISTS (
                     SELECT 1
