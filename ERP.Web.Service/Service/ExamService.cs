@@ -182,7 +182,6 @@ namespace ERP.Web.Service.Service
 
             foreach (var word in result.VocabularyList)
             {
-
                 ExamRcdModel ExamRcdData = await _examRepo.GetExamRcd(word.WordID);
                 ExamRcdData.WordID = word.WordID;
                 ExamRcdData.NewKidTestID = NewKidTestID;
@@ -283,7 +282,7 @@ namespace ERP.Web.Service.Service
                     FirstClassName = ClassName;
                 }
 
-                var NewVocabulary = await _examRepo.GetExamDataAsync(ClassName);
+                var NewVocabulary = await _examRepo.GetExamDataAsync(ClassName, param.KidID, param.TestType);
 
                 if (NewVocabulary != null)
                     listVocabulary.AddRange(NewVocabulary);
@@ -325,19 +324,10 @@ namespace ERP.Web.Service.Service
                 double percentage = distribution[i];
                 int totalCount = (int)Math.Round(totalQuestions * percentage);
 
-                var words = groupedByClass[i].ToList();
+                // 上次答錯 (LastExamCorrect==0) 優先 → ReTest 較小 → 被考次數較少 → 同序內亂數
+                var words = OrderEnglishExamPool(groupedByClass[i]);
 
-                // i = 0 時，不過濾 Correct，其他情況下過濾 Correct > 0，並依 Correct 降序排列
-                if (i != 0)
-                {
-                    words = words.Where(x => x.Correct > 0 && x.KidID == Guid.Parse(param.KidID))
-                                 .OrderByDescending(x => x.Correct) // 優先拿 Correct 較大的
-                                 .OrderByDescending(y => y.Focus)
-                                 .ToList();
-                }
-
-                // 隨機排序後取前 totalCount 筆
-                var selectedWords = words.OrderBy(x => Guid.NewGuid()).Take(totalCount).ToList();
+                var selectedWords = words.Take(totalCount).ToList();
 
                 // 確保不超過 totalQuestions
                 int remainingSlots = totalQuestions - finalQuestions.Count;
@@ -351,15 +341,28 @@ namespace ERP.Web.Service.Service
             if (finalQuestions.Count < totalQuestions)
             {
                 int remainingSlots = totalQuestions - finalQuestions.Count;
-                var remainingWords = listVocabulary.Where(x => !finalQuestions.Contains(x))
-                                                   .OrderBy(x => Guid.NewGuid())
-                                                   .Take(remainingSlots) // 只補足夠的數量
-                                                   .ToList();
+                var takenIds = new HashSet<Guid>(finalQuestions.Select(x => x.WordID));
+                var remainingWords = OrderEnglishExamPool(listVocabulary.Where(x => !takenIds.Contains(x.WordID)))
+                    .Take(remainingSlots)
+                    .ToList();
 
                 finalQuestions.AddRange(remainingWords);
             }
 
             return finalQuestions;
+        }
+
+        /// <summary>
+        /// 英文正式考出題順序：上次答錯優先 → ReTest 較小 → 被考次數較少，同序內亂數打散。
+        /// </summary>
+        private static List<Vocabulary> OrderEnglishExamPool(IEnumerable<Vocabulary> words)
+        {
+            return words
+                .OrderBy(x => x.LastExamCorrect == 0 ? 0 : 1)
+                .ThenBy(x => x.ReTest)
+                .ThenBy(x => x.ExamTimes)
+                .ThenBy(_ => Guid.NewGuid())
+                .ToList();
         }
 
         public async Task<ExamDataViewModel_result> GetWrongExamDataAsync(ExamSearchListViewModel_param param)

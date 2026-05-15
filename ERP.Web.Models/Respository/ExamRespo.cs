@@ -102,12 +102,78 @@ namespace ERP.Web.Models.Respository
             }
         }
 
-        public async Task<List<Vocabulary>> GetExamDataAsync(string ClassName)
+        /// <summary>
+        /// 取得指定課程可供測驗的單字清單。
+        /// </summary>
+        /// <param name="className">課程名稱</param>
+        /// <param name="kidId">學生 ID；若可解析為 Guid，則會帶入該生最近一次作答與累計考次，供出題排序。</param>
+        /// <param name="testType">測驗類型（如 English），與 kidId 一併用於篩選歷史紀錄。</param>
+        public async Task<List<Vocabulary>> GetExamDataAsync(string className, string? kidId = null, string? testType = null)
         {
-            var sqlparam = new DynamicParameters();
-            sqlparam.Add("ClassName", ClassName);
+            using var conn = new SqlConnection(_dBList.erp);
 
-            var sql = @"
+            try
+            {
+                if (!string.IsNullOrWhiteSpace(kidId) && Guid.TryParse(kidId, out var kidMainId))
+                {
+                    var sqlparam = new DynamicParameters();
+                    sqlparam.Add("ClassName", className);
+                    sqlparam.Add("KidMainID", kidMainId);
+                    sqlparam.Add("TestType", string.IsNullOrWhiteSpace(testType) ? "English" : testType);
+
+                    var sqlKid = @"
+                SELECT DISTINCT
+                    w.ID AS WordID,
+                    les.TestType,
+                    w.CategoryType,
+                    les.ClassName,
+                    w.Question,
+                    w.Answer,
+                    CASE WHEN wi.Focus IS NOT NULL THEN wi.Focus ELSE 0 END AS Focus,
+                    @KidMainID AS KidID,
+                    ISNULL(latest.LastCorrect, 0) AS Correct,
+                    ISNULL(latest.LastReTest, 0) AS ReTest,
+                    latest.LastCorrect AS LastExamCorrect,
+                    ISNULL(examCnt.Cnt, 0) AS ExamTimes
+                FROM KidsWorld.dbo.Vocabulary w
+                JOIN KidsWorld.dbo.Lession les ON les.ID = w.LessionID
+                LEFT JOIN KidsWorld.dbo.VocabularyIndex wi ON wi.WordID = w.ID
+                OUTER APPLY (
+                    SELECT TOP 1
+                        kwi.Correct AS LastCorrect,
+                        kwi.ReTest AS LastReTest
+                    FROM KidsWorld.dbo.KidExamWordIndex kwi
+                    INNER JOIN KidsWorld.dbo.KidTestIndex kti ON kti.ID = kwi.KidTestIndexID
+                        AND kti.Enabled = 1 AND kti.Deleted = 0
+                    INNER JOIN KidsWorld.dbo.Lession les_k ON les_k.ID = kti.LessionID
+                    WHERE kwi.ExamID = w.ID
+                      AND kwi.Enabled = 1 AND kwi.Deleted = 0
+                      AND kti.KidMainID = @KidMainID
+                      AND LOWER(les_k.TestType) = LOWER(@TestType)
+                    ORDER BY kti.TestDate DESC, kwi.ModifyDate DESC, kwi.CreateDate DESC
+                ) latest
+                OUTER APPLY (
+                    SELECT COUNT_BIG(*) AS Cnt
+                    FROM KidsWorld.dbo.KidExamWordIndex kwi
+                    INNER JOIN KidsWorld.dbo.KidTestIndex kti ON kti.ID = kwi.KidTestIndexID
+                        AND kti.Enabled = 1 AND kti.Deleted = 0
+                    INNER JOIN KidsWorld.dbo.Lession les_k ON les_k.ID = kti.LessionID
+                    WHERE kwi.ExamID = w.ID
+                      AND kwi.Enabled = 1 AND kwi.Deleted = 0
+                      AND kti.KidMainID = @KidMainID
+                      AND LOWER(les_k.TestType) = LOWER(@TestType)
+                ) examCnt
+                WHERE les.ClassName = @ClassName
+                ";
+
+                    var resultKid = await conn.QueryAsync<Vocabulary>(sqlKid, sqlparam);
+                    return resultKid.ToList();
+                }
+
+                var sqlparamLegacy = new DynamicParameters();
+                sqlparamLegacy.Add("ClassName", className);
+
+                var sql = @"
                 SELECT DISTINCT w.ID as WordID,
 				les.TestType,
 				w.CategoryType,
@@ -117,7 +183,9 @@ namespace ERP.Web.Models.Respository
 				case when wi.Focus is not null then wi.Focus else 0 end as Focus,
 				km.ID as KidID,
 				case when kwi.Correct is not null then kwi.Correct else 0 end as Correct,
-				case when kwi.ReTest is not null then kwi.ReTest else 0 end as ReTest
+				case when kwi.ReTest is not null then kwi.ReTest else 0 end as ReTest,
+                CAST(NULL AS int) AS LastExamCorrect,
+                0 AS ExamTimes
                 FROM KidsWorld.dbo.Vocabulary w
 				LEFT JOIN KidsWorld.dbo.VocabularyIndex wi ON wi.WordID = w.ID 
 				JOIN KidsWorld.dbo.Lession les ON les.ID = w.LessionID
@@ -128,12 +196,7 @@ namespace ERP.Web.Models.Respository
 		        ORDER BY Correct , ReTest 
             ";
 
-
-            using var conn = new SqlConnection(_dBList.erp);
-
-            try
-            {
-                var result = await conn.QueryAsync<Vocabulary>(sql, sqlparam);
+                var result = await conn.QueryAsync<Vocabulary>(sql, sqlparamLegacy);
                 return result.ToList();
             }
             catch

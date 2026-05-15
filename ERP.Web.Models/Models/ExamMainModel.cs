@@ -17,6 +17,16 @@
         public Guid LessionID { get; set; }
         public string TestType { get; set; }
 
+        /// <summary>
+        /// 該學生此單字「最近一次」考試紀錄的 Correct（0=答錯；null=尚無任何考試紀錄）。
+        /// </summary>
+        public int? LastExamCorrect { get; set; }
+
+        /// <summary>
+        /// 該學生在相同 TestType 下，此單字累計出現在 KidExamWordIndex 的次數（被考次數）。
+        /// </summary>
+        public int ExamTimes { get; set; }
+
     }
     public class ExamListModel
     {
