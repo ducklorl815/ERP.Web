@@ -72,9 +72,9 @@
         public Guid WordID { get; set; }
         public Guid NewKidTestID { get; set; }
         /// <summary>考試 對錯</summary>
-        public int Correct { get; set; }
+        public int Correct { get; set; } = 1;
         /// <summary>重考 次數</summary>
-        public int ReTest { get; set; }
+        public int ReTest { get; set; } = 0;
     }
     public class LessionModel
     {

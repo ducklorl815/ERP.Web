@@ -235,8 +235,10 @@ namespace ERP.Web.Service.Service
             foreach (var word in result.VocabularyList)
             {
                 var ExamRcdData = await _examRepo.GetExamRcd(word.WordID) ?? new ExamRcdModel();
-                ExamRcdData.WordID = word.WordID;
+                if (ExamRcdData != null)
+                    ExamRcdData.ReTest = ExamRcdData.ReTest + 1;
                 ExamRcdData.NewKidTestID = NewKidTestID;
+                ExamRcdData.WordID = word.WordID;
                 await _examRepo.InsertExamIndex(ExamRcdData);
             }
 
@@ -327,7 +329,44 @@ namespace ERP.Web.Service.Service
                 // 上次答錯 (LastExamCorrect==0) 優先 → ReTest 較小 → 被考次數較少 → 同序內亂數
                 var words = OrderEnglishExamPool(groupedByClass[i]);
 
-                var selectedWords = words.Take(totalCount).ToList();
+                // i = 0 時，不過濾 Correct，其他情況下過濾 Correct > 0，並依 Correct 降序排列
+                if (i != 0)
+                {
+                    words = words.Where(x => x.Correct > 0 && x.KidID == Guid.Parse(param.KidID))
+                                 .OrderBy(x => x.Correct) // 優先拿 Correct = 0
+                                 .OrderByDescending(y => y.Focus)
+                                 .ToList();
+                }
+
+                // i = 0 時，優先拿 Correct = 0
+                List<Vocabulary> selectedWords;
+
+                if (i == 0)
+                {
+                    var correctZero = words
+                        .Where(x => x.Correct == 0)
+                        .OrderBy(x => Guid.NewGuid());
+
+                    var others = words
+                        .Where(x => x.Correct != 0)
+                        .OrderBy(x => Guid.NewGuid());
+
+                    // 先取 Correct = 0，不夠再補其他
+                    selectedWords = correctZero
+                        .Concat(others)
+                        .Take(totalCount)
+                        .OrderBy(x => Guid.NewGuid()) // 最後再打亂出題順序
+                        .ToList();
+                    selectedWords = selectedWords.OrderBy(x => Guid.NewGuid()).ToList();
+                }
+                else
+                {
+                    // 原本邏輯
+                    selectedWords = words
+                        .OrderBy(x => Guid.NewGuid())
+                        .Take(totalCount)
+                        .ToList();
+                }
 
                 // 確保不超過 totalQuestions
                 int remainingSlots = totalQuestions - finalQuestions.Count;

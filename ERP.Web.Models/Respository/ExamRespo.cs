@@ -513,6 +513,25 @@ namespace ERP.Web.Models.Respository
                       AND wl.Deleted = 0
                       AND kti.Enabled = 1
                       AND kti.Deleted = 0
+/*
+SELECT DISTINCT
+        wd.seq,
+        les.ClassName
+      ,les.TestType
+      ,wd.ID as WordID
+      ,wd.Question
+      ,wd.[Answer]
+      ,km.Cname
+      ,Correct
+      ,ReTest
+      ,wd.[CategoryType]
+  FROM [KidsWorld].[dbo].[Vocabulary] wd
+  JOIN [KidsWorld].[dbo].Lession les ON les.ID = wd.LessionID
+  JOIN KidsWorld.dbo.KidExamWordIndex wl ON wl.ExamID = wd.ID
+  JOIN KidsWorld.dbo.KidTestIndex kti ON kti.ID = wl.KidTestIndexID
+  JOIN KidsWorld.dbo.KidMain km ON km.ID = kti.KidMainID
+  ORDER BY les.ClassName,wd.seq
+*/
                         ";
 
             #region 關鍵字搜尋
@@ -1406,6 +1425,7 @@ namespace ERP.Web.Models.Respository
                           WHERE ExamID = @ExamID
                           AND Enabled = 1
                           AND Deleted = 0
+                          Order by ReTest desc
                         "
             ;
 
