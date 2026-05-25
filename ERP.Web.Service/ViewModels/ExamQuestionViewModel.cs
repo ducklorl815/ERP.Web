@@ -23,6 +23,8 @@ namespace ERP.Web.Service.ViewModels
         public int TestNumber { get; set; }
         public string Question { get; set; }
         public string Answer { get; set; } // 正確答案
+        /// <summary>關鍵字：課程、問題、答案一併搜尋</summary>
+        public string SearchText { get; set; }
     }
     public class ExamSearchListViewModel_result : ExamSearchListViewModel_param
     {
@@ -31,6 +33,10 @@ namespace ERP.Web.Service.ViewModels
         public List<string> ClassNameList { get; set; }
         public List<SelectListItem> KidList { get; set; }
         public List<SelectListItem> TestDateList { get; set; }
+        /// <summary>各課程（辭庫）答對／答錯／複習次數統計</summary>
+        public List<ClassNameStatModel> ClassNameStats { get; set; }
+        /// <summary>課程下拉（Value=ClassName，Text 含統計）</summary>
+        public List<SelectListItem> ClassNameSelectList { get; set; }
         public List<SelectListItem> TestTypeList
         {
             get
@@ -62,6 +68,15 @@ namespace ERP.Web.Service.ViewModels
         public ScoreTable scoreTable { get; set; }
         public List<Vocabulary> VocabularyList { get; set; }
         public string Title { get; set; }
+        /// <summary>考卷日期（來自 KidTestIndex.TestDate 或當日出卷）</summary>
+        public DateTime ExamDate { get; set; } = DateTime.Today;
+        /// <summary>該學生在此 Lession 的第幾次考試（依 KidTestIndex 累計）</summary>
+        public int ExamAttemptNumber { get; set; } = 1;
+        /// <summary>試卷類型顯示：英文、數學</summary>
+        public string ExamTypeLabel { get; set; } = "英文";
+        /// <summary>考卷標題後綴，例如：英文試卷_20260523_2</summary>
+        public string ExamPaperSuffix =>
+            $"{ExamTypeLabel}試卷_{ExamDate:yyyyMMdd}_{ExamAttemptNumber}";
     }
 
     public class ScoreTable

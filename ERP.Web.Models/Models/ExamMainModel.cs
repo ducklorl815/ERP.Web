@@ -48,6 +48,17 @@
         public DateTime TestDate { get; set; }
         /// <summary>考試類型：English, Math</summary>
         public string TestType { get; set; }
+        /// <summary>關鍵字：課程名稱、問題、答案一併搜尋</summary>
+        public string SearchText { get; set; }
+    }
+
+    /// <summary>複習頁課程（辭庫）統計：該生在此課程已考題目的對錯數</summary>
+    public class ClassNameStatModel
+    {
+        public string ClassName { get; set; }
+        public int TestedCount { get; set; }
+        public int CorrectCount { get; set; }
+        public int WrongCount { get; set; }
     }
     public class ExamMainModel
     {
@@ -66,6 +77,10 @@
         /// <summary>學校 專注</summary>
         public int Focus { get; set; }
         public DateTime TestDate { get; set; }
+        /// <summary>最新一筆 KidExamWordIndex.ReTest</summary>
+        public int ReTest { get; set; }
+        /// <summary>此題累計出現在考卷中的次數</summary>
+        public int ExamTimes { get; set; }
     }
     public class ExamRcdModel
     {

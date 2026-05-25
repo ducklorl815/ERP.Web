@@ -1,5 +1,5 @@
 ﻿<!-- 表單包住整個 modal -->
-<form id="examForm" method="post" action="@Url.Action("ReExam", "Exam")">
+<form id="examForm" method="post" action="@Url.Action("ReExam", ViewContext.RouteData.Values["controller"]?.ToString() ?? "ExamEnglish")">
     <div id="examModal" class="modal fade" tabindex="-1" aria-labelledby="examModalLabel" aria-hidden="true">
         <div class="modal-dialog">
             <div class="modal-content">

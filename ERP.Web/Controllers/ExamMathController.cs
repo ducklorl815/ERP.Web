@@ -77,7 +77,7 @@ namespace ERP.Web.Controllers
         #region AJAX 更新方法
 
         /// <summary>
-        /// 更新考試題目的對錯狀態
+        /// 更新考試題目：Correct、Question、Answer
         /// </summary>
         [HttpPost]
         public async Task<IActionResult> UpdateExamWord(ExamSearchListViewModel_param param)
