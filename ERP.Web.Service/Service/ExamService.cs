@@ -1,10 +1,11 @@
-﻿using ERP.Web.Models.Models;
+﻿using Azure.Core;
+using ERP.Web.Models.Models;
 using ERP.Web.Models.Respository;
 using ERP.Web.Service.ViewModels;
 using ERP.Web.Utility.Paging;
 using Microsoft.AspNetCore.Http;
-using OfficeOpenXml;
 using Microsoft.AspNetCore.Mvc.Rendering; // ASP.NET Core 的 SelectListItem
+using OfficeOpenXml;
 
 namespace ERP.Web.Service.Service
 {
@@ -39,99 +40,63 @@ namespace ERP.Web.Service.Service
         }
         public async Task<ExamSearchListViewModel_result> GetReTestAsync(ExamSearchListViewModel_param param)
         {
-            var result = new ExamSearchListViewModel_result()
+            var result = new ExamSearchListViewModel_result
             {
-                TestDateList = new List<SelectListItem>(),
-                TestDate = param.TestDate
+                SearchText = param.SearchText,
+                KidID = param.KidID,
+                CorrectType = param.CorrectType,
+                ClassNameList = param.ClassNameList,
+                TestType = param.TestType
             };
 
-            // 若該日只存在 KidTestIndex 但沒有 KidExamWordIndex，ReTest 會查不到資料。
-            // 這裡先嘗試補齊明細，避免「無報錯但列表為空」。
-            if (!string.IsNullOrEmpty(param.KidID) && !string.IsNullOrEmpty(param.TestDate))
-            {
-                if (DateTime.TryParse(param.TestDate, out var parsedDate))
-                {
-                    await _examRepo.BackfillKidExamWordIndexAsync(param.KidID, parsedDate, param.TestType);
-                }
-            }
-
-            //分頁功能
-            var ExamKeyword = new ExamMainKeyword
+            var examKeyword = new ExamMainKeyword
             {
                 ClassNameList = param.ClassNameList,
                 CorrectType = param.CorrectType,
                 KidID = param.KidID,
-                TestType = param.TestType, // 加入 TestType 篩選
+                TestType = param.TestType,
+                SearchText = param.SearchText
             };
-            if (param.TestDate != null)
-                ExamKeyword.TestDate = DateTime.Parse(param.TestDate);
-            else
-                ExamKeyword.CorrectType = "1";
 
-            var datacount = await _examRepo.GetReTestCountAsync(ExamKeyword);
+            var datacount = string.IsNullOrEmpty(param.KidID)
+                ? 0
+                : await _examRepo.GetReTestCountAsync(examKeyword);
             var pager = new Paging(param.Page, param.PageSize, datacount);
 
             result.Pager = pager;
-            result.ExamDataList = await _examRepo.GetReTestSearchListAsync(pager, ExamKeyword);
-            var kidListTask = await _examRepo.GetKidListAsync();
-            var testDateListTask = await _examRepo.GetTestDateList(param.KidID);
-            var ExamList = await _examRepo.GetExamListAsync();
+            result.ExamDataList = string.IsNullOrEmpty(param.KidID)
+                ? new List<ExamMainModel>()
+                : await _examRepo.GetReTestSearchListAsync(pager, examKeyword);
 
-            // 根據 TestType 篩選課程清單
-            if (!string.IsNullOrEmpty(param.TestType))
+            await PublicTaskAsync(result, param);
+
+            if (!string.IsNullOrEmpty(param.KidID))
             {
-                ExamList = ExamList.Where(x => x.TestType.Equals(param.TestType, StringComparison.OrdinalIgnoreCase)).ToList();
+                result.ClassNameStats = await _examRepo.GetReTestClassNameStatsAsync(param.KidID, param.TestType);
             }
 
-            #region todo 製作排序
-            // Step 1: 動態取得主題群組（同樣邏輯）
-            var grouped = ExamList
-                .GroupBy(x =>
-                {
-                    var parts = x.ClassName.Split(' ');
-                    if (parts.Length >= 3 && (parts[^2] == "HW" || parts[^2] == "Sp"))
-                        return string.Join(" ", parts.Take(parts.Length - 1));
-                    else
-                        return x.ClassName.Split('_')[0];
-                })
-                .ToDictionary(
-                    g => g.Key,
-                    g => g.OrderByDescending(x => x.LessionSort).ToList()
-                );
-
-            // Step 2: 根據群組中最大 LessionSort 排序主題（最新優先）
-            var topicOrder = grouped
-                .OrderBy(g => g.Value.Max(x => x.ClassName.Contains("MentalMath")))
-                .Select(g => g.Key)
-                .ToList();
-
-            // Step 3: 展平
-            var sortedList = topicOrder
-                .Where(topic => grouped.ContainsKey(topic))
-                .SelectMany(topic => grouped[topic])
-                .ToList();
-            var classNameListTask = sortedList.Select(x => x.ClassName).ToList();
-            #endregion
-            //await Task.WhenAll(kidListTask, testDateListTask, classNameListTask);
-
-            result.KidList = kidListTask
-                .Select(x => new SelectListItem
-                {
-                    Text = x.Item2,
-                    Value = x.Item1.ToString().Trim()
-                }).ToList();
-
-            result.TestDateList = testDateListTask
-                .Select(x => new SelectListItem
-                {
-                    Text = x.Item1.ToString("yyyy-MM-dd") + " : " + x.Item2,
-                    Value = x.Item1.ToString("yyyy-MM-dd")
-                }).ToList();
-
-            result.ClassNameList = classNameListTask;
-            //await PublicTaskAsync(result, param);
-
+            result.ClassNameSelectList = BuildReTestClassNameSelectList(result.ClassNameList, result.ClassNameStats);
             return result;
+        }
+
+        /// <summary>課程下拉：Value 為 ClassName，Text 顯示辭庫統計</summary>
+        private static List<SelectListItem> BuildReTestClassNameSelectList(List<string> allClassNames, List<ClassNameStatModel> stats)
+        {
+            if (allClassNames == null || allClassNames.Count == 0)
+                return new List<SelectListItem>();
+
+            var statMap = stats?.ToDictionary(s => s.ClassName, StringComparer.OrdinalIgnoreCase)
+                ?? new Dictionary<string, ClassNameStatModel>(StringComparer.OrdinalIgnoreCase);
+
+            return allClassNames
+                .Select(c =>
+                {
+                    var text = c;
+                    if (statMap.TryGetValue(c, out var s))
+                        text = $"{c}（已考:{s.TestedCount} 對:{s.CorrectCount} 錯:{s.WrongCount}）";
+                    return new SelectListItem { Value = c, Text = text };
+                })
+                .ToList();
         }
         public async Task<ExamDataViewModel_result> GetReExamDataAsync(ReExamSearchListViewModel_param param)
         {
@@ -147,11 +112,15 @@ namespace ERP.Web.Service.Service
             // 判斷今天是否出過考券
             Guid KidTestIndexID = await _examRepo.ChkKidTest(result.Title, param.TestType, param.KidID);
 
+            Guid reExamLessionId = await _examRepo.GetLessionID(result.Title);
+            if (reExamLessionId == Guid.Empty && !string.IsNullOrWhiteSpace(param.ClassName))
+                reExamLessionId = await _examRepo.ChkLessionID(param.ClassName);
+
             if (KidTestIndexID != Guid.Empty)
             {
-                // 取得今天出過的考試資料
                 result.VocabularyList = await _examRepo.GetExamFromExamIndex(KidTestIndexID);
                 await CalculateScore(result.VocabularyList, result);
+                await PopulateExamPaperMetaAsync(result, param.KidID, reExamLessionId, param.TestType, KidTestIndexID);
                 return result;
             }
             var VocabularyList = new List<Vocabulary>();
@@ -176,8 +145,9 @@ namespace ERP.Web.Service.Service
                 LessionSort = LessionSort,
             };
             Guid LessionID = await _examRepo.InsertLessionID(LessionData);
+            if (reExamLessionId == Guid.Empty)
+                reExamLessionId = LessionID;
 
-            // 出過的題目存入資料庫
             Guid NewKidTestID = await _examRepo.InsertKidTestIndex(LessionID, param.KidID);
 
             foreach (var word in result.VocabularyList)
@@ -188,6 +158,7 @@ namespace ERP.Web.Service.Service
                 await _examRepo.InsertExamIndex(ExamRcdData);
             }
 
+            await PopulateExamPaperMetaAsync(result, param.KidID, reExamLessionId, param.TestType, NewKidTestID);
             return result;
         }
         public async Task<ExamDataViewModel_result> GetExamDataAsync(ExamSearchListViewModel_param param)
@@ -200,15 +171,15 @@ namespace ERP.Web.Service.Service
                 Title = string.Empty
             };
             result.Title = param.ClassNameList.Count() > 1 ? "聯合試題_" + DateTime.Now.ToString("yyyyMMdd") : param.ClassNameList[0];
+            var lessionId = await _examRepo.GetLessionID(result.Title);
 
-            // 判斷今天是否出過考券
             Guid KidTestIndexID = await _examRepo.ChkKidTest(result.Title, param.TestType, param.KidID);
 
             if (KidTestIndexID != Guid.Empty)
             {
-                // 取得今天出過的考試資料
                 result.VocabularyList = await _examRepo.GetExamFromExamIndex(KidTestIndexID);
                 await CalculateScore(result.VocabularyList, result);
+                await PopulateExamPaperMetaAsync(result, param.KidID, lessionId, param.TestType, KidTestIndexID);
                 return result;
             }
 
@@ -227,10 +198,10 @@ namespace ERP.Web.Service.Service
 
             await CalculateScore(result.VocabularyList, result);
 
-            Guid LessionID = await _examRepo.GetLessionID(result.Title);
+            if (lessionId == Guid.Empty)
+                lessionId = await _examRepo.GetLessionID(result.Title);
 
-            // 出過的題目存入資料庫
-            Guid NewKidTestID = await _examRepo.InsertKidTestIndex(LessionID, param.KidID);
+            Guid NewKidTestID = await _examRepo.InsertKidTestIndex(lessionId, param.KidID);
 
             foreach (var word in result.VocabularyList)
             {
@@ -242,8 +213,27 @@ namespace ERP.Web.Service.Service
                 await _examRepo.InsertExamIndex(ExamRcdData);
             }
 
+            await PopulateExamPaperMetaAsync(result, param.KidID, lessionId, param.TestType, NewKidTestID);
             return result;
         }
+
+        /// <summary>設定考卷標題用的日期與第幾次考試（KidTestIndex × Lession）</summary>
+        private async Task PopulateExamPaperMetaAsync(
+            ExamDataViewModel_result result,
+            string kidId,
+            Guid lessionId,
+            string testType,
+            Guid? kidTestIndexId)
+        {
+            result.ExamTypeLabel = string.Equals(testType, "Math", StringComparison.OrdinalIgnoreCase) ? "數學" : "英文";
+            result.ExamAttemptNumber = await _examRepo.GetKidTestAttemptNumberAsync(kidId, lessionId, kidTestIndexId);
+
+            if (kidTestIndexId.HasValue && kidTestIndexId.Value != Guid.Empty)
+                result.ExamDate = await _examRepo.GetKidTestDateAsync(kidTestIndexId.Value) ?? DateTime.Today;
+            else
+                result.ExamDate = DateTime.Today;
+        }
+
         /// <summary>
         /// 取得考試資料
         /// </summary>
@@ -334,7 +324,7 @@ namespace ERP.Web.Service.Service
                 {
                     words = words.Where(x => x.Correct > 0 && x.KidID == Guid.Parse(param.KidID))
                                  .OrderBy(x => x.Correct) // 優先拿 Correct = 0
-                                 .OrderByDescending(y => y.Focus)
+                                 .OrderBy(x => x.ReTest)
                                  .ToList();
                 }
 
@@ -347,13 +337,12 @@ namespace ERP.Web.Service.Service
                         .Where(x => x.Correct == 0)
                         .OrderBy(x => Guid.NewGuid());
 
-                    var others = words
-                        .Where(x => x.Correct != 0)
-                        .OrderBy(x => Guid.NewGuid());
+                    var ReTest = words
+                        .OrderBy(x => x.ReTest);
 
                     // 先取 Correct = 0，不夠再補其他
                     selectedWords = correctZero
-                        .Concat(others)
+                        .Concat(ReTest)
                         .Take(totalCount)
                         .OrderBy(x => Guid.NewGuid()) // 最後再打亂出題順序
                         .ToList();
@@ -540,9 +529,18 @@ namespace ERP.Web.Service.Service
             if (string.IsNullOrEmpty(param.WordID))
                 return false;
 
-            bool ChkUpdate = await _examRepo.UpdateExamWord(param.WordID, param.KidID, param.TestDate, !param.Correct);
+            // Correct：true＝最終答對（DB Correct=1）
+            var correctUpdated = await _examRepo.UpdateExamWord(
+                param.WordID,
+                param.KidID,
+                param.TestDate ?? string.Empty,
+                param.Correct);
 
-            return ChkUpdate;
+            var wordUpdated = true;
+            if (!string.IsNullOrWhiteSpace(param.Question) && !string.IsNullOrWhiteSpace(param.Answer))
+                wordUpdated = await _examRepo.UpdateWord(param.WordID, param.Question.Trim(), param.Answer.Trim());
+
+            return correctUpdated && wordUpdated;
         }
         public async Task<bool> UpdateNewTestWord(ExamSearchListViewModel_param param)
         {
@@ -706,13 +704,13 @@ namespace ERP.Web.Service.Service
 
             if (KidTestIndexID != Guid.Empty)
             {
-                // 取得今天出過的考試資料
                 result.VocabularyList = await _examRepo.GetExamFromExamIndex(KidTestIndexID);
                 await CalculateScore(result.VocabularyList, result);
+                result.Title = ClassName;
+                await PopulateExamPaperMetaAsync(result, KidID, LessionID, TestType, KidTestIndexID);
                 return result;
             }
 
-            // 出過的題目存入資料庫
             Guid NewKidTestID = await _examRepo.InsertKidTestIndex(LessionID, KidID);
 
             for (int i = 0; i < 30; i++)
@@ -779,6 +777,7 @@ namespace ERP.Web.Service.Service
                 await _examRepo.InsertExamIndex(ExamRcdData);
             }
             result.Title = ClassName;
+            await PopulateExamPaperMetaAsync(result, KidID, LessionID, TestType, NewKidTestID);
             return result;
         }
 

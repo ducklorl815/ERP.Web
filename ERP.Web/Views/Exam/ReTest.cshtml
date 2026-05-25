@@ -1,30 +1,17 @@
-﻿@model ERP.Web.Service.ViewModels.ExamSearchListViewModel_result
+﻿@using Microsoft.AspNetCore.Mvc.Rendering
+@model ERP.Web.Service.ViewModels.ExamSearchListViewModel_result
 
 <link href="~/css/chkboxstyle.css" rel="stylesheet" />
 <link href="~/css/exam.css" rel="stylesheet" />
 <link href="~/StaticFiles/lib/select2/dist/css/select2.css" rel="stylesheet" />
 <link href="~/StaticFiles/lib/select2/dist/css/select2-bootstrap.css" rel="stylesheet" />
 <style>
-    /* 讓 Select2 在 Bootstrap 版面中維持對齊與高度 */
     .select2-container { width: 100% !important; }
-    .select2-container--default .select2-selection--multiple {
+    .select2-container--default .select2-selection--single {
         min-height: calc(2.25rem + 2px);
         border: 1px solid #ced4da;
         border-radius: .375rem;
-        padding: .25rem .5rem;
     }
-    .select2-container--default.select2-container--focus .select2-selection--multiple {
-        border-color: #86b7fe;
-        box-shadow: 0 0 0 .25rem rgba(13,110,253,.25);
-    }
-    .select2-container--default .select2-selection--multiple .select2-selection__choice {
-        background-color: #e9ecef;
-        border: 1px solid #dee2e6;
-        border-radius: .375rem;
-        margin-top: .25rem;
-    }
-
-    /* 篩選列小幅美化 */
     .retake-filter-card {
         border: 1px solid rgba(0,0,0,.08);
         border-radius: .5rem;
@@ -39,7 +26,7 @@
         <div class="col-lg-12">
             <div class="ibox">
                 <div class="ibox-title">
-                    <h5>複習測驗（ReTest）</h5>
+                    <h5>複習測驗（ReTest）— 依課程辭庫</h5>
                 </div>
                 <div class="ibox-content">
                     <div class="retake-filter-card">
@@ -48,46 +35,51 @@
                                 <label for="KidID" class="form-label mb-1">選擇學生</label>
                                 <select id="KidID" name="KidID" class="form-select">
                                     <option value="">請選擇</option>
-                                    @foreach (var kid in Model.KidList)
+                                    @foreach (var kid in Model.KidList ?? Enumerable.Empty<SelectListItem>())
                                     {
-                                        <option value="@kid.Value">@kid.Text</option>
+                                        <option value="@kid.Value" selected="@(Model.KidID == kid.Value)">@kid.Text</option>
                                     }
                                 </select>
                             </div>
 
                             <div class="col-12 col-md-4 col-lg-3">
-                                <label for="TestDate" class="form-label mb-1">選擇日期</label>
-                                <select id="TestDate" name="TestDate" class="form-select">
-                                    <option value="">請選擇</option>
-                                    @foreach (var TestDate in Model.TestDateList)
-                                    {
-                                        <option value="@TestDate.Value">@TestDate.Text</option>
-                                    }
+                                <label for="SearchText" class="form-label mb-1">搜尋（課程／問題／答案）</label>
+                                <input type="text" id="SearchText" name="SearchText" class="form-control" value="@Model.SearchText" placeholder="輸入關鍵字" />
+                            </div>
+
+                            <div class="col-12 col-md-4 col-lg-2">
+                                <label for="CorrectType" class="form-label mb-1">最終答題</label>
+                                <select id="CorrectType" name="CorrectType" class="form-select">
+                                    <option value="">全部</option>
+                                    <option value="1" selected="@(Model.CorrectType == "1")">最終答對</option>
+                                    <option value="0" selected="@(Model.CorrectType == "0")">最終答錯</option>
                                 </select>
                             </div>
 
-                            <div class="col-12 col-md-4 col-lg-6">
-                                <label for="Select2ClassNameList" class="form-label mb-1">當天課程（可複選）</label>
-                                <select id="Select2ClassNameList" name="ClassNameList" class="form-select" multiple>
-                                    @if (Model.ClassNameList != null)
+                            <div class="col-12 col-lg-4">
+                                <label for="Select2ClassNameList" class="form-label mb-1">課程辭庫</label>
+                                <select id="Select2ClassNameList" name="ClassNameList" class="form-select">
+                                    <option value="">全部課程</option>
+                                    @if (Model.ClassNameSelectList != null)
                                     {
-                                        @foreach (var className in Model.ClassNameList)
+                                        @foreach (var item in Model.ClassNameSelectList)
                                         {
-                                            <option value="@className">@className</option>
+                                            var selected = Model.ClassNameList?.Count == 1 && Model.ClassNameList[0] == item.Value;
+                                            <option value="@item.Value" selected="@selected">@item.Text</option>
                                         }
                                     }
                                 </select>
-                                <div class="form-text">先選日期，系統會載入該日有考過的課程。</div>
+                                <div class="form-text">預設不篩課程；括號為已考題數、答對、答錯統計。</div>
                             </div>
                         </div>
                     </div>
 
                     <div class="mb-3">
-                        <partial name="~/Views/Exam/_Customize.cshtml" model="Model">
+                        <partial name="~/Views/Exam/_Customize.cshtml" model="Model" />
                     </div>
 
                     <div id="partial" class="ibox-content ibox-list-content p-0">
-                        <partial name="~/Views/Exam/_ReTest.cshtml" model="Model">
+                        <partial name="~/Views/Exam/_ReTest.cshtml" model="Model" />
                     </div>
                 </div>
             </div>
@@ -98,251 +90,165 @@
 <script src="~/StaticFiles/lib/select2/dist/js/select2.min.js"></script>
 <script src="~/js/exam.shared.js"></script>
 <script>
-    // 全域變數
     var selectedWordIDs = window.selectedWordIDs || [];
 
-    // Select2 初始化（只需一次）
-    $(function () {
+    function getSelectedClassNames() {
+        var v = $('#Select2ClassNameList').val();
+        if (!v) return [];
+        return Array.isArray(v) ? v : [v];
+    }
+
+    function initReTestSelect2() {
         var $class = $('#Select2ClassNameList');
-        if ($class.length) {
-            $class.select2({
-                placeholder: '選擇考卷',
-                allowClear: true,
-                closeOnSelect: false,
-                width: '100%'
-            });
+        if (!$class.length) return;
+        if ($class.data('select2')) {
+            $class.select2('destroy');
         }
+        $class.select2({
+            placeholder: '選擇課程（可不選）',
+            allowClear: true,
+            width: '100%'
+        });
+    }
+
+    $(function () {
+        initReTestSelect2();
     });
 
-    // 事件委派綁定，放在 DOMContentLoaded 內，只需綁定一次
     document.addEventListener('DOMContentLoaded', function () {
         document.body.addEventListener('change', function (event) {
             const el = event.target;
-
             if (el.matches && el.matches("input[type='checkbox'][name^='selectedQuestions']")) {
                 const wordID = el.value;
-
-                // 🔸 取得當前選擇的 KidID
                 const kidID = document.getElementById('KidID')?.value;
-                if (!kidID) {
-                    console.warn('尚未選擇 KidID，無法儲存 Cookie');
-                    return;
-                }
-
-                // 🔸 維護 selectedWordIDs 陣列（記得你要定義這個在外部）
+                if (!kidID) return;
                 if (el.checked) {
-                    if (!selectedWordIDs.includes(wordID)) {
-                        selectedWordIDs.push(wordID);
-                    }
+                    if (!selectedWordIDs.includes(wordID)) selectedWordIDs.push(wordID);
                 } else {
                     selectedWordIDs = selectedWordIDs.filter(id => id !== wordID);
                 }
-
-                // 🔸 存入以 KidID 為命名的 Cookie
-                const cookieName = `SelectedWordIDs_${kidID}`;
-                ExamShared.setCookie(cookieName, JSON.stringify(selectedWordIDs));
-
-                console.log(`儲存 Cookie：${cookieName}，值為：`, selectedWordIDs);
+                ExamShared.setCookie(`SelectedWordIDs_${kidID}`, JSON.stringify(selectedWordIDs));
             }
         });
-        // 初次載入時，根據目前 KidID 從 Cookie 還原選取狀態
-        const initKidId = document.getElementById('KidID')?.value;
-        ExamShared.loadSelectedIdsFromCookie(initKidId);
+        ExamShared.loadSelectedIdsFromCookie(document.getElementById('KidID')?.value);
     });
-
 
     $('#KidID').on('change', function () {
-        var selectedKidId = $(this).val();
-
-        if (selectedKidId !== "") {
-            $.ajax({
-                type: 'POST',
-                url: '@Url.Action("GetTestDates", ViewContext.RouteData.Values["controller"]?.ToString())',
-                data: { KidID: selectedKidId },
-                success: function (data) {
-                    var $testDate = $('#TestDate');
-                    $testDate.empty();
-                    $testDate.append($('<option>', { value: '', text: '請選擇' }));
-                    $.each(data, function (i, item) {
-                        $testDate.append($('<option>', { value: item.value, text: item.text }));
-                    });
-                    // 清空當天課程清單
-                    $('#Select2ClassNameList').empty();
-                    // 同步載入該 Kid 的 Cookie 選取狀態
-                    ExamShared.loadSelectedIdsFromCookie(selectedKidId);
-                },
-                error: function () {
-                    alert('載入日期失敗，請稍後再試。');
-                }
-            });
-        } else {
-            // 清空 TestDate
-            $('#TestDate').empty().append($('<option>', { value: '', text: '請選擇' }));
-            $('#Select2ClassNameList').empty();
-            // 清空本地選取狀態
-            ExamShared.loadSelectedIdsFromCookie(null);
-        }
-    });
-
-    // 選擇日期後，載入當天考過哪些科目/課程
-    $('#TestDate').on('change', function () {
-        var kidId = $('#KidID').val();
-        var testDate = $('#TestDate').val();
-        if (!kidId || !testDate) {
-            $('#Select2ClassNameList').empty();
+        var kidId = $(this).val();
+        ExamShared.loadSelectedIdsFromCookie(kidId || null);
+        var baseUrl = '@Url.Action("ReTest", ViewContext.RouteData.Values["controller"]?.ToString())';
+        if (!kidId) {
+            window.location.href = baseUrl;
             return;
         }
-
-        $.ajax({
-            type: 'POST',
-            url: '@Url.Action("GetClassesByDate", ViewContext.RouteData.Values["controller"]?.ToString())',
-            data: { KidID: kidId, TestDate: testDate },
-            success: function (data) {
-                var $class = $('#Select2ClassNameList');
-                $class.empty();
-                $.each(data, function (i, item) {
-                    $class.append($('<option>', { value: item.value, text: item.text }));
-                });
-                // 預設選第一個課程，避免「有選項但未選取」導致後端 ClassNameList 為空
-                var firstVal = $class.find('option:first').val();
-                if (firstVal) {
-                    $class.val([firstVal]);
-                }
-
-                // 觸發查詢刷新
-                $class.trigger('change');
-            },
-            error: function () {
-                alert('載入當天課程失敗，請稍後再試。');
-            }
-        });
+        window.location.href = baseUrl + '?KidID=' + encodeURIComponent(kidId);
     });
 
+    function reloadReTestPartial() {
+        var ClassNameList = getSelectedClassNames();
+        var CorrectType = $("#CorrectType").val();
+        var KidID = $("#KidID").val();
+        var SearchText = $("#SearchText").val();
+        $.ajax({
+            url: '@Url.Action("ReTest", ViewContext.RouteData.Values["controller"]?.ToString())',
+            type: 'GET',
+            traditional: true,
+            data: {
+                ClassNameList: ClassNameList,
+                CorrectType: CorrectType,
+                KidID: KidID,
+                SearchText: SearchText
+            }
+        }).done(function (html) {
+            $('#partial').html(html);
+            initReTestSelect2();
+        });
+    }
 
     $(document).ready(function () {
-        $(document).on("change", "#Select2ClassNameList, #CorrectType, #KidID, #TestDate", function () {
-            var ClassNameList = $("#Select2ClassNameList").val() || [];
-            var CorrectType = $("#CorrectType").val();
-            var KidID = $("#KidID").val();
-            var TestDate = $("#TestDate").val();
-            $.ajax({
-                url: '@Url.Action("ReTest", ViewContext.RouteData.Values["controller"]?.ToString())',
-                type: 'GET',
-                traditional: true, // 讓 jQuery 正確傳遞陣列
-                data: {
-                    ClassNameList: ClassNameList,
-                    CorrectType: CorrectType,
-                    KidID: KidID,
-                    TestDate: TestDate
-                }
-            }).done(function (result) {
-                $('#partial').html(result);
-            });
+        $(document).on("change", "#Select2ClassNameList, #CorrectType", reloadReTestPartial);
+
+        var searchTimer;
+        $(document).on("input", "#SearchText", function () {
+            clearTimeout(searchTimer);
+            searchTimer = setTimeout(reloadReTestPartial, 400);
         });
 
-
-
         var callback = function () {
-            var ClassNameList = $("#Select2ClassNameList").val() || [];
-            var CorrectType = $("#CorrectType").val();
-            var KidID = $("#KidID").val();
-            var TestDate = $("#TestDate").val();
             return {
                 method: "get",
                 url: '@Url.Action("ReTest", ViewContext.RouteData.Values["controller"]?.ToString())',
                 footable: true,
                 data: {
-                    ClassNameList: ClassNameList,
-                    CorrectType: CorrectType,
-                    KidID: KidID,
-                    TestDate: TestDate
+                    ClassNameList: getSelectedClassNames(),
+                    CorrectType: $("#CorrectType").val(),
+                    KidID: $("#KidID").val(),
+                    SearchText: $("#SearchText").val()
                 }
             };
         };
         PageTurning(callback);
-
     });
 
     function CodeMainSave(e) {
+        var $row = $(e).closest("tr");
         var WordID = $(e).data("wordid");
-        var Correct = $(e).closest("tr").find(".correct-checkbox").prop("checked");
-        var TestDate = $(e).closest("tr").find("td[data-testdate]").data("testdate");
+        var Question = $row.find(".question-input").val();
+        var Answer = $row.find(".answer-input").val();
+        var Correct = $row.find(".correct-checkbox").prop("checked");
         var KidID = $("#KidID").val();
-
-        if (WordID) {
-            $.ajax({
-                url: '@Url.Action("UpdateExamWord", ViewContext.RouteData.Values["controller"]?.ToString())',
-                type: 'POST',
-                data: {
-                    WordID: WordID,
-                    KidID: KidID,
-                    TestDate: TestDate,
-                    Correct: Correct
-                },
-                success: function (response) {
-                    alert("資料已成功提交！");
-                },
-                error: function (xhr, status, error) {
-                    alert("提交失敗，請再試一次！");
-                }
-            });
-        } else {
-            alert("請輸入考券名稱！");
+        if (!WordID || !KidID) {
+            alert("請選擇學生與題目！");
+            return;
         }
+        if (!Question || !Answer) {
+            alert("問題與答案不可為空！");
+            return;
+        }
+        $.ajax({
+            url: '@Url.Action("UpdateExamWord", ViewContext.RouteData.Values["controller"]?.ToString())',
+            type: 'POST',
+            data: {
+                WordID: WordID,
+                KidID: KidID,
+                Question: Question,
+                Answer: Answer,
+                Correct: Correct
+            },
+            success: function () { alert("已更新題目、答案與 Correct！"); reloadReTestPartial(); },
+            error: function () { alert("提交失敗，請再試一次！"); }
+        });
     }
 
-    // getCookie 與載入選取清單移至共用 JS（ExamShared）
-
     function openModal() {
-        //$("input[name^='selectedQuestions']:checked").each(function () {
-        //    selectedWordIDs.push($(this).val());
-        //});
         var KidID = $("#KidID").val();
         var cookieName = `SelectedWordIDs_${KidID}`;
-        const selectedIdsFromCookie = JSON.parse(ExamShared.getCookieValue(`${cookieName}`) || "[]");
+        const selectedIdsFromCookie = JSON.parse(ExamShared.getCookieValue(cookieName) || "[]");
         selectedWordIDs = Array.isArray(selectedIdsFromCookie) ? selectedIdsFromCookie : [];
-        // 顯示已選擇的題目數量
         $("#selectedWordCountValue").text(selectedWordIDs.length);
         const $examForm = $("#examForm");
         $examForm.find('input[name="selectedWordIDs"]').remove();
         selectedWordIDs.forEach(function (id) {
             $examForm.append(`<input type="hidden" name="selectedWordIDs" value="${id}" />`);
         });
-
-        console.log(selectedWordIDs)
-        // 設定條件選單的值
-        var testType = $("#TestType").val();
-        $("#modalTestType").val(testType).change();
-
-        var kidID = $("#KidID").val();
-        $("#modalKidID").val(kidID).change();
-
-        // 開啟 Modal
+        $("#modalKidID").val(KidID).change();
         var modal = new bootstrap.Modal(document.getElementById('examModal'));
         modal.show();
     }
-
 
     function closeModal() {
         var modal = bootstrap.Modal.getInstance(document.getElementById('examModal'));
         if (modal) modal.hide();
     }
 
-
     function submitExamData() {
-        // 驗證欄位
         var KidID = $("#modalKidID").val();
         var TestType = $("#modalTestType").val();
         var ClassName = $("#modalClass").val();
-
         if (!KidID || !TestType || !ClassName) {
             alert("請確保所有欄位均已填寫！");
             return;
         }
-
         $("#examForm").submit();
     }
-
-
-
 </script>

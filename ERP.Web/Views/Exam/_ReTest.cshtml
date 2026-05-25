@@ -2,39 +2,50 @@
 
 <partial name="~/Views/Shared/_Page.cshtml" model="@Model.Pager" />
 
+@if (string.IsNullOrEmpty(Model.KidID))
+{
+    <p class="text-muted p-3 mb-0">請先選擇學生，即可依課程辭庫檢視每題的 ReTest 與 Correct。</p>
+}
+else if (Model.ExamDataList == null || !Model.ExamDataList.Any())
+{
+    <p class="text-muted p-3 mb-0">此條件下尚無已考過的題目；可調整課程、搜尋或篩選條件。</p>
+}
 
 <table class="table table-bordered table-hover exam-table">
     <thead class="table-light">
         <tr class="text-center">
             <th class="col-auto">選擇</th>
-            <th class="col-auto">排序</th>
+            <th class="col-auto">#</th>
             <th class="col-2">課程</th>
             <th class="col-3">問題</th>
             <th class="col-3">答案</th>
-            <th class="col-auto">答錯</th>
-            <th class="col-auto">時間</th>
-            <th class="col-auto"><button class="btn btn-primary btn-sm" onclick="openModal()">修正</button></th>
+            <th class="col-auto" title="KidExamWordIndex.ReTest">ReTest</th>
+            <th class="col-auto">Correct</th>
+            <th class="col-auto"><button type="button" class="btn btn-primary btn-sm" onclick="openModal()">組卷</button></th>
         </tr>
     </thead>
     <tbody>
-        @foreach (var item in Model.ExamDataList)
+        @if (Model.ExamDataList != null)
         {
-            <tr class="text-center align-middle">
-                <td class="text-center align-middle">
-                    <input type="checkbox" class="form-check-input checkbox-light" name="selectedQuestions[@item.WordID]" value="@item.WordID" />
-                </td>
-                <td class="align-middle">@item.RowNum</td>
-                <td class="align-middle">@item.ClassName</td>
-                <td><input type="text" class="form-control borderless" value="@item.Question" /></td>
-                <td><input type="text" class="form-control borderless" value="@item.Answer" /></td>
-                <td class="text-center align-middle">
-                    <input type="checkbox" class="form-check-input checkbox-light correct-checkbox" @(item.Correct == 1 ? "" : "checked") />
-                </td>
-                <td class="text-center align-middle" data-testdate="@item.TestDate">@item.TestDate.ToString("yyyy/MM/dd")</td>
-                <td class="text-center align-middle">
-                    <button class="btn btn-primary btn-sm" data-wordid="@item.WordID" onclick="CodeMainSave(this)">修正</button>
-                </td>
-            </tr>
+            @foreach (var item in Model.ExamDataList)
+            {
+                <tr class="text-center align-middle">
+                    <td>
+                        <input type="checkbox" class="form-check-input checkbox-light" name="selectedQuestions[@item.WordID]" value="@item.WordID" />
+                    </td>
+                    <td>@item.RowNum</td>
+                    <td class="text-start">@item.ClassName</td>
+                    <td><input type="text" class="form-control form-control-sm question-input" value="@item.Question" /></td>
+                    <td><input type="text" class="form-control form-control-sm answer-input" value="@item.Answer" /></td>
+                    <td><span class="text">@item.ReTest</span></td>
+                    <td>
+                        <input type="checkbox" class="form-check-input correct-checkbox checkbox-light" @(item.Correct == 1 ? "checked" : "") title="勾選＝答對 (Correct=1)" />
+                    </td>
+                    <td>
+                        <button type="button" class="btn btn-primary btn-sm" data-wordid="@item.WordID" onclick="CodeMainSave(this)">更新</button>
+                    </td>
+                </tr>
+            }
         }
     </tbody>
 </table>
@@ -44,13 +55,20 @@
 <script>
     if (typeof onPartialReTestLoaded === "function") {
         onPartialReTestLoaded();
+    } else {
+        (function () {
+            document.querySelectorAll('input[type="checkbox"][name^="selectedQuestions["]').forEach(function (checkbox) {
+                if (typeof selectedWordIDs !== 'undefined' && selectedWordIDs.includes(checkbox.value)) {
+                    checkbox.checked = true;
+                }
+            });
+        })();
     }
 
     function onPartialReTestLoaded() {
-        // 遍歷所有 checkbox
         document.querySelectorAll('input[type="checkbox"][name^="selectedQuestions["]').forEach(function (checkbox) {
             const wordId = checkbox.value;
-            if (selectedWordIDs.includes(wordId)) {
+            if (typeof selectedWordIDs !== 'undefined' && selectedWordIDs.includes(wordId)) {
                 checkbox.checked = true;
             }
         });

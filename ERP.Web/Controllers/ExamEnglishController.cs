@@ -32,7 +32,7 @@ namespace ERP.Web.Controllers
         }
 
         /// <summary>
-        /// 複習測驗頁面（已考過的）
+        /// 複習測驗頁面：依課程辭庫列出已考題目，每題顯示複習次數與最終答對／答錯
         /// </summary>
         public async Task<IActionResult> ReTest(ExamSearchListViewModel_param param)
         {
@@ -77,7 +77,7 @@ namespace ERP.Web.Controllers
         #region AJAX 更新方法
 
         /// <summary>
-        /// 更新考試單字的對錯狀態
+        /// 更新考試單字：Correct、Question、Answer（Vocabulary 辭庫內容）
         /// </summary>
         [HttpPost]
         public async Task<IActionResult> UpdateExamWord(ExamSearchListViewModel_param param)
