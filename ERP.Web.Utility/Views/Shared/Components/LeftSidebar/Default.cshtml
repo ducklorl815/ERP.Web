@@ -68,6 +68,22 @@
             }
 
 
+            @*考券選單（英文／數學）— 第二層直接連結，避免選單無法展開*@
+            <li>
+                <a href="#"><i class="fa fa-file-text-o"></i> <span class="nav-label">考券</span> <span class="fa arrow"></span></a>
+                <ul class="nav nav-second-level collapse">
+                    <li class="nav-header px-3 py-1 text-muted small">英文</li>
+                    <li><a href="@Url.Action("NewTest", "ExamEnglish", new { CorrectType = 0 })">英文 — 新試題</a></li>
+                    <li><a href="@Url.Action("ReTest", "ExamEnglish")">英文 — 複習試題</a></li>
+                    <li class="nav-header px-3 py-1 text-muted small">數學</li>
+                    <li><a href="@Url.Action("NewTest", "ExamMath", new { CorrectType = 0 })">數學 — 新試題</a></li>
+                    <li><a href="@Url.Action("ReTest", "ExamMath")">數學 — 複習試題</a></li>
+                    <li><a href="@Url.Action("MentalTest", "ExamMath")">數學 — 心算出卷</a></li>
+                    <li class="divider"></li>
+                    <li><a href="@Url.Action("Index", "ExamUpload")">上傳題目</a></li>
+                </ul>
+            </li>
+
             @*後台管理Menu*@
             <li>
                 <a href="index.html"><i class="fa fa-th-large"></i> <span class="nav-label">Dashboards</span> <span class="fa arrow"></span></a>
@@ -77,17 +93,6 @@
                     </li>
                     <li>
                         <a href="@Url.Action("Index", "SeatMap")">座位圖</a>
-                    </li>
-                    <li>
-                        <a href="#">考券</a>
-                        <ul class="nav nav-third-level collapse">
-                            <li>
-                                <a href="@Url.Action("NewTest", "ExamEnglish", new { CorrectType = 0 })">新試題</a>
-                            </li>
-                            <li>
-                                <a href="@Url.Action("ReTest", "ExamEnglish")">複習試題</a>
-                            </li>
-                        </ul>
                     </li>
                     <li>
                         <a href="@Url.Action("Index", "AddtoCart")">加入購物車</a>

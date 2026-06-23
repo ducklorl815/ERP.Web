@@ -1,18 +1,19 @@
-﻿<h2 class="mb-3">請填寫考試資訊</h2>
+﻿<partial name="~/Views/Exam/_ExamContext.cshtml" />
+@{
+    var examTestType = ViewData["ExamTestType"]?.ToString() ?? Model?.TestType ?? "English";
+    var examSubjectLabel = ViewData["ExamSubjectLabel"]?.ToString() ?? "英文";
+}
+
+<h2 class="mb-3">請填寫考試資訊</h2>
 
 <form method="get" action="@Url.Action("Test", ViewContext.RouteData.Values["controller"]?.ToString())">
+    <input type="hidden" name="TestType" value="@examTestType" />
     <div>
         <div class="row align-items-end gy-3 gx-4 col-12">
 
             <div class="col-2">
-                <label for="TestType" class="form-label col-5">科目：</label>
-                <select id="TestType" name="TestType" class="form-select col-6">
-                    <option value="">請選擇</option>
-                    @foreach (var testType in Model.TestTypeList)
-                    {
-                        <option value="@testType.Value">@testType.Text</option>
-                    }
-                </select>
+                <label class="form-label col-5">科目：</label>
+                <div class="form-control-plaintext fw-semibold">@examSubjectLabel</div>
             </div>
 
             <div class="col-5">

@@ -53,6 +53,26 @@ namespace ERP.Web.Controllers
         }
 
         /// <summary>
+        /// 複習考：自動撈取歷史答錯（Correct=0）的題目組卷
+        /// </summary>
+        public async Task<IActionResult> WrongTest(ExamSearchListViewModel_param param)
+        {
+            param.TestType = TestType;
+            var result = await _examService.GetWrongExamDataAsync(param);
+            return View("~/Views/Exam/Test.cshtml", result);
+        }
+
+        /// <summary>
+        /// 心算出卷頁面（選學生與級數）
+        /// </summary>
+        [HttpGet]
+        public async Task<IActionResult> MentalTest()
+        {
+            ViewBag.KidList = await _examService.GetKidSelectListAsync();
+            return View("~/Views/Exam/MentalTest.cshtml");
+        }
+
+        /// <summary>
         /// 複習考試頁面
         /// </summary>
         public async Task<IActionResult> ReExam(ReExamSearchListViewModel_param param)

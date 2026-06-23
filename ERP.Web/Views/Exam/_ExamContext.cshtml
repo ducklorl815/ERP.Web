@@ -1,0 +1,8 @@
+@*依目前 Controller 判斷英文／數學，供子 Partial 共用*@
+@{
+    var examController = ViewContext.RouteData.Values["controller"]?.ToString() ?? "ExamEnglish";
+    var isMathExam = string.Equals(examController, "ExamMath", StringComparison.OrdinalIgnoreCase);
+    ViewData["ExamTestType"] = isMathExam ? "Math" : "English";
+    ViewData["ExamSubjectLabel"] = isMathExam ? "數學" : "英文";
+    ViewData["ExamIsMath"] = isMathExam;
+}

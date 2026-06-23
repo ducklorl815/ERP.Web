@@ -1,4 +1,9 @@
 ﻿<!-- 表單包住整個 modal -->
+<partial name="~/Views/Exam/_ExamContext.cshtml" />
+@{
+    var examTestType = ViewData["ExamTestType"]?.ToString() ?? Model?.TestType ?? "English";
+    var examSubjectLabel = ViewData["ExamSubjectLabel"]?.ToString() ?? "英文";
+}
 <form id="examForm" method="post" action="@Url.Action("ReExam", ViewContext.RouteData.Values["controller"]?.ToString() ?? "ExamEnglish")">
     <div id="examModal" class="modal fade" tabindex="-1" aria-labelledby="examModalLabel" aria-hidden="true">
         <div class="modal-dialog">
@@ -21,13 +26,8 @@
                     <div class="row mb-2">
                         <label for="TestType" class="col-sm-3 col-form-label font-weight-bold text-sm-right">科目：</label>
                         <div class="col-sm-8">
-                            <select id="modalTestType" name="TestType" class="form-control form-control-sm">
-                                <option value="">請選擇</option>
-                                @foreach (var modalTestType in Model.TestTypeList)
-                                {
-                                    <option value="@modalTestType.Value">@modalTestType.Text</option>
-                                }
-                            </select>
+                            <input type="hidden" id="modalTestType" name="TestType" value="@examTestType" />
+                            <div class="form-control-plaintext">@examSubjectLabel</div>
                         </div>
                     </div>
 

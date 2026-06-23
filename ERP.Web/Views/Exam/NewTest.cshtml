@@ -1,4 +1,9 @@
 ﻿@model ERP.Web.Service.ViewModels.ExamSearchListViewModel_result
+<partial name="~/Views/Exam/_ExamContext.cshtml" />
+@{
+    var examSubjectLabel = ViewData["ExamSubjectLabel"]?.ToString() ?? "英文";
+    var isMathExam = ViewData["ExamIsMath"] as bool? == true;
+}
 
 <link href="~/css/exam.css" rel="stylesheet" />
 <link href="~/StaticFiles/lib/select2/dist/css/select2.css" rel="stylesheet" />
@@ -10,7 +15,15 @@
         <div class="col-lg-12">
             <div class="ibox">
                 <div class="ibox-title">
-                    <h5>出考卷</h5>
+                    <h5>出考卷 — @examSubjectLabel</h5>
+                    @if (isMathExam)
+                    {
+                        <span class="badge bg-info ms-2">數學</span>
+                    }
+                    else
+                    {
+                        <span class="badge bg-primary ms-2">英文</span>
+                    }
                 </div>
                 <div class="ibox-content">
                     <div class="mb-3">
@@ -33,7 +46,7 @@
                                     </button>
                                 </div>
                                 <div class="text-muted small">
-                                    依「學生」自動抓歷史英文答錯（Correct=0）的題目組卷（不限定日期）。
+                                    依「學生」自動抓歷史@examSubjectLabel答錯（Correct=0）的題目組卷（不限定日期）。
                                 </div>
                             </div>
                         </div>

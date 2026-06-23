@@ -150,7 +150,7 @@ namespace ERP.Web.Models.Respository
                       AND kwi.Enabled = 1 AND kwi.Deleted = 0
                       AND kti.KidMainID = @KidMainID
                       AND LOWER(les_k.TestType) = LOWER(@TestType)
-                    ORDER BY kti.TestDate DESC, kwi.ModifyDate DESC, kwi.CreateDate DESC
+                    ORDER BY kwi.CreateDate DESC, kwi.ID DESC
                 ) latest
                 OUTER APPLY (
                     SELECT COUNT_BIG(*) AS Cnt
@@ -158,6 +158,7 @@ namespace ERP.Web.Models.Respository
                     INNER JOIN KidsWorld.dbo.KidTestIndex kti ON kti.ID = kwi.KidTestIndexID
                         AND kti.Enabled = 1 AND kti.Deleted = 0
                     INNER JOIN KidsWorld.dbo.Lession les_k ON les_k.ID = kti.LessionID
+                        AND les_k.Enabled = 1 AND les_k.Deleted = 0
                     WHERE kwi.ExamID = w.ID
                       AND kwi.Enabled = 1 AND kwi.Deleted = 0
                       AND kti.KidMainID = @KidMainID
@@ -379,7 +380,7 @@ namespace ERP.Web.Models.Respository
         }
 
         /// <summary>
-        /// 複習清單：以課程辭庫為單位，每題一列（最新 Correct／ReTest、累計考次），不再依考試日期拆重複列。
+        /// 複習清單：以課程辭庫為單位，每題一列（CreateDate 最新一筆的 Correct／ReTest、累計考次），不再依考試日期拆重複列。
         /// </summary>
         private static void AppendReTestVocabularyFilters(ref string sql, DynamicParameters sqlparam, ExamMainKeyword param)
         {
@@ -422,7 +423,7 @@ namespace ERP.Web.Models.Respository
                       AND kwi.Enabled = 1 AND kwi.Deleted = 0
                       AND kti.KidMainID = @KidMainID
                       AND LOWER(les_k.TestType) = LOWER(@TestType)
-                    ORDER BY kti.TestDate DESC, kwi.ModifyDate DESC, kwi.CreateDate DESC
+                    ORDER BY kwi.CreateDate DESC, kwi.ID DESC
                 ) latest
                 OUTER APPLY (
                     SELECT COUNT_BIG(*) AS Cnt
@@ -527,7 +528,7 @@ namespace ERP.Web.Models.Respository
             if (!string.IsNullOrEmpty(param.TestType))
             {
                 sqlparam.Add("TestType", param.TestType);
-                sql += $" AND les.TestType = @TestType";
+                sql += " AND LOWER(les.TestType) = LOWER(@TestType)";
             }
             //if (!string.IsNullOrEmpty(param.CorrectType))
             //{
@@ -566,14 +567,20 @@ namespace ERP.Web.Models.Respository
                 SELECT *
                 FROM (
                     SELECT
-                        ROW_NUMBER() OVER (ORDER BY les.ClassName, w.Question) AS RowNum,
+                        ROW_NUMBER() OVER (
+                            ORDER BY
+                                ISNULL(latest.LastCorrect, 0),
+                                ISNULL(latest.LastReTest, 0) DESC,
+                                ISNULL(w.Seq, 0)
+                        ) AS RowNum,
                         les.ClassName,
                         les.TestType,
                         w.ID AS WordID,
                         w.Question,
                         w.Answer,
                         ISNULL(latest.LastCorrect, 0) AS Correct,
-                        ISNULL(latest.LastReTest, 0) AS ReTest
+                        ISNULL(latest.LastReTest, 0) AS ReTest,
+                        ISNULL(w.Seq, 0) AS Seq
                     {ReTestVocabularyFromSql}
                 ";
 
@@ -581,7 +588,7 @@ namespace ERP.Web.Models.Respository
 
             sql += @"
                 ) AS ReTestRows
-                ORDER BY RowNum
+                ORDER BY Correct, ReTest DESC, Seq
             ";
 
             sqlparam.Add("Offset", pager.ItemStart - 1);
@@ -747,27 +754,10 @@ namespace ERP.Web.Models.Respository
 
             var sqlparam = new DynamicParameters();
             sqlparam.Add("KidMainID", kidMainId);
-            sqlparam.Add("TestType", (testType ?? string.Empty).ToLower());
+            sqlparam.Add("TestType", string.IsNullOrWhiteSpace(testType) ? "English" : testType);
 
-            // 撈「指定孩子 + 指定 TestType」且 Correct=0（答錯）的歷史題目（不限定日期）
-            // 重要：以 ExamID 去重，避免同一題在不同考卷索引出現多筆影響排序
+            // 依 CreateDate 最新一筆判斷 Correct；僅保留目前仍答錯（Correct=0）的題目
             var sql = @"
-                ;WITH WrongPool AS (
-                    SELECT
-                        wl.ExamID,
-                        MIN(ISNULL(wl.ReTest, 0)) AS ReTest
-                    FROM KidsWorld.dbo.KidExamWordIndex wl
-                    JOIN KidsWorld.dbo.KidTestIndex kti ON kti.ID = wl.KidTestIndexID
-                    JOIN KidsWorld.dbo.KidMain km ON km.ID = kti.KidMainID
-                    JOIN KidsWorld.dbo.Vocabulary w ON w.ID = wl.ExamID
-                    JOIN KidsWorld.dbo.Lession les ON les.ID = w.LessionID
-                    WHERE wl.Enabled = 1 AND wl.Deleted = 0
-                      AND kti.Enabled = 1 AND kti.Deleted = 0
-                      AND km.ID = @KidMainID
-                      AND wl.Correct = 0
-                      AND les.TestType = @TestType
-                    GROUP BY wl.ExamID
-                )
                 SELECT
                     w.ID AS WordID,
                     les.TestType,
@@ -776,11 +766,42 @@ namespace ERP.Web.Models.Respository
                     w.Question,
                     w.Answer,
                     @KidMainID AS KidID,
-                    0 AS Correct,
-                    p.ReTest
-                FROM WrongPool p
-                JOIN KidsWorld.dbo.Vocabulary w ON w.ID = p.ExamID
-                JOIN KidsWorld.dbo.Lession les ON les.ID = w.LessionID
+                    ISNULL(latest.LastCorrect, 0) AS Correct,
+                    ISNULL(latest.LastReTest, 0) AS ReTest,
+                    ISNULL(examCnt.Cnt, 0) AS ExamTimes
+                FROM KidsWorld.dbo.Vocabulary w
+                INNER JOIN KidsWorld.dbo.Lession les ON les.ID = w.LessionID
+                    AND les.Enabled = 1 AND les.Deleted = 0
+                OUTER APPLY (
+                    SELECT TOP 1
+                        kwi.Correct AS LastCorrect,
+                        kwi.ReTest AS LastReTest
+                    FROM KidsWorld.dbo.KidExamWordIndex kwi
+                    INNER JOIN KidsWorld.dbo.KidTestIndex kti ON kti.ID = kwi.KidTestIndexID
+                        AND kti.Enabled = 1 AND kti.Deleted = 0
+                    INNER JOIN KidsWorld.dbo.Lession les_k ON les_k.ID = kti.LessionID
+                        AND les_k.Enabled = 1 AND les_k.Deleted = 0
+                    WHERE kwi.ExamID = w.ID
+                      AND kwi.Enabled = 1 AND kwi.Deleted = 0
+                      AND kti.KidMainID = @KidMainID
+                      AND LOWER(les_k.TestType) = LOWER(@TestType)
+                    ORDER BY kwi.CreateDate DESC, kwi.ID DESC
+                ) latest
+                OUTER APPLY (
+                    SELECT COUNT_BIG(*) AS Cnt
+                    FROM KidsWorld.dbo.KidExamWordIndex kwi
+                    INNER JOIN KidsWorld.dbo.KidTestIndex kti ON kti.ID = kwi.KidTestIndexID
+                        AND kti.Enabled = 1 AND kti.Deleted = 0
+                    INNER JOIN KidsWorld.dbo.Lession les_k ON les_k.ID = kti.LessionID
+                        AND les_k.Enabled = 1 AND les_k.Deleted = 0
+                    WHERE kwi.ExamID = w.ID
+                      AND kwi.Enabled = 1 AND kwi.Deleted = 0
+                      AND kti.KidMainID = @KidMainID
+                      AND LOWER(les_k.TestType) = LOWER(@TestType)
+                ) examCnt
+                WHERE LOWER(les.TestType) = LOWER(@TestType)
+                  AND examCnt.Cnt > 0
+                  AND ISNULL(latest.LastCorrect, 0) = 0
             ";
 
             using var conn = new SqlConnection(_dBList.erp);
@@ -792,6 +813,46 @@ namespace ERP.Web.Models.Respository
             catch
             {
                 return new List<Vocabulary>();
+            }
+        }
+
+        /// <summary>最近 N 次考卷（依 TestDate）中出現過的題目 WordID</summary>
+        public async Task<List<Guid>> GetRecentExamWordIdsAsync(string kidID, string testType, int lastExamCount = 2)
+        {
+            if (!Guid.TryParse(kidID, out var kidMainId) || lastExamCount <= 0)
+                return new List<Guid>();
+
+            var sqlparam = new DynamicParameters();
+            sqlparam.Add("KidMainID", kidMainId);
+            sqlparam.Add("TestType", string.IsNullOrWhiteSpace(testType) ? "English" : testType);
+            sqlparam.Add("TopN", lastExamCount);
+
+            var sql = @"
+                ;WITH RecentTests AS (
+                    SELECT TOP (@TopN) kti.ID
+                    FROM KidsWorld.dbo.KidTestIndex kti
+                    INNER JOIN KidsWorld.dbo.Lession les ON les.ID = kti.LessionID
+                        AND les.Enabled = 1 AND les.Deleted = 0
+                    WHERE kti.KidMainID = @KidMainID
+                      AND kti.Enabled = 1 AND kti.Deleted = 0
+                      AND LOWER(les.TestType) = LOWER(@TestType)
+                    ORDER BY kti.TestDate DESC, kti.ID DESC
+                )
+                SELECT DISTINCT kwi.ExamID
+                FROM KidsWorld.dbo.KidExamWordIndex kwi
+                INNER JOIN RecentTests rt ON rt.ID = kwi.KidTestIndexID
+                WHERE kwi.Enabled = 1 AND kwi.Deleted = 0
+            ";
+
+            using var conn = new SqlConnection(_dBList.erp);
+            try
+            {
+                var result = await conn.QueryAsync<Guid>(sql, sqlparam);
+                return result?.ToList() ?? new List<Guid>();
+            }
+            catch
+            {
+                return new List<Guid>();
             }
         }
 
@@ -814,7 +875,7 @@ namespace ERP.Web.Models.Respository
                         wl.ID,
                         ROW_NUMBER() OVER (
                             PARTITION BY wl.ExamID
-                            ORDER BY wl.ModifyDate DESC, wl.CreateDate DESC
+                            ORDER BY wl.CreateDate DESC, wl.ID DESC
                         ) AS rn
                     FROM KidsWorld.dbo.KidExamWordIndex wl
                     JOIN KidsWorld.dbo.KidTestIndex kti ON kti.ID = wl.KidTestIndexID
@@ -883,7 +944,7 @@ namespace ERP.Web.Models.Respository
             if (!string.IsNullOrEmpty(param.TestType))
             {
                 sqlparam.Add("TestType", param.TestType);
-                sql += $" AND les.TestType = @TestType";
+                sql += " AND LOWER(les.TestType) = LOWER(@TestType)";
             }
             //if (!string.IsNullOrEmpty(param.CorrectType))
             //{
@@ -924,6 +985,7 @@ namespace ERP.Web.Models.Respository
             sqlparam.Add("ExamID", param.WordID);
             sqlparam.Add("KidTestIndexID", param.NewKidTestID);
             sqlparam.Add("ReTest", param.ReTest);
+            sqlparam.Add("Correct", param.Correct);
             var sql = @"
                     INSERT INTO KidsWorld.dbo.KidExamWordIndex
                                (
@@ -942,7 +1004,7 @@ namespace ERP.Web.Models.Respository
 		                       NEWID()
                                ,@ExamID
                                ,@KidTestIndexID
-                               ,1
+                               ,@Correct
                                ,@ReTest
                                ,GETDATE()
                                ,GETDATE()
@@ -963,6 +1025,42 @@ namespace ERP.Web.Models.Respository
             catch
             {
                 return false;
+            }
+        }
+
+        /// <summary>
+        /// 複習考累計出卷次數：ClassName 為「複習考」或「複習考_日期」的 KidTestIndex 總數 + 1。
+        /// </summary>
+        public async Task<int> GetWrongExamAttemptNumberAsync(string kidID, string testType)
+        {
+            if (!Guid.TryParse(kidID, out var kidMainId))
+                return 1;
+
+            var sqlparam = new DynamicParameters();
+            sqlparam.Add("KidMainID", kidMainId);
+            sqlparam.Add("TestType", string.IsNullOrWhiteSpace(testType) ? "English" : testType);
+            sqlparam.Add("WrongExamName", "複習考");
+
+            var sql = @"
+                SELECT COUNT(*) + 1
+                FROM KidsWorld.dbo.KidTestIndex kti
+                INNER JOIN KidsWorld.dbo.Lession les ON les.ID = kti.LessionID
+                    AND les.Enabled = 1 AND les.Deleted = 0
+                WHERE kti.KidMainID = @KidMainID
+                  AND kti.Enabled = 1 AND kti.Deleted = 0
+                  AND LOWER(les.TestType) = LOWER(@TestType)
+                  AND (les.ClassName = @WrongExamName OR les.ClassName LIKE @WrongExamName + N'[_]%')
+            ";
+
+            using var conn = new SqlConnection(_dBList.erp);
+            try
+            {
+                var n = await conn.QueryFirstOrDefaultAsync<int>(sql, sqlparam);
+                return n > 0 ? n : 1;
+            }
+            catch
+            {
+                return 1;
             }
         }
 
@@ -1129,10 +1227,10 @@ namespace ERP.Web.Models.Respository
             }
         }
 
-        public async Task<bool> UpdateExamWord(string WordID, string KidID, string TestDate, bool Correct)
+        public async Task<bool> UpdateExamWord(string WordID, string KidID, string TestDate, bool Correct, string? testType = null)
         {
             if (string.IsNullOrWhiteSpace(TestDate))
-                return await UpdateExamWordLatestAsync(WordID, KidID, Correct);
+                return await UpdateExamWordLatestAsync(WordID, KidID, Correct, testType);
 
             var sqlparam = new DynamicParameters();
             sqlparam.Add("ExamID", WordID);
@@ -1170,8 +1268,8 @@ namespace ERP.Web.Models.Respository
             }
         }
 
-        /// <summary>更新該生此題「最近一次」考試紀錄的 Correct（不依日期）</summary>
-        public async Task<bool> UpdateExamWordLatestAsync(string wordID, string kidID, bool correct)
+        /// <summary>更新該生此題「最近一次出題」（CreateDate 最新）的 Correct</summary>
+        public async Task<bool> UpdateExamWordLatestAsync(string wordID, string kidID, bool correct, string? testType = null)
         {
             if (!Guid.TryParse(wordID, out _) || !Guid.TryParse(kidID, out var kidMainId))
                 return false;
@@ -1180,6 +1278,7 @@ namespace ERP.Web.Models.Respository
             sqlparam.Add("ExamID", Guid.Parse(wordID));
             sqlparam.Add("KidMainID", kidMainId);
             sqlparam.Add("Correct", correct);
+            sqlparam.Add("TestType", string.IsNullOrWhiteSpace(testType) ? "English" : testType);
 
             var sql = @"
                 UPDATE kwi
@@ -1193,10 +1292,13 @@ namespace ERP.Web.Models.Respository
                     FROM KidsWorld.dbo.KidExamWordIndex kwi2
                     INNER JOIN KidsWorld.dbo.KidTestIndex kti2 ON kti2.ID = kwi2.KidTestIndexID
                         AND kti2.Enabled = 1 AND kti2.Deleted = 0
+                    INNER JOIN KidsWorld.dbo.Lession les_k ON les_k.ID = kti2.LessionID
+                        AND les_k.Enabled = 1 AND les_k.Deleted = 0
                     WHERE kwi2.ExamID = @ExamID
                       AND kwi2.Enabled = 1 AND kwi2.Deleted = 0
                       AND kti2.KidMainID = @KidMainID
-                    ORDER BY kti2.TestDate DESC, kwi2.ModifyDate DESC, kwi2.CreateDate DESC
+                      AND LOWER(les_k.TestType) = LOWER(@TestType)
+                    ORDER BY kwi2.CreateDate DESC, kwi2.ID DESC
                 )
             ";
 
@@ -1351,16 +1453,30 @@ namespace ERP.Web.Models.Respository
 
         public async Task<Guid> GetLessionID(string ClassName)
         {
+            return await GetLessionID(ClassName, null);
+        }
+
+        /// <summary>依課程名稱（可選 TestType）取得 Lession ID</summary>
+        public async Task<Guid> GetLessionID(string ClassName, string? testType)
+        {
             var sqlparam = new DynamicParameters();
             sqlparam.Add("ClassName", ClassName);
+
             var sql = @"
-                        SELECT ID
+                        SELECT TOP 1 ID
                           FROM KidsWorld.dbo.Lession
                           WHERE ClassName = @ClassName
                           AND Enabled = 1
                           AND Deleted = 0
-                        "
-            ;
+                        ";
+
+            if (!string.IsNullOrWhiteSpace(testType))
+            {
+                sqlparam.Add("TestType", testType);
+                sql += " AND LOWER(TestType) = LOWER(@TestType)";
+            }
+
+            sql += " ORDER BY CreateDate ASC";
 
             using var conn = new SqlConnection(_dBList.erp);
 

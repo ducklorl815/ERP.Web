@@ -12,6 +12,8 @@ namespace ERP.Web.Service.Service
     public class ExamService
     {
         private readonly ExamRespo _examRepo;
+        /// <summary>複習考（答錯題）固定課程名稱，用於累計出卷次數</summary>
+        private const string WrongExamLessionName = "複習考";
         public ExamService(
             ExamRespo examRepo
             )
@@ -20,7 +22,13 @@ namespace ERP.Web.Service.Service
         }
         public async Task<ExamSearchListViewModel_result> GetNewTestAsync(ExamSearchListViewModel_param param)
         {
-            var result = new ExamSearchListViewModel_result();
+            var result = new ExamSearchListViewModel_result
+            {
+                TestType = param.TestType,
+                CorrectType = param.CorrectType,
+                KidID = param.KidID,
+                ClassNameList = param.ClassNameList
+            };
             //分頁功能
             var ExamKeyword = new ExamMainKeyword
             {
@@ -246,9 +254,8 @@ namespace ERP.Web.Service.Service
             switch (param.TestType)
             {
                 case "English":
-                    finalQuestions = await GetEnglishExamData(param);
-                    return finalQuestions;
                 case "Math":
+                    finalQuestions = await GetVocabularyExamDataAsync(param);
                     return finalQuestions;
                 default:
                     return finalQuestions;
@@ -256,7 +263,8 @@ namespace ERP.Web.Service.Service
 
         }
 
-        private async Task<List<Vocabulary>> GetEnglishExamData(ExamSearchListViewModel_param param)
+        /// <summary>英文／數學辭庫出題（依 ClassNameList 與 TestType）</summary>
+        private async Task<List<Vocabulary>> GetVocabularyExamDataAsync(ExamSearchListViewModel_param param)
         {
             List<Vocabulary> finalQuestions = new List<Vocabulary>(), listVocabulary = new List<Vocabulary>();
             string FirstClassName = string.Empty;
@@ -333,26 +341,15 @@ namespace ERP.Web.Service.Service
 
                 if (i == 0)
                 {
-                    var correctZero = words
-                        .Where(x => x.Correct == 0)
-                        .OrderBy(x => Guid.NewGuid());
-
-                    var ReTest = words
-                        .OrderBy(x => x.ReTest);
-
-                    // 先取 Correct = 0，不夠再補其他
-                    selectedWords = correctZero
-                        .Concat(ReTest)
-                        .Take(totalCount)
-                        .OrderBy(x => Guid.NewGuid()) // 最後再打亂出題順序
-                        .ToList();
-                    selectedWords = selectedWords.OrderBy(x => Guid.NewGuid()).ToList();
+                    // 同一 WordID 只取一題，避免 Correct=0 與其餘題目 Concat 造成重複
+                    selectedWords = TakeUniqueFromEnglishPool(words, totalCount);
                 }
                 else
                 {
-                    // 原本邏輯
                     selectedWords = words
-                        .OrderBy(x => Guid.NewGuid())
+                        .GroupBy(x => x.WordID)
+                        .Select(g => g.First())
+                        .OrderBy(_ => Guid.NewGuid())
                         .Take(totalCount)
                         .ToList();
                 }
@@ -365,19 +362,69 @@ namespace ERP.Web.Service.Service
                 if (finalQuestions.Count >= totalQuestions) break;
             }
 
-            // 如果題目不足 20 題，補滿
+            // 題目不足時：先從同批課程辭庫補，仍不足則從歷史答錯題補（不與已選重複）
             if (finalQuestions.Count < totalQuestions)
             {
-                int remainingSlots = totalQuestions - finalQuestions.Count;
                 var takenIds = new HashSet<Guid>(finalQuestions.Select(x => x.WordID));
-                var remainingWords = OrderEnglishExamPool(listVocabulary.Where(x => !takenIds.Contains(x.WordID)))
-                    .Take(remainingSlots)
-                    .ToList();
 
-                finalQuestions.AddRange(remainingWords);
+                int remainingSlots = totalQuestions - finalQuestions.Count;
+                var fromSamePool = TakeUniqueFromEnglishPool(
+                    listVocabulary.Where(x => !takenIds.Contains(x.WordID)),
+                    remainingSlots);
+                foreach (var word in fromSamePool)
+                {
+                    finalQuestions.Add(word);
+                    takenIds.Add(word.WordID);
+                }
+
+                remainingSlots = totalQuestions - finalQuestions.Count;
+                if (remainingSlots > 0)
+                {
+                    var fromWrongPool = await FillFromWrongAnswerPoolAsync(param, takenIds, remainingSlots);
+                    finalQuestions.AddRange(fromWrongPool);
+                }
             }
 
             return finalQuestions;
+        }
+
+        /// <summary>從課程辭庫依出題優先序選題，同一 WordID 只取一題。</summary>
+        private static List<Vocabulary> TakeUniqueFromEnglishPool(IEnumerable<Vocabulary> words, int count)
+        {
+            if (count <= 0)
+                return new List<Vocabulary>();
+
+            return OrderEnglishExamPool(words)
+                .GroupBy(x => x.WordID)
+                .Select(g => g.First())
+                .Take(count)
+                .OrderBy(_ => Guid.NewGuid())
+                .ToList();
+        }
+
+        /// <summary>
+        /// 從歷史答錯題補足出題：ReTest 較少 → 前兩次考卷未出現 → 同序亂數；排除已選 WordID。
+        /// </summary>
+        private async Task<List<Vocabulary>> FillFromWrongAnswerPoolAsync(
+            ExamSearchListViewModel_param param,
+            HashSet<Guid> excludeWordIds,
+            int count)
+        {
+            if (count <= 0 || string.IsNullOrWhiteSpace(param.KidID))
+                return new List<Vocabulary>();
+
+            var pool = await _examRepo.GetWrongVocabularyByKid(param.KidID, param.TestType);
+            if (pool == null || pool.Count == 0)
+                return new List<Vocabulary>();
+
+            var recentSet = (await _examRepo.GetRecentExamWordIdsAsync(param.KidID, param.TestType, 2))?.ToHashSet()
+                ?? new HashSet<Guid>();
+
+            return OrderWrongExamPool(
+                    pool.Where(x => !excludeWordIds.Contains(x.WordID)),
+                    recentSet)
+                .Take(count)
+                .ToList();
         }
 
         /// <summary>
@@ -399,30 +446,51 @@ namespace ERP.Web.Service.Service
             {
                 scoreTable = new ScoreTable(),
                 VocabularyList = new List<Vocabulary>(),
-                Title = "複習考_" + DateTime.Now.ToString("yyyyMMdd")
+                Title = WrongExamLessionName + "_" + DateTime.Now.ToString("yyyyMMdd"),
+                ExamDate = DateTime.Today,
+                ExamTypeLabel = string.Equals(param?.TestType, "Math", StringComparison.OrdinalIgnoreCase) ? "數學" : "英文"
             };
 
             if (param == null || string.IsNullOrWhiteSpace(param.KidID))
                 return result;
 
-            // 依「學生」抓取歷史答錯題目（不限定日期）
-            var pool = await _examRepo.GetWrongVocabularyByKid(param.KidID, param.TestType);
-            if (pool == null || pool.Count == 0)
+            // 依「學生」抓取目前仍答錯（最新一筆 Correct=0）的題目
+            var take = param.TestNumber > 0 ? param.TestNumber : 18;
+            result.VocabularyList = await FillFromWrongAnswerPoolAsync(param, new HashSet<Guid>(), take);
+            if (result.VocabularyList.Count == 0)
                 return result;
 
-            var take = param.TestNumber > 0 ? param.TestNumber : 18;
-            // 優先出 ReTest 較少的題目，再用隨機打散
-            result.VocabularyList = pool
-                .OrderBy(x => x.ReTest)
-                .ThenBy(_ => Guid.NewGuid())
-                .Take(take)
-                .ToList();
-
-            // 本次複習考抽到的題目，ReTest + 1（用於下次優先挑 ReTest 較少者）
-            await _examRepo.IncreaseReTestAsync(param.KidID, result.VocabularyList.Select(x => x.WordID).Distinct().ToList(), param.TestType);
-
             await CalculateScore(result.VocabularyList, result);
+
+            // 複習考累計出卷次數（含 ClassName「複習考」與舊版「複習考_日期」）
+            Guid lessionId = await GetLessionID(WrongExamLessionName, param.TestType);
+            result.ExamAttemptNumber = await _examRepo.GetWrongExamAttemptNumberAsync(param.KidID, param.TestType);
+
+            Guid newKidTestId = await _examRepo.InsertKidTestIndex(lessionId, param.KidID);
+            foreach (var word in result.VocabularyList)
+            {
+                await _examRepo.InsertExamIndex(new ExamRcdModel
+                {
+                    WordID = word.WordID,
+                    NewKidTestID = newKidTestId,
+                    ReTest = word.ReTest + 1,
+                    Correct = 1
+                });
+            }
+
             return result;
+        }
+
+        /// <summary>
+        /// 複習考（答錯題）出題順序：ReTest 較少 → 前兩次考卷未出現 → 同序內亂數。
+        /// </summary>
+        private static List<Vocabulary> OrderWrongExamPool(IEnumerable<Vocabulary> words, HashSet<Guid> recentExamWordIds)
+        {
+            return words
+                .OrderBy(x => x.ReTest)
+                .ThenBy(x => recentExamWordIds.Contains(x.WordID) ? 1 : 0)
+                .ThenBy(_ => Guid.NewGuid())
+                .ToList();
         }
 
         public async Task<bool> GetUploadFileAsync(IFormFile file)
@@ -508,7 +576,7 @@ namespace ERP.Web.Service.Service
         }
         private async Task<Guid> GetLessionID(string ClassName, string TestType)
         {
-            Guid LessionID = await _examRepo.GetLessionID(ClassName);
+            Guid LessionID = await _examRepo.GetLessionID(ClassName, TestType);
             if (LessionID != Guid.Empty)
             {
                 return LessionID;
@@ -534,7 +602,8 @@ namespace ERP.Web.Service.Service
                 param.WordID,
                 param.KidID,
                 param.TestDate ?? string.Empty,
-                param.Correct);
+                param.Correct,
+                param.TestType);
 
             var wordUpdated = true;
             if (!string.IsNullOrWhiteSpace(param.Question) && !string.IsNullOrWhiteSpace(param.Answer))
@@ -556,6 +625,18 @@ namespace ERP.Web.Service.Service
             return (ChkFocusUpdate && ChkUpdateWord);
         }
 
+        /// <summary>學生下拉選單（考券頁面共用）</summary>
+        public async Task<List<SelectListItem>> GetKidSelectListAsync()
+        {
+            var kids = await _examRepo.GetKidListAsync();
+            if (kids == null || kids.Count == 0)
+                return new List<SelectListItem>();
+
+            return kids
+                .Select(k => new SelectListItem { Value = k.Item1.ToString(), Text = k.Item2 })
+                .ToList();
+        }
+
         private async Task PublicTaskAsync(ExamSearchListViewModel_result result, ExamSearchListViewModel_param param)
         {
             // 並行非同步請求
@@ -563,10 +644,12 @@ namespace ERP.Web.Service.Service
             var testDateListTask = _examRepo.GetTestDateList(param.KidID);
             List<ExamListModel> ExamList = await _examRepo.GetExamListAsync();
 
-            // 根據 TestType 篩選課程清單
+            // 根據 TestType 篩選課程清單（忽略大小寫，相容 Excel 上傳的 math / english）
             if (!string.IsNullOrEmpty(param.TestType))
             {
-                ExamList = ExamList.Where(x => x.TestType.Equals(param.TestType, StringComparison.OrdinalIgnoreCase)).ToList();
+                ExamList = ExamList
+                    .Where(x => string.Equals((x.TestType ?? string.Empty).Trim(), param.TestType.Trim(), StringComparison.OrdinalIgnoreCase))
+                    .ToList();
             }
 
             #region todo 製作排序
@@ -639,36 +722,38 @@ namespace ERP.Web.Service.Service
 
             if (MentalMathCount > 0)
             {
-                MentalMathScore = RoundToEven(result.scoreTable.totalScore / MentalMathCount);
+                MentalMathScore = FloorScorePerQuestion(result.scoreTable.totalScore / MentalMathCount);
             }
 
-            //若只有單一題型，平均分數
+            // 若只有單一題型，100 分平均分配（每題分數無條件捨去）
             if (wordCount == 0 && phraseCount > 0)
             {
-                phraseScore = RoundToEven(result.scoreTable.totalScore / phraseCount);
+                phraseScore = FloorScorePerQuestion(result.scoreTable.totalScore / phraseCount);
             }
             else if (phraseCount == 0 && wordCount > 0)
             {
-                wordScore = RoundToEven(result.scoreTable.totalScore / wordCount);
+                wordScore = FloorScorePerQuestion(result.scoreTable.totalScore / wordCount);
+            }
+            else if (wordCount > 0 && phraseCount > 0)
+            {
+                // 單字、片語混合：依題型權重 2:3 計算每題分數
+                // 總權重 = 單字題數×2 + 片語題數×3；每題分數 = 總分 × 該題型權重 ÷ 總權重（無條件捨去）
+                int wordTypeWeight = result.scoreTable.wordWeight;
+                int phraseTypeWeight = result.scoreTable.phraseWeight;
+                int totalQuestionWeight = wordCount * wordTypeWeight + phraseCount * phraseTypeWeight;
+
+                if (totalQuestionWeight <= 0)
+                    throw new InvalidOperationException("題型權重或題數異常，無法計算分數。");
+
+                wordScore = FloorScorePerQuestion((double)result.scoreTable.totalScore * wordTypeWeight / totalQuestionWeight);
+                phraseScore = FloorScorePerQuestion((double)result.scoreTable.totalScore * phraseTypeWeight / totalQuestionWeight);
             }
             else
             {
-                // 如果兩種題型都為 0，代表資料不完整，直接回傳 0 分避免除以 0
-                if (wordCount == 0 && phraseCount == 0)
-                {
-                    result.scoreTable.WordScore = 0;
-                    result.scoreTable.PhraseScore = 0;
-                    result.scoreTable.MentalMathScore = MentalMathScore;
-                    return result;
-                }
-
-                //有兩種題型時，依比重分配
-                double totalWeight = result.scoreTable.wordWeight + result.scoreTable.phraseWeight;
-                if (Math.Abs(totalWeight - 1.0) > 0.0001)
-                    throw new InvalidOperationException($"比重總和必須為 1.0，目前為 {totalWeight:F2}，請調整比重。");
-
-                wordScore = RoundToEven(result.scoreTable.totalScore * result.scoreTable.wordWeight / wordCount);
-                phraseScore = RoundToEven(result.scoreTable.totalScore * result.scoreTable.phraseWeight / phraseCount);
+                result.scoreTable.WordScore = 0;
+                result.scoreTable.PhraseScore = 0;
+                result.scoreTable.MentalMathScore = MentalMathScore;
+                return result;
             }
 
             result.scoreTable.WordScore = wordScore;
@@ -678,12 +763,8 @@ namespace ERP.Web.Service.Service
             return result;
         }
 
-        //四捨五入為「偶數」整數
-        private int RoundToEven(double value)
-        {
-            int rounded = (int)Math.Round(value);
-            return rounded % 2 == 0 ? rounded : rounded + 1;
-        }
+        /// <summary>每題分數：無條件捨去小數，避免全對時總分超過滿分。</summary>
+        private static int FloorScorePerQuestion(double value) => (int)Math.Floor(value);
 
         public async Task<ExamDataViewModel_result> GenerateQuestions(int MentalLevel, string KidID)
         {

@@ -44,7 +44,7 @@ namespace ERP.Web.Service.ViewModels
                 return new List<SelectListItem>
             {
                 new SelectListItem { Text = "英文", Value = "English" },
-                //new SelectListItem { Text = "複習錯誤試題", Value = "1" }
+                new SelectListItem { Text = "數學", Value = "Math" }
             };
             }
         }
@@ -85,8 +85,10 @@ namespace ERP.Web.Service.ViewModels
         public int PhraseScore { get; set; }
         public int MentalMathScore { get; set; }
 
-        public double wordWeight = 0.3;
-        public double phraseWeight = 0.7;
+        /// <summary>單字每題權重（單字:片語 = 2:3）</summary>
+        public int wordWeight = 2;
+        /// <summary>片語每題權重</summary>
+        public int phraseWeight = 3;
         public int totalScore = 100;
     }
 
