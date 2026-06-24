@@ -186,11 +186,6 @@ namespace ERP.Web.Helpers
                 }
             }
 
-            if (input.Shuffle)
-            {
-                Shuffle(questions, rng);
-            }
-
             return questions;
         }
 
@@ -296,6 +291,10 @@ namespace ERP.Web.Helpers
                 var rng = input.Seed.HasValue ? new Random(input.Seed.Value) : new Random();
                 Shuffle(questions, rng);
             }
+            else
+            {
+                questions = SortByDescendingOperands(questions);
+            }
 
             if (input.QuestionCount > 0 && input.QuestionCount < questions.Count)
             {
@@ -303,6 +302,19 @@ namespace ERP.Web.Helpers
             }
 
             return questions;
+        }
+
+        /// <summary>
+        /// 未勾選隨機排序時，依左側、右側數字降冪排列（綜合題則依答案、算式文字）。
+        /// </summary>
+        private static List<MathQuestionViewModel> SortByDescendingOperands(List<MathQuestionViewModel> questions)
+        {
+            return questions
+                .OrderByDescending(q => q.Left)
+                .ThenByDescending(q => q.Right)
+                .ThenByDescending(q => q.Answer)
+                .ThenByDescending(q => q.Expression)
+                .ToList();
         }
 
         private static List<MathOperationType> GetEnabledMixedOperations(MathPaperInputViewModel input)

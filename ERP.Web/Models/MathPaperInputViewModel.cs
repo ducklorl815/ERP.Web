@@ -29,7 +29,7 @@ namespace ERP.Web.Models
         public int QuestionCount { get; set; }
 
         /// <summary>
-        /// 是否隨機排序題目
+        /// 是否隨機排序題目；未勾選時依左側、右側數字降冪排列
         /// </summary>
         [Display(Name = "隨機排序")]
         public bool Shuffle { get; set; } = true;
