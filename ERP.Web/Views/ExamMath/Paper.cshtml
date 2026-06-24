@@ -1,0 +1,184 @@
+@model MathPaperViewModel
+
+@{
+    Layout = null;
+    var paperModel = Model ?? new MathPaperViewModel();
+    var questions = paperModel.Questions ?? new List<MathQuestionViewModel>();
+}
+
+<link href="https://cdn.jsdelivr.net/npm/bootstrap@5.3.0/dist/css/bootstrap.min.css" rel="stylesheet">
+
+<style>
+    body {
+        font-family: "Microsoft JhengHei", "PingFang TC", "Noto Sans TC", Arial, sans-serif;
+        color: #111;
+    }
+
+    .paper {
+        width: 100%;
+        max-width: 900px;
+        margin: 0 auto;
+        padding: 16px;
+    }
+
+    .header {
+        display: flex;
+        justify-content: space-between;
+        align-items: flex-end;
+        gap: 12px;
+        margin-bottom: 12px;
+    }
+
+    .title {
+        font-size: 18px;
+        font-weight: 700;
+        margin: 0;
+    }
+
+    .meta {
+        font-size: 12px;
+        color: #444;
+    }
+
+    .name-line {
+        font-size: 14px;
+        font-weight: 700;
+        white-space: nowrap;
+    }
+
+    .grid {
+        display: grid;
+        grid-template-columns: repeat(3, 1fr);
+        gap: 12px 20px;
+        margin-top: 12px;
+    }
+
+    .q {
+        display: flex;
+        align-items: baseline;
+        gap: 8px;
+        min-height: 28px;
+    }
+
+    .q-no {
+        min-width: 30px;
+        font-weight: 700;
+        flex-shrink: 0;
+    }
+
+    .q-text {
+        font-size: 18px;
+        white-space: nowrap;
+        line-height: 1.4;
+    }
+
+    .q-blank {
+        display: inline-block;
+        min-width: 2.8em;
+        vertical-align: baseline;
+        height: 1.1em;
+        margin-left: 0.15em;
+    }
+
+    .q-answer {
+        display: inline;
+        font-weight: 600;
+        margin-left: 0.15em;
+    }
+
+    .section-title {
+        font-size: 14px;
+        font-weight: 700;
+        margin: 8px 0 4px;
+    }
+
+    .page-break {
+        page-break-before: always;
+        break-before: page;
+        margin-top: 24px;
+        padding-top: 8px;
+        border-top: 1px dashed #ccc;
+    }
+
+    .toolbar {
+        max-width: 900px;
+        margin: 12px auto 0;
+        padding: 0 16px;
+        display: flex;
+        gap: 8px;
+    }
+
+    @@media print {
+        .paper {
+            max-width: none;
+            padding: 0;
+        }
+
+        .toolbar {
+            display: none !important;
+        }
+
+        .page-break {
+            border-top: none;
+            margin-top: 0;
+            padding-top: 0;
+        }
+    }
+</style>
+
+<div class="toolbar">
+    <button type="button" class="btn btn-sm btn-outline-primary" onclick="window.print()">列印考卷</button>
+    <a class="btn btn-sm btn-outline-secondary" href="@Url.Action("Index", "ExamMath")">返回出題設定</a>
+</div>
+
+<!-- 考卷（題目） -->
+<div class="paper">
+    <div class="header">
+        <div>
+            <p class="title">@paperModel.Title</p>
+            <div class="meta">
+                @paperModel.OperationLabel　@paperModel.LeftOperandLabel：@paperModel.LeftOperandSpec　@paperModel.RightOperandLabel：@paperModel.RightOperandSpec　題數：@paperModel.QuestionCount　每題：@paperModel.ScorePerQuestion 分（滿分 @paperModel.TotalScore 分）
+            </div>
+            <div class="meta">產生時間：@paperModel.CreatedAt.ToString("yyyy-MM-dd HH:mm")</div>
+        </div>
+        <div class="name-line">姓名：____________________</div>
+    </div>
+
+    <div class="section-title">@(paperModel.OperationLabel)測驗（填入答案）每題 @paperModel.ScorePerQuestion 分</div>
+
+    <div class="grid">
+        @for (var i = 0; i < questions.Count; i++)
+        {
+            var q = questions[i];
+            <div class="q">
+                <div class="q-no">@(i + 1).</div>
+                <div class="q-text">@q.QuestionText<span class="q-blank"></span></div>
+            </div>
+        }
+    </div>
+</div>
+
+<!-- 答案卷 -->
+<div class="paper page-break">
+    <div class="header">
+        <div>
+            <p class="title">@paperModel.Title（答案卷）</p>
+            <div class="meta">
+                @paperModel.OperationLabel　@paperModel.LeftOperandLabel：@paperModel.LeftOperandSpec　@paperModel.RightOperandLabel：@paperModel.RightOperandSpec　題數：@paperModel.QuestionCount　每題：@paperModel.ScorePerQuestion 分（滿分 @paperModel.TotalScore 分）
+            </div>
+        </div>
+    </div>
+
+    <div class="section-title">@(paperModel.OperationLabel)測驗答案 每題 @paperModel.ScorePerQuestion 分</div>
+
+    <div class="grid">
+        @for (var i = 0; i < questions.Count; i++)
+        {
+            var q = questions[i];
+            <div class="q">
+                <div class="q-no">@(i + 1).</div>
+                <div class="q-text">@q.QuestionText<span class="q-answer">@q.Answer</span></div>
+            </div>
+        }
+    </div>
+</div>

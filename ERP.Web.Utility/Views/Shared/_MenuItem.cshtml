@@ -19,7 +19,7 @@
             <span class="nav-label">@Model.DisplayName</span>
             <span class="fa arrow"></span>
         </a>
-        <ul class="nav @levelClass @(Model.IsActive ? "in" : "collapse")">
+        <ul class="nav @levelClass collapse @(Model.IsActive ? "in" : "")">
             @foreach (var child in Model.Children.OrderBy(c => c.Sort))
             {
 

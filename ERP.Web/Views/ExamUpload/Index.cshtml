@@ -7,9 +7,8 @@
     <button class="btn btn-primary btn-sm" type="submit">上傳 Excel</button>
     <input type="file" id="fileInput" name="file" accept=".xlsx, .xls" />
     <span id="uploadStatus" class="ms-2"></span>
-    <a class="btn btn-link" href="@Url.Action("NewTest","ExamMath")">前往數學考卷</a>
+    <a class="btn btn-link" href="@Url.Action("Index","ExamMath")">前往數學出題平台</a>
     <a class="btn btn-link" href="@Url.Action("NewTest","ExamEnglish")">前往英文考卷</a>
-    <a class="btn btn-link" href="@Url.Action("ReTest","ExamMath")">前往數學複測</a>
     <a class="btn btn-link" href="@Url.Action("ReTest","ExamEnglish")">前往英文複測</a>
     <hr />
 </form>

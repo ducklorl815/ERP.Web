@@ -1,0 +1,87 @@
+@model MathPaperInputViewModel
+
+@{
+    var leftLabel = MathPaperHelper.GetLeftOperandLabel(Model.OperationType);
+    var rightLabel = MathPaperHelper.GetRightOperandLabel(Model.OperationType);
+    var defaultTitle = MathPaperHelper.GetDefaultTitle(Model.OperationType);
+    var operationLabel = MathPaperHelper.GetOperationLabel(Model.OperationType);
+    var showMixedOptions = Model.OperationType == MathOperationType.Mixed;
+}
+
+<form asp-action="GeneratePaper" asp-controller="ExamMath" method="post">
+    @Html.AntiForgeryToken()
+    <input type="hidden" asp-for="OperationType" />
+    <input type="hidden" asp-for="Seed" />
+
+    <div class="form-row">
+        <div class="form-group col-md-6">
+            <label asp-for="LeftOperand">@leftLabel</label>
+            <input asp-for="LeftOperand" class="form-control" placeholder="例：1-9 或 2,3,5" />
+            <small class="form-text text-muted">算式左側數字，支援範圍或逗號清單。</small>
+            <span asp-validation-for="LeftOperand" class="text-danger"></span>
+        </div>
+
+        <div class="form-group col-md-6">
+            <label asp-for="RightOperand">@rightLabel</label>
+            <input asp-for="RightOperand" class="form-control" placeholder="例：1-9 或 2,3,5" />
+            <small class="form-text text-muted">算式右側數字，支援範圍或逗號清單。</small>
+            <span asp-validation-for="RightOperand" class="text-danger"></span>
+        </div>
+
+        <div class="form-group col-md-6">
+            <label asp-for="QuestionCount"></label>
+            <input asp-for="QuestionCount" class="form-control" type="number" min="0" max="200" placeholder="0 代表全部有效組合" />
+            <small class="form-text text-muted">填 0 使用全部有效組合；填 20 則隨機取 20 題。</small>
+            <span asp-validation-for="QuestionCount" class="text-danger"></span>
+        </div>
+
+        <div class="form-group col-md-6">
+            <label asp-for="Title"></label>
+            <input asp-for="Title" class="form-control" placeholder="預設：@defaultTitle" />
+        </div>
+
+        @if (showMixedOptions)
+        {
+            <div class="form-group col-md-6">
+                <label asp-for="MixedTermCount"></label>
+                <input asp-for="MixedTermCount" class="form-control" type="number" min="3" max="6" />
+                <small class="form-text text-muted">例：4 代表一題含 4 個數字、3 個運算子（先乘除後加減）。</small>
+                <span asp-validation-for="MixedTermCount" class="text-danger"></span>
+            </div>
+
+            <div class="form-group col-12">
+                <label>包含運算類型</label>
+                <div class="d-flex flex-wrap">
+                    <div class="custom-control custom-checkbox mr-3 mb-2">
+                        <input asp-for="IncludeAddition" class="custom-control-input" type="checkbox" />
+                        <label asp-for="IncludeAddition" class="custom-control-label"></label>
+                    </div>
+                    <div class="custom-control custom-checkbox mr-3 mb-2">
+                        <input asp-for="IncludeSubtraction" class="custom-control-input" type="checkbox" />
+                        <label asp-for="IncludeSubtraction" class="custom-control-label"></label>
+                    </div>
+                    <div class="custom-control custom-checkbox mr-3 mb-2">
+                        <input asp-for="IncludeMultiplication" class="custom-control-input" type="checkbox" />
+                        <label asp-for="IncludeMultiplication" class="custom-control-label"></label>
+                    </div>
+                    <div class="custom-control custom-checkbox mr-3 mb-2">
+                        <input asp-for="IncludeDivision" class="custom-control-input" type="checkbox" />
+                        <label asp-for="IncludeDivision" class="custom-control-label"></label>
+                    </div>
+                </div>
+            </div>
+        }
+
+        <div class="form-group col-12">
+            <div class="custom-control custom-checkbox">
+                <input asp-for="Shuffle" class="custom-control-input" type="checkbox" />
+                <label asp-for="Shuffle" class="custom-control-label"></label>
+            </div>
+        </div>
+    </div>
+
+    <div class="d-flex mt-3">
+        <button type="submit" class="btn btn-primary">產生@operationLabel考卷</button>
+        <button type="reset" class="btn btn-outline-secondary ml-2">重設</button>
+    </div>
+</form>

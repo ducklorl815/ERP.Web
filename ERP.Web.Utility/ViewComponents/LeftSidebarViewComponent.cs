@@ -64,7 +64,7 @@ namespace ERP.Web.Utility.ViewComponents
         public async Task<IViewComponentResult> InvokeAsync()
         {
             var result = new LeftSidebarViewModel();
-            var currentDomain = $"{Request.Host}/";
+            var currentDomain = $"{Request.Scheme}://{Request.Host}/";
             var currentProject = string.Empty;
             var currentController = (string)ViewContext.RouteData.Values["Controller"];
             var currentAction = (string)ViewContext.RouteData.Values["Action"];
@@ -132,7 +132,7 @@ namespace ERP.Web.Utility.ViewComponents
                     IsMenu = s.IsMenu,
                     Children = new List<MenuData>(),
                     IsActive = false,
-                    Domain = "https://localhost:44372/",
+                    Domain = currentDomain,
                     IsBlank = s.IsBlank,
                     Enabled = s.Enabled,
                     Deleted = s.Deleted

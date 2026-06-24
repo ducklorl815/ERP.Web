@@ -1,0 +1,100 @@
+@model MathPlatformIndexViewModel
+
+@{
+    ViewData["Title"] = "數學出題平台";
+    var activeTab = Model.ActiveTab;
+}
+
+<div class="container py-4" style="max-width: 900px;">
+    <h2 class="mb-1">數學出題平台</h2>
+    <p class="text-muted mb-4">選擇加法、減法、乘法、除法或綜合運算，設定數字範圍與題數後產生考卷（含答案卷）。</p>
+
+    <div asp-validation-summary="ModelOnly" class="alert alert-danger"></div>
+
+    <div class="card shadow-sm">
+        <div class="card-header bg-white pb-0 border-bottom-0">
+            <ul class="nav nav-tabs card-header-tabs" id="mathPlatformTabs" role="tablist">
+                <li class="nav-item" role="presentation">
+                    <a class="nav-link @(activeTab == MathOperationType.Addition ? "active" : "")"
+                       id="tab-addition-btn" data-toggle="tab" href="#tab-addition"
+                       role="tab" aria-controls="tab-addition">加法</a>
+                </li>
+                <li class="nav-item" role="presentation">
+                    <a class="nav-link @(activeTab == MathOperationType.Subtraction ? "active" : "")"
+                       id="tab-subtraction-btn" data-toggle="tab" href="#tab-subtraction"
+                       role="tab" aria-controls="tab-subtraction">減法</a>
+                </li>
+                <li class="nav-item" role="presentation">
+                    <a class="nav-link @(activeTab == MathOperationType.Multiplication ? "active" : "")"
+                       id="tab-multiplication-btn" data-toggle="tab" href="#tab-multiplication"
+                       role="tab" aria-controls="tab-multiplication">乘法</a>
+                </li>
+                <li class="nav-item" role="presentation">
+                    <a class="nav-link @(activeTab == MathOperationType.Division ? "active" : "")"
+                       id="tab-division-btn" data-toggle="tab" href="#tab-division"
+                       role="tab" aria-controls="tab-division">除法</a>
+                </li>
+                <li class="nav-item" role="presentation">
+                    <a class="nav-link @(activeTab == MathOperationType.Mixed ? "active" : "")"
+                       id="tab-mixed-btn" data-toggle="tab" href="#tab-mixed"
+                       role="tab" aria-controls="tab-mixed">綜合</a>
+                </li>
+            </ul>
+        </div>
+
+        <div class="card-body tab-content" id="mathPlatformTabContent">
+            <div class="tab-pane fade @(activeTab == MathOperationType.Addition ? "show active" : "")"
+                 id="tab-addition" role="tabpanel" aria-labelledby="tab-addition-btn">
+                <p class="text-muted small">出題格式：<code>加數 + 加數 =</code>，例：<code>23 + 15 =</code></p>
+                <partial name="~/Views/ExamMath/_MathPaperForm.cshtml" model="Model.Addition" />
+            </div>
+
+            <div class="tab-pane fade @(activeTab == MathOperationType.Subtraction ? "show active" : "")"
+                 id="tab-subtraction" role="tabpanel" aria-labelledby="tab-subtraction-btn">
+                <p class="text-muted small">出題格式：<code>被減數 - 減數 =</code>，僅出現非負答案。</p>
+                <partial name="~/Views/ExamMath/_MathPaperForm.cshtml" model="Model.Subtraction" />
+            </div>
+
+            <div class="tab-pane fade @(activeTab == MathOperationType.Multiplication ? "show active" : "")"
+                 id="tab-multiplication" role="tabpanel" aria-labelledby="tab-multiplication-btn">
+                <p class="text-muted small">出題格式：<code>被乘數 × 乘數 =</code>，例：<code>3 × 7 =</code></p>
+                <partial name="~/Views/ExamMath/_MathPaperForm.cshtml" model="Model.Multiplication" />
+            </div>
+
+            <div class="tab-pane fade @(activeTab == MathOperationType.Division ? "show active" : "")"
+                 id="tab-division" role="tabpanel" aria-labelledby="tab-division-btn">
+                <p class="text-muted small">出題格式：<code>被除數 ÷ 除數 =</code>，僅出現整除題目。</p>
+                <partial name="~/Views/ExamMath/_MathPaperForm.cshtml" model="Model.Division" />
+            </div>
+
+            <div class="tab-pane fade @(activeTab == MathOperationType.Mixed ? "show active" : "")"
+                 id="tab-mixed" role="tabpanel" aria-labelledby="tab-mixed-btn">
+                <p class="text-muted small">隨機混合加減乘除，可勾選要包含的運算類型。</p>
+                <partial name="~/Views/ExamMath/_MathPaperForm.cshtml" model="Model.Mixed" />
+            </div>
+        </div>
+    </div>
+
+    <div class="mt-4 small text-muted">
+        <div class="font-weight-bold mb-1">快速範例</div>
+        <ul class="mb-0">
+            <li><strong>乘法</strong>：被乘數 <code>2-5</code>、乘數 <code>1-9</code>、題數 <code>20</code></li>
+            <li><strong>加法</strong>：加數 <code>1-99</code>、題數 <code>50</code>（每題 2 分）</li>
+            <li><strong>除法</strong>：被除數 <code>1-81</code>、除數 <code>1-9</code>（自動篩選整除）</li>
+            <li><strong>綜合</strong>：運算數 <code>1-9</code>、題數 <code>30</code>、勾選四則運算</li>
+        </ul>
+    </div>
+</div>
+
+@section Scripts {
+    <partial name="_ValidationScriptsPartial" />
+    <script>
+        // 專案使用 Bootstrap 4，需用 data-toggle / href 切換分頁
+        $(function () {
+            $('#mathPlatformTabs a[data-toggle="tab"]').on('click', function (e) {
+                e.preventDefault();
+                $(this).tab('show');
+            });
+        });
+    </script>
+}

@@ -44,7 +44,7 @@
                                 <span class="nav-label">@item.DisplayName</span>
                                 <span class="fa arrow"></span>
                             </a>
-                            <ul class="nav nav-second-level @(item.IsActive ? "in" : "collapse")">
+                            <ul class="nav nav-second-level collapse @(item.IsActive ? "in" : "")">
                                 @foreach (var child in item.Children.OrderBy(c => c.Sort))
                                 {
 
@@ -72,15 +72,11 @@
             <li>
                 <a href="#"><i class="fa fa-file-text-o"></i> <span class="nav-label">考券</span> <span class="fa arrow"></span></a>
                 <ul class="nav nav-second-level collapse">
-                    <li class="nav-header px-3 py-1 text-muted small">英文</li>
                     <li><a href="@Url.Action("NewTest", "ExamEnglish", new { CorrectType = 0 })">英文 — 新試題</a></li>
                     <li><a href="@Url.Action("ReTest", "ExamEnglish")">英文 — 複習試題</a></li>
-                    <li class="nav-header px-3 py-1 text-muted small">數學</li>
-                    <li><a href="@Url.Action("NewTest", "ExamMath", new { CorrectType = 0 })">數學 — 新試題</a></li>
-                    <li><a href="@Url.Action("ReTest", "ExamMath")">數學 — 複習試題</a></li>
-                    <li><a href="@Url.Action("MentalTest", "ExamMath")">數學 — 心算出卷</a></li>
+                    <li><a href="@Url.Action("Index", "ExamUpload")">英文 — 上傳題目</a></li>
                     <li class="divider"></li>
-                    <li><a href="@Url.Action("Index", "ExamUpload")">上傳題目</a></li>
+                    <li><a href="@Url.Action("Index", "ExamMath")">數學 — 出題平台（加減乘除/綜合）</a></li>
                 </ul>
             </li>
 

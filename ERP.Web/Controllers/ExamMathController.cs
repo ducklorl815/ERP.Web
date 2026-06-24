@@ -1,141 +1,85 @@
-using ERP.Web.Service.Service;
-using ERP.Web.Service.ViewModels;
+using ERP.Web.Helpers;
+using ERP.Web.Models;
 using Microsoft.AspNetCore.Mvc;
 
 namespace ERP.Web.Controllers
 {
     /// <summary>
-    /// 數學考試控制器
-    /// 處理所有數學相關的考試功能
+    /// 數學考試控制器：加減乘除出題平台
     /// </summary>
     public class ExamMathController : Controller
     {
-        private readonly ExamService _examService;
-        private const string TestType = "Math"; // 固定為 Math
-
-        public ExamMathController(ExamService examService)
-        {
-            _examService = examService;
-        }
-
-        #region 考試頁面
-
         /// <summary>
-        /// 新測驗頁面（尚未考過的）
-        /// </summary>
-        public async Task<IActionResult> NewTest(ExamSearchListViewModel_param param)
-        {
-            param.TestType = TestType;
-            var result = await _examService.GetNewTestAsync(param);
-            if (Request.IsAjaxRequest()) return PartialView("~/Views/Exam/_NewTest.cshtml", result);
-            return View("~/Views/Exam/NewTest.cshtml", result);
-        }
-
-        /// <summary>
-        /// 複習測驗頁面（已考過的）
-        /// </summary>
-        public async Task<IActionResult> ReTest(ExamSearchListViewModel_param param)
-        {
-            param.TestType = TestType;
-            var result = await _examService.GetReTestAsync(param);
-            if (Request.IsAjaxRequest()) return PartialView("~/Views/Exam/_ReTest.cshtml", result);
-            return View("~/Views/Exam/ReTest.cshtml", result);
-        }
-
-        /// <summary>
-        /// 新測驗考試頁面
-        /// </summary>
-        public async Task<IActionResult> Test(ExamSearchListViewModel_param param)
-        {
-            param.TestType = TestType;
-            var result = await _examService.GetExamDataAsync(param);
-            return View("~/Views/Exam/Test.cshtml", result);
-        }
-
-        /// <summary>
-        /// 複習考：自動撈取歷史答錯（Correct=0）的題目組卷
-        /// </summary>
-        public async Task<IActionResult> WrongTest(ExamSearchListViewModel_param param)
-        {
-            param.TestType = TestType;
-            var result = await _examService.GetWrongExamDataAsync(param);
-            return View("~/Views/Exam/Test.cshtml", result);
-        }
-
-        /// <summary>
-        /// 心算出卷頁面（選學生與級數）
+        /// 數學出題平台首頁（加法、減法、乘法、除法、綜合）
         /// </summary>
         [HttpGet]
-        public async Task<IActionResult> MentalTest()
+        public IActionResult Index()
         {
-            ViewBag.KidList = await _examService.GetKidSelectListAsync();
-            return View("~/Views/Exam/MentalTest.cshtml");
+            return View("~/Views/ExamMath/Index.cshtml", new MathPlatformIndexViewModel());
         }
 
         /// <summary>
-        /// 複習考試頁面
+        /// 產生考卷（含答案卷）
         /// </summary>
-        public async Task<IActionResult> ReExam(ReExamSearchListViewModel_param param)
+        [HttpPost]
+        [ValidateAntiForgeryToken]
+        public IActionResult GeneratePaper(MathPaperInputViewModel input)
         {
-            param.TestType = TestType;
-            var result = await _examService.GetReExamDataAsync(param);
-            return View("~/Views/Exam/Test.cshtml", result);
+            if (!ModelState.IsValid)
+            {
+                return View("~/Views/ExamMath/Index.cshtml", MathPlatformIndexViewModel.FromInput(input));
+            }
+
+            if (input.OperationType == MathOperationType.Mixed
+                && !input.IncludeAddition
+                && !input.IncludeSubtraction
+                && !input.IncludeMultiplication
+                && !input.IncludeDivision)
+            {
+                ModelState.AddModelError(string.Empty, "綜合出題請至少勾選一種運算類型。");
+                return View("~/Views/ExamMath/Index.cshtml", MathPlatformIndexViewModel.FromInput(input));
+            }
+
+            var paper = MathPaperHelper.BuildPaper(input);
+            if (paper.Questions.Count == 0)
+            {
+                ModelState.AddModelError(string.Empty, "依目前條件無法產生題目，請調整數字範圍或題數設定。");
+                return View("~/Views/ExamMath/Index.cshtml", MathPlatformIndexViewModel.FromInput(input));
+            }
+
+            return View("~/Views/ExamMath/Paper.cshtml", paper);
         }
 
         /// <summary>
-        /// 產生心算題目
+        /// 99 乘法考卷（保留舊網址相容）
         /// </summary>
-        [HttpPost]
-        public async Task<IActionResult> GenerateQuestions(int level, string KidID)
+        [HttpGet]
+        public IActionResult TimesTable(
+            string? multiplicand = null,
+            string? multiplier = null,
+            int questionCount = 0,
+            bool shuffle = true,
+            int? seed = null,
+            string? title = null)
         {
-            var result = await _examService.GenerateQuestions(level, KidID);
-            return View("~/Views/Exam/Test.cshtml", result);
+            var input = new MathPaperInputViewModel
+            {
+                OperationType = MathOperationType.Multiplication,
+                LeftOperand = string.IsNullOrWhiteSpace(multiplicand) ? "1-9" : multiplicand,
+                RightOperand = string.IsNullOrWhiteSpace(multiplier) ? "1-9" : multiplier,
+                QuestionCount = questionCount,
+                Shuffle = shuffle,
+                Seed = seed,
+                Title = title
+            };
+
+            var paper = MathPaperHelper.BuildPaper(input);
+            if (paper.Questions.Count == 0)
+            {
+                return BadRequest("依目前條件無法產生題目，請檢查被乘數與乘數設定。");
+            }
+
+            return View("~/Views/ExamMath/Paper.cshtml", paper);
         }
-
-        #endregion
-
-        #region AJAX 更新方法
-
-        /// <summary>
-        /// 更新考試題目：Correct、Question、Answer
-        /// </summary>
-        [HttpPost]
-        public async Task<IActionResult> UpdateExamWord(ExamSearchListViewModel_param param)
-        {
-            param.TestType = TestType;
-            var result = await _examService.UpdateExamWord(param);
-            return Json(result);
-        }
-
-        /// <summary>
-        /// 更新新測驗題目（Focus 標記和題目內容）
-        /// </summary>
-        [HttpPost]
-        public async Task<IActionResult> UpdateNewTestWord(ExamSearchListViewModel_param param)
-        {
-            param.TestType = TestType;
-            var result = await _examService.UpdateNewTestWord(param);
-            return Json(result);
-        }
-
-        /// <summary>
-        /// 取得學生的考試日期清單
-        /// </summary>
-        [HttpPost]
-        public async Task<IActionResult> GetTestDates(string KidID)
-        {
-            var result = await _examService.GetTestDateList(KidID, TestType);
-            return Json(result);
-        }
-
-        [HttpPost]
-        public async Task<IActionResult> GetClassesByDate(string KidID, string TestDate)
-        {
-            var result = await _examService.GetClassNameListByDate(KidID, TestDate, TestType);
-            return Json(result);
-        }
-
-        #endregion
     }
 }
-
