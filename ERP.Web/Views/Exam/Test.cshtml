@@ -1,33 +1,61 @@
 ﻿@model ERP.Web.Service.ViewModels.ExamDataViewModel_result
-@using System.Text.RegularExpressions
 
 @{
     Layout = null;  // 禁用布局
 }
 <link href="https://cdn.jsdelivr.net/npm/bootstrap@5.3.0/dist/css/bootstrap.min.css" rel="stylesheet">
 <style>
-    /* 考卷格式 */
+    /* 考卷格式（10 題單頁排版） */
     .exam-container {
         width: 100%;
         max-width: 800px;
         margin: 0 auto;
-        font-size: 20px;
-        line-height: 1.5;
+        font-size: 16px;
+        line-height: 1.35;
     }
 
     .question-number {
         font-weight: bold;
     }
 
+    .question-text {
+        font-size: 16px;
+    }
+
+    /* 單字／片語題目區塊：縮小上下間距 */
+    .exam-container .question-row {
+        margin-top: 0.2rem;
+        margin-bottom: 0.2rem;
+    }
+
+    .exam-container .answer-row {
+        margin-top: 0.15rem;
+        margin-bottom: 0.35rem;
+    }
+
+    /* 三條書寫線：固定於 1/3、2/3、3/3 位置平均分布（勿用 repeating，否則會多出線條） */
     .answer-line {
         display: block;
         width: 100%;
-        height: 60px;
-        font-size: 20px;
-        padding: 12px;
+        height: 45px;
+        font-size: 16px;
+        padding: 6px 10px;
         border: 1px solid #e9e4e4;
-        background-image: repeating-linear-gradient( to bottom, transparent 0px, transparent 19px, #e9e4e4 19px, #e9e4e4 20px );
-        background-repeat: repeat-y;
+        background-image: linear-gradient(
+            to bottom,
+            transparent calc(100% / 3 - 1px),
+            #e9e4e4 calc(100% / 3 - 1px),
+            #e9e4e4 calc(100% / 3),
+            transparent calc(100% / 3),
+            transparent calc(200% / 3 - 1px),
+            #e9e4e4 calc(200% / 3 - 1px),
+            #e9e4e4 calc(200% / 3),
+            transparent calc(200% / 3),
+            transparent calc(100% - 1px),
+            #e9e4e4 calc(100% - 1px),
+            #e9e4e4 100%
+        );
+        background-repeat: no-repeat;
         background-size: 100% 100%;
         box-sizing: border-box;
         outline: none;
@@ -35,9 +63,9 @@
 
     .answer-text {
         position: relative;
-        top: 7px; /* 向下移動 5px，對齊書寫線 */
-        display: inline-block; /* 讓 span 可以有大小 */
-        font-size: 18px;
+        top: 4px; /* 對齊縮小後的書寫線 */
+        display: inline-block;
+        font-size: 15px;
     }
     /* 強制換頁 */
     .page-break {
@@ -64,28 +92,50 @@
         font-weight: bold;
     }
 
-    .mental-math-block {
-        font-size: 24px;
-        line-height: 36px;
-        margin-bottom: 10px;
-        white-space: pre-wrap; /* 保留換行 */
-        font-family: 'Courier New', Courier, monospace; /* 等寬字體方便對齊 */
-    }
-
-    .mental-math-table {
-        width: 100%;
-        border-collapse: collapse; /* 去掉單元格邊框間的空隙 */
-    }
-
-        .mental-math-table td {
-            text-align: center; /* 中央對齊 */
-            padding: 5px;
+    /* 列印：10 題單字／片語卷再壓縮，避免溢到第二頁 */
+    @@media print {
+        @@page {
+            margin: 10mm 12mm;
         }
 
-    .divider {
-        height: 1px; /* 細線 */
-        background-color: #000; /* 顏色可自定義 */
-        margin-top: 5px; /* 微調位置 */
+        .exam-container:not(.page-break) {
+            font-size: 18px;
+            line-height: 1.3;
+            max-width: 100%;
+            page-break-inside: avoid;
+        }
+
+        .question-text {
+            font-size: 18px;
+        }
+
+        .exam-container .question-row {
+            margin-top: 0.1rem;
+            margin-bottom: 0.1rem;
+        }
+
+        .exam-container .answer-row {
+            margin-top: 0.1rem;
+            margin-bottom: 0.25rem;
+        }
+
+        .answer-line {
+            height: 56px;
+            font-size: 22px;
+            padding: 5px 8px;
+        }
+
+        .answer-text {
+            font-size: 22px;
+            top: 6px;
+        }
+
+        .exam-title,
+        .exam-section {
+            font-size: 13px;
+            margin-top: 4px;
+            margin-bottom: 4px;
+        }
     }
 
 </style>
@@ -98,12 +148,6 @@
                 break-after: page;
             }
         }
-        @media (min-width: 768px) {
-            .col-md-2-4 {
-                flex: 0 0 auto;
-                width: 20%;
-            }
-        }
     </style>
 ")
 
@@ -111,7 +155,6 @@
     @{
         var words = Model.VocabularyList.Where(x => x.CategoryType == "Word").ToList();
         var phrases = Model.VocabularyList.Where(x => x.CategoryType == "Phrase").ToList();
-        var mentalMath = Model.VocabularyList.Where(x => x.CategoryType == "MentalMath").ToList();
     }
 
     @if (words.Any() || phrases.Any())
@@ -131,11 +174,11 @@
                 <div class="exam-section">單字測驗 (寫出中文所代表的意思) 每題 @Model.scoreTable.WordScore 分</div>
                 @for (int i = 0; i < words.Count; i++)
                 {
-                    <div class="mt-2 mb-2">
+                    <div class="question-row">
                         <span class="question-number">@(i + 1).</span>
                         <span class="question-text">@words[i].Question</span>
                     </div>
-                    <div class="mt-2 mb-2">
+                    <div class="answer-row">
                         <input type="text" class="answer-line" name="answers[@i]" required />
                     </div>
                 }
@@ -146,11 +189,11 @@
                 <div class="exam-section">片語測驗 (寫出對應的問句或回答) 每題 @Model.scoreTable.PhraseScore 分</div>
                 @for (int i = 0; i < phrases.Count; i++)
                 {
-                    <div class="mt-2 mb-2">
+                    <div class="question-row">
                         <span class="question-number">@(words.Count + i + 1).</span>
                         <span class="question-text">@phrases[i].Question</span>
                     </div>
-                    <div class="mt-2 mb-2">
+                    <div class="answer-row">
                         <input type="text" class="answer-line" name="answers[@(words.Count + i)]" required />
                     </div>
                 }
@@ -170,11 +213,11 @@
                 <div class="exam-section">單字測驗答案</div>
                 @for (int i = 0; i < words.Count; i++)
                 {
-                    <div class="mt-2 mb-2">
+                    <div class="question-row">
                         <span class="question-number">@(i + 1).</span>
                         <span class="question-text">@words[i].Question</span>
                     </div>
-                    <div class="answer-line mt-2 mb-2">
+                    <div class="answer-line answer-row">
                         <span class="answer-text">@words[i].Answer</span>
                     </div>
                 }
@@ -185,114 +228,17 @@
                 <div class="exam-section">片語測驗答案</div>
                 @for (int i = 0; i < phrases.Count; i++)
                 {
-                    <div class="mt-2 mb-2">
+                    <div class="question-row">
                         <span class="question-number">@(words.Count + i + 1).</span>
                         <span class="question-text">@phrases[i].Question</span>
                     </div>
-                    <div class="answer-line mt-2 mb-2">
+                    <div class="answer-line answer-row">
                         <span class="answer-text">@phrases[i].Answer</span>
                     </div>
                 }
             }
         </div>
     }
-
-
-    @{
-        int itemsPerPage = 10;
-        int totalPages = (int)Math.Ceiling((double)mentalMath.Count / itemsPerPage);
-    }
-
-    @if (mentalMath.Any())
-    {
-
-
-        @for (int page = 0; page < totalPages; page++)
-        {
-            <div class="page-break">
-                @if (page == 0)
-                {
-                    <div style="display: flex; justify-content: space-between;">
-                        <label class="exam-title">
-                            @Model.Title @Model.ExamPaperSuffix 心算測驗 (填入答案) 每題 @Model.scoreTable.MentalMathScore 分
-                        </label>
-                        <label class="exam-section mt-4">
-                            姓名:______________________________
-                        </label>
-                    </div>
-                }
-                <div class="container">
-                    <div class="row">
-                        @for (int i = page * itemsPerPage; i < Math.Min((page + 1) * itemsPerPage, mentalMath.Count); i++)
-                        {
-                            var numbers = Regex.Matches(mentalMath[i].Question, @"-?\d+")
-                            .Cast<Match>()
-                            .Select(m => m.Value)
-                            .ToList();
-
-                            <div class="col-12 col-md-2-4 mb-4 text-center">
-                                <div class="question-number mb-1 text-start fw-bold" style="font-size:20px">
-                                    @(i + 1).
-                                </div>
-                                <div class="question-box border rounded p-2">
-                                    <table class="mental-math-table mx-auto">
-                                        <tbody>
-                                            @foreach (var n in numbers)
-                                            {
-                                                <tr><td>@n</td></tr>
-                                            }
-                                        </tbody>
-                                    </table>
-                                    <div class="divider"></div>
-                                    <input type="text" class="border-0 text-center w-100 p-3" style="font-size:24px" />
-                                </div>
-                            </div>
-                        }
-                    </div>
-                </div>
-            </div>
-        }
-
-        @for (int page = 0; page < totalPages; page++)
-        {
-            <div class="page-break">
-                @if (page == 0)
-                {
-                    <div class="exam-section">心算測驗答案</div>
-                }
-                <div class="container">
-                    <div class="row">
-                        @for (int i = page * itemsPerPage; i < Math.Min((page + 1) * itemsPerPage, mentalMath.Count); i++)
-                        {
-                            var numbers = Regex.Matches(mentalMath[i].Question, @"-?\d+")
-                            .Cast<Match>()
-                            .Select(m => m.Value)
-                            .ToList();
-
-                            <div class="col-12 col-md-2-4 mb-4 text-center">
-                                <div class="question-number mb-1 text-start fw-bold" style="font-size:24px">
-                                    @(i + 1).
-                                </div>
-                                <div class="question-box border rounded p-2">
-                                    <table class="mental-math-table mx-auto">
-                                        <tbody>
-                                            @foreach (var n in numbers)
-                                            {
-                                                <tr><td>@n</td></tr>
-                                            }
-                                        </tbody>
-                                    </table>
-                                    <div class="divider"></div>
-                                    <input type="text" class="border-0 text-center w-100 p-3" style="font-size:24px" value="@mentalMath[i].Answer" />
-                                </div>
-                            </div>
-                        }
-                    </div>
-                </div>
-            </div>
-        }
-    }
-
 
 </form>
 

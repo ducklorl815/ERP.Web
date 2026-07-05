@@ -216,6 +216,7 @@ namespace ERP.Web.Service.Service
                 var ExamRcdData = await _examRepo.GetExamRcd(word.WordID) ?? new ExamRcdModel();
                 if (ExamRcdData != null)
                     ExamRcdData.ReTest = ExamRcdData.ReTest + 1;
+                ExamRcdData.Correct = 1;
                 ExamRcdData.NewKidTestID = NewKidTestID;
                 ExamRcdData.WordID = word.WordID;
                 await _examRepo.InsertExamIndex(ExamRcdData);
