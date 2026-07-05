@@ -1,0 +1,283 @@
+@model ERP.Web.Service.ViewModels.ExamDataViewModel_result
+
+@{
+    Layout = null;
+    var words = Model.VocabularyList?.Where(x => x.CategoryType == "Word").ToList() ?? new List<ERP.Web.Models.Models.Vocabulary>();
+    var phrases = Model.VocabularyList?.Where(x => x.CategoryType == "Phrase").ToList() ?? new List<ERP.Web.Models.Models.Vocabulary>();
+}
+
+<link href="https://cdn.jsdelivr.net/npm/bootstrap@5.3.0/dist/css/bootstrap.min.css" rel="stylesheet">
+<style>
+    .exam-container {
+        width: 100%;
+        max-width: 800px;
+        margin: 0 auto;
+        font-size: 16px;
+        line-height: 1.35;
+    }
+
+    .question-number { font-weight: bold; }
+
+    .exam-container .question-row {
+        margin-top: 0.2rem;
+        margin-bottom: 0.2rem;
+    }
+
+    .exam-container .answer-row {
+        margin-top: 0.15rem;
+        margin-bottom: 0.35rem;
+    }
+
+    .answer-line {
+        display: block;
+        width: 100%;
+        height: 45px;
+        font-size: 16px;
+        padding: 6px 10px;
+        border: 1px solid #e9e4e4;
+        background-image: linear-gradient(
+            to bottom,
+            transparent calc(100% / 3 - 1px),
+            #e9e4e4 calc(100% / 3 - 1px),
+            #e9e4e4 calc(100% / 3),
+            transparent calc(100% / 3),
+            transparent calc(200% / 3 - 1px),
+            #e9e4e4 calc(200% / 3 - 1px),
+            #e9e4e4 calc(200% / 3),
+            transparent calc(200% / 3),
+            transparent calc(100% - 1px),
+            #e9e4e4 calc(100% - 1px),
+            #e9e4e4 100%
+        );
+        background-repeat: no-repeat;
+        background-size: 100% 100%;
+        box-sizing: border-box;
+        outline: none;
+    }
+
+    .answer-text {
+        position: relative;
+        top: 4px;
+        display: inline-block;
+        font-size: 15px;
+    }
+
+    .page-break { page-break-before: always; }
+
+    .exam-title {
+        font-size: 14px;
+        margin-top: 8px;
+        margin-bottom: 8px;
+        font-weight: bold;
+    }
+
+    .exam-section {
+        font-size: 14px;
+        margin-top: 8px;
+        margin-bottom: 8px;
+        font-weight: bold;
+    }
+
+    /* 英聽：螢幕預覽用音檔區（列印時隱藏） */
+    .listening-preview {
+        margin: 0.25rem 0 0.5rem 1.5rem;
+    }
+
+    .listening-preview audio {
+        max-width: 100%;
+        height: 32px;
+    }
+
+    .tts-notice {
+        background: #fff3cd;
+        border: 1px solid #ffecb5;
+        border-radius: 6px;
+        padding: 10px 14px;
+        margin-bottom: 1rem;
+        font-size: 14px;
+    }
+
+    .tts-item-error {
+        color: #856404;
+        font-size: 12px;
+    }
+
+    .no-print { }
+
+    @@media print {
+        @@page { margin: 10mm 12mm; }
+
+        .no-print { display: none !important; }
+
+        .exam-container:not(.page-break) {
+            font-size: 18px;
+            line-height: 1.3;
+            max-width: 100%;
+            page-break-inside: avoid;
+        }
+
+        .exam-container .question-row {
+            margin-top: 0.1rem;
+            margin-bottom: 0.1rem;
+        }
+
+        .exam-container .answer-row {
+            margin-top: 0.1rem;
+            margin-bottom: 0.25rem;
+        }
+
+        .answer-line {
+            height: 56px;
+            font-size: 22px;
+            padding: 5px 8px;
+        }
+
+        .answer-text {
+            font-size: 22px;
+            top: 6px;
+        }
+
+        .exam-title,
+        .exam-section {
+            font-size: 13px;
+            margin-top: 4px;
+            margin-bottom: 4px;
+        }
+    }
+</style>
+
+@Html.Raw(@"
+    <style>
+        @media print {
+            .page-break {
+                display: block !important;
+                page-break-after: always;
+                break-after: page;
+            }
+        }
+    </style>
+")
+
+@if (!string.IsNullOrEmpty(Model.TtsNoticeMessage))
+{
+    <div class="exam-container tts-notice no-print">
+        @Model.TtsNoticeMessage
+    </div>
+}
+
+<form method="post" id="TestView" action="@Url.Action("Submit", "Exam")">
+    @if (words.Any() || phrases.Any())
+    {
+        <div class="exam-container">
+            <div style="display: flex; justify-content: space-between;">
+                <label class="exam-title">
+                    @Model.Title @Model.ExamPaperSuffix
+                </label>
+                <label class="exam-section mt-4">
+                    姓名:_________________________
+                </label>
+            </div>
+
+            <p class="exam-section no-print text-muted small mb-2">
+                英聽預覽：播放音檔確認念法；列印考卷僅顯示題號，不印出題目文字。
+            </p>
+
+            @if (words.Any())
+            {
+                <div class="exam-section">單字英聽測驗（聽音後寫出答案）每題 @Model.scoreTable.WordScore 分</div>
+                @for (int i = 0; i < words.Count; i++)
+                {
+                    <div class="question-row">
+                        <span class="question-number">@(i + 1).</span>
+                        <span class="listening-q-label">（聽音作答）</span>
+                    </div>
+                    <div class="listening-preview no-print">
+                        @if (!string.IsNullOrEmpty(words[i].AudioUrl))
+                        {
+                            <audio controls preload="none" src="@words[i].AudioUrl"></audio>
+                            <span class="text-muted small ms-2">[@words[i].SpeakLanguage]</span>
+                        }
+                        else if (!string.IsNullOrEmpty(words[i].TtsErrorMessage))
+                        {
+                            <span class="tts-item-error">@words[i].TtsErrorMessage</span>
+                        }
+                    </div>
+                    <div class="answer-row">
+                        <input type="text" class="answer-line" name="answers[@i]" />
+                    </div>
+                }
+            }
+
+            @if (phrases.Any())
+            {
+                <div class="exam-section">片語英聽測驗（聽音後寫出答案）每題 @Model.scoreTable.PhraseScore 分</div>
+                @for (int i = 0; i < phrases.Count; i++)
+                {
+                    <div class="question-row">
+                        <span class="question-number">@(words.Count + i + 1).</span>
+                        <span class="listening-q-label">（聽音作答）</span>
+                    </div>
+                    <div class="listening-preview no-print">
+                        @if (!string.IsNullOrEmpty(phrases[i].AudioUrl))
+                        {
+                            <audio controls preload="none" src="@phrases[i].AudioUrl"></audio>
+                            <span class="text-muted small ms-2">[@phrases[i].SpeakLanguage]</span>
+                        }
+                        else if (!string.IsNullOrEmpty(phrases[i].TtsErrorMessage))
+                        {
+                            <span class="tts-item-error">@phrases[i].TtsErrorMessage</span>
+                        }
+                    </div>
+                    <div class="answer-row">
+                        <input type="text" class="answer-line" name="answers[@(words.Count + i)]" />
+                    </div>
+                }
+            }
+        </div>
+
+        <!-- 答案卷 -->
+        <div class="exam-container page-break">
+            <div style="display: flex; justify-content: space-between;">
+                <label class="exam-title">
+                    @($"{Model.Title} {Model.ExamTypeLabel}答案卷_{Model.ExamDate:yyyyMMdd}_{Model.ExamAttemptNumber}")
+                </label>
+            </div>
+
+            @if (words.Any())
+            {
+                <div class="exam-section">單字英聽測驗答案</div>
+                @for (int i = 0; i < words.Count; i++)
+                {
+                    <div class="question-row">
+                        <span class="question-number">@(i + 1).</span>
+                        <span class="text-muted small">（英聽題）</span>
+                    </div>
+                    <div class="answer-line answer-row">
+                        <span class="answer-text">@words[i].Answer</span>
+                    </div>
+                }
+            }
+
+            @if (phrases.Any())
+            {
+                <div class="exam-section">片語英聽測驗答案</div>
+                @for (int i = 0; i < phrases.Count; i++)
+                {
+                    <div class="question-row">
+                        <span class="question-number">@(words.Count + i + 1).</span>
+                        <span class="text-muted small">（英聽題）</span>
+                    </div>
+                    <div class="answer-line answer-row">
+                        <span class="answer-text">@phrases[i].Answer</span>
+                    </div>
+                }
+            }
+        </div>
+    }
+    else
+    {
+        <div class="exam-container p-4">
+            <p class="text-muted mb-0">尚無題目可出英聽考卷，請先選擇考卷、學生與題數。</p>
+        </div>
+    }
+</form>

@@ -27,6 +27,22 @@
         /// </summary>
         public int ExamTimes { get; set; }
 
+        #region 英聽（非資料庫欄位，出卷時由 TTS 服務填入）
+
+        /// <summary>ExamMode=Listening 時，實際送 TTS 的文字（通常為 Question）</summary>
+        public string? SpeakText { get; set; }
+
+        /// <summary>zh-TW 或 en-US</summary>
+        public string? SpeakLanguage { get; set; }
+
+        /// <summary>MP3 公開 URL，例如 /exam-audio/xxx.mp3</summary>
+        public string? AudioUrl { get; set; }
+
+        /// <summary>TTS 失敗或未設定 Key 時的提示</summary>
+        public string? TtsErrorMessage { get; set; }
+
+        #endregion
+
     }
     public class ExamListModel
     {

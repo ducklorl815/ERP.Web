@@ -1,8 +1,10 @@
 using ERP.Web.Models.Respository;
 using ERP.Web.Models.Respository.ControllerSetting;
 using ERP.Web.Models.Respository.Tools;
+using ERP.Web.Service.Options;
 using ERP.Web.Service.Service;
 using ERP.Web.Service.Service.ControllerSetting;
+using ERP.Web.Service.Service.ExamTts;
 using ERP.Web.Utility.Models;
 using ERP.Web.Utility.Services;
 using Microsoft.Extensions.FileProviders;
@@ -15,11 +17,30 @@ builder.Services.AddControllersWithViews().AddRazorRuntimeCompilation();
 // Add services to the container.
 builder.Services.AddControllersWithViews();
 
+// 英聽 TTS（Azure Speech）；CacheDirectory 相對路徑會對應 wwwroot
+builder.Services.Configure<ExamTtsOptions>(builder.Configuration.GetSection(ExamTtsOptions.SectionName));
+builder.Services.PostConfigure<ExamTtsOptions>(options =>
+{
+    if (string.IsNullOrWhiteSpace(options.CacheDirectory))
+        options.CacheDirectory = "exam-audio";
+
+    if (!Path.IsPathRooted(options.CacheDirectory))
+    {
+        options.CacheDirectory = Path.Combine(
+            builder.Environment.WebRootPath,
+            options.CacheDirectory.TrimStart('/', '\\'));
+    }
+
+    if (string.IsNullOrWhiteSpace(options.PublicUrlPrefix))
+        options.PublicUrlPrefix = "/exam-audio";
+});
+
 // 權限服務（Singleton - 使用記憶體快取）
 builder.Services.AddMemoryCache();
 builder.Services.AddHttpContextAccessor();
 builder.Services.AddSingleton<IPermissionService, PermissionService>();
 
+builder.Services.AddSingleton<IExamTtsService, AzureExamTtsService>();
 builder.Services.AddSingleton<ControllerSettingService>();
 builder.Services.AddSingleton<HomeService>();
 builder.Services.AddSingleton<ChartsService>();

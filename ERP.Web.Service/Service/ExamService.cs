@@ -1,6 +1,7 @@
 ﻿using Azure.Core;
 using ERP.Web.Models.Models;
 using ERP.Web.Models.Respository;
+using ERP.Web.Service.Service.ExamTts;
 using ERP.Web.Service.ViewModels;
 using ERP.Web.Utility.Paging;
 using Microsoft.AspNetCore.Http;
@@ -12,13 +13,16 @@ namespace ERP.Web.Service.Service
     public class ExamService
     {
         private readonly ExamRespo _examRepo;
+        private readonly IExamTtsService _examTtsService;
         /// <summary>複習考（答錯題）固定課程名稱，用於累計出卷次數</summary>
         private const string WrongExamLessionName = "複習考";
         public ExamService(
-            ExamRespo examRepo
+            ExamRespo examRepo,
+            IExamTtsService examTtsService
             )
         {
             _examRepo = examRepo;
+            _examTtsService = examTtsService;
         }
         public async Task<ExamSearchListViewModel_result> GetNewTestAsync(ExamSearchListViewModel_param param)
         {
@@ -129,6 +133,7 @@ namespace ERP.Web.Service.Service
                 result.VocabularyList = await _examRepo.GetExamFromExamIndex(KidTestIndexID);
                 await CalculateScore(result.VocabularyList, result);
                 await PopulateExamPaperMetaAsync(result, param.KidID, reExamLessionId, param.TestType, KidTestIndexID);
+                await ApplyExamModeAsync(result, param.ExamMode);
                 return result;
             }
             var VocabularyList = new List<Vocabulary>();
@@ -167,6 +172,7 @@ namespace ERP.Web.Service.Service
             }
 
             await PopulateExamPaperMetaAsync(result, param.KidID, reExamLessionId, param.TestType, NewKidTestID);
+            await ApplyExamModeAsync(result, param.ExamMode);
             return result;
         }
         public async Task<ExamDataViewModel_result> GetExamDataAsync(ExamSearchListViewModel_param param)
@@ -188,6 +194,7 @@ namespace ERP.Web.Service.Service
                 result.VocabularyList = await _examRepo.GetExamFromExamIndex(KidTestIndexID);
                 await CalculateScore(result.VocabularyList, result);
                 await PopulateExamPaperMetaAsync(result, param.KidID, lessionId, param.TestType, KidTestIndexID);
+                await ApplyExamModeAsync(result, param.ExamMode);
                 return result;
             }
 
@@ -201,6 +208,7 @@ namespace ERP.Web.Service.Service
                 result.scoreTable.WordScore = 0;
                 result.scoreTable.PhraseScore = 0;
                 result.scoreTable.MentalMathScore = 0;
+                await ApplyExamModeAsync(result, param.ExamMode);
                 return result;
             }
 
@@ -223,7 +231,51 @@ namespace ERP.Web.Service.Service
             }
 
             await PopulateExamPaperMetaAsync(result, param.KidID, lessionId, param.TestType, NewKidTestID);
+            await ApplyExamModeAsync(result, param.ExamMode);
             return result;
+        }
+
+        /// <summary>英聽模式：依題目中/英文產生 MP3 URL（Key 未設定時僅標記提示）</summary>
+        private async Task ApplyExamModeAsync(ExamDataViewModel_result result, string? examMode)
+        {
+            if (!string.Equals(examMode, "Listening", StringComparison.OrdinalIgnoreCase))
+                return;
+
+            result.ExamMode = "Listening";
+            result.ExamTypeLabel = "英聽";
+            result.TtsConfigured = _examTtsService.IsConfigured;
+
+            if (result.VocabularyList == null || result.VocabularyList.Count == 0)
+            {
+                if (!result.TtsConfigured)
+                    result.TtsNoticeMessage = "尚未設定 Azure Speech（ExamTts:SubscriptionKey）。";
+                return;
+            }
+
+            var missingAudioCount = 0;
+            foreach (var word in result.VocabularyList)
+            {
+                word.SpeakText = ExamListeningLanguageHelper.ResolveSpeakText(word.Question);
+                word.SpeakLanguage = ExamListeningLanguageHelper.ResolveLanguage(word.Question);
+
+                var tts = await _examTtsService.GetOrCreateMp3Async(
+                    word.WordID,
+                    word.SpeakText,
+                    word.SpeakLanguage);
+
+                if (tts.Success && !string.IsNullOrEmpty(tts.AudioUrl))
+                    word.AudioUrl = tts.AudioUrl;
+                else
+                {
+                    word.TtsErrorMessage = tts.ErrorMessage;
+                    missingAudioCount++;
+                }
+            }
+
+            if (!result.TtsConfigured)
+                result.TtsNoticeMessage = "尚未設定 Azure Speech（ExamTts:SubscriptionKey）。考卷已產生，註冊並填入金鑰後重新出卷即可產生 MP3。";
+            else if (missingAudioCount > 0)
+                result.TtsNoticeMessage = $"有 {missingAudioCount} 題音檔尚未成功產生，請檢查題目文字或 Azure 設定。";
         }
 
         /// <summary>設定考卷標題用的日期與第幾次考試（KidTestIndex × Lession）</summary>

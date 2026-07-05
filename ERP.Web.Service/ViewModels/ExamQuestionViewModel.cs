@@ -25,6 +25,9 @@ namespace ERP.Web.Service.ViewModels
         public string Answer { get; set; } // 正確答案
         /// <summary>關鍵字：課程、問題、答案一併搜尋</summary>
         public string SearchText { get; set; }
+
+        /// <summary>Written（筆試，預設）| Listening（英聽）</summary>
+        public string ExamMode { get; set; } = "Written";
     }
     public class ExamSearchListViewModel_result : ExamSearchListViewModel_param
     {
@@ -77,6 +80,19 @@ namespace ERP.Web.Service.ViewModels
         /// <summary>考卷標題後綴，例如：英文試卷_20260523_2</summary>
         public string ExamPaperSuffix =>
             $"{ExamTypeLabel}試卷_{ExamDate:yyyyMMdd}_{ExamAttemptNumber}";
+
+        /// <summary>Written | Listening</summary>
+        public string ExamMode { get; set; } = "Written";
+
+        /// <summary>是否為英聽考卷</summary>
+        public bool IsListeningExam =>
+            string.Equals(ExamMode, "Listening", StringComparison.OrdinalIgnoreCase);
+
+        /// <summary>Azure TTS 是否已設定（未設定時考卷仍可產生，但無音檔）</summary>
+        public bool TtsConfigured { get; set; }
+
+        /// <summary>未設定 TTS 或部分題目無音檔時的整體提示</summary>
+        public string? TtsNoticeMessage { get; set; }
     }
 
     public class ScoreTable
@@ -100,5 +116,8 @@ namespace ERP.Web.Service.ViewModels
         public string TestType { get; set; }
         public string CorrectType { get; set; }
         public string ClassName { get; set; }
+
+        /// <summary>Written | Listening</summary>
+        public string ExamMode { get; set; } = "Written";
     }
 }

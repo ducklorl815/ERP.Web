@@ -9,8 +9,12 @@
   <ItemGroup>
     <!-- 使用完全支援 net6.0 的 EPPlus 版本，避免相依套件版本衝突 -->
     <PackageReference Include="EPPlus" Version="6.2.16" />
+    <!-- 英聽考卷：Azure Speech TTS -->
+    <PackageReference Include="Microsoft.CognitiveServices.Speech" Version="1.38.0" />
     <!-- 移除 Microsoft.AspNet.Mvc - ASP.NET Core 已內建 MVC 功能 -->
     <PackageReference Include="Microsoft.AspNetCore.Http.Features" Version="5.0.17" />
+    <PackageReference Include="Microsoft.Extensions.Logging.Abstractions" Version="6.0.4" />
+    <PackageReference Include="Microsoft.Extensions.Options" Version="6.0.0" />
   </ItemGroup>
 
   <ItemGroup>

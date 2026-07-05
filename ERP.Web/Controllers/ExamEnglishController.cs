@@ -48,8 +48,20 @@ namespace ERP.Web.Controllers
         public async Task<IActionResult> Test(ExamSearchListViewModel_param param)
         {
             param.TestType = TestType;
+            param.ExamMode = "Written";
             var result = await _examService.GetExamDataAsync(param);
             return View("~/Views/Exam/Test.cshtml", result);
+        }
+
+        /// <summary>
+        /// 新測驗 — 英聽版本（題目播音：中文題念中文、英文題念英文）
+        /// </summary>
+        public async Task<IActionResult> ListeningTest(ExamSearchListViewModel_param param)
+        {
+            param.TestType = TestType;
+            param.ExamMode = "Listening";
+            var result = await _examService.GetExamDataAsync(param);
+            return View("~/Views/Exam/TestListening.cshtml", result);
         }
 
         /// <summary>
@@ -68,8 +80,20 @@ namespace ERP.Web.Controllers
         public async Task<IActionResult> ReExam(ReExamSearchListViewModel_param param)
         {
             param.TestType = TestType;
+            param.ExamMode = "Written";
             var result = await _examService.GetReExamDataAsync(param);
             return View("~/Views/Exam/Test.cshtml", result);
+        }
+
+        /// <summary>
+        /// 複習考試 — 英聽版本
+        /// </summary>
+        public async Task<IActionResult> ListeningReExam(ReExamSearchListViewModel_param param)
+        {
+            param.TestType = TestType;
+            param.ExamMode = "Listening";
+            var result = await _examService.GetReExamDataAsync(param);
+            return View("~/Views/Exam/TestListening.cshtml", result);
         }
 
         #endregion

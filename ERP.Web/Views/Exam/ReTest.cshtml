@@ -261,6 +261,19 @@
             alert("請確保所有欄位均已填寫！");
             return;
         }
+        $("#examForm").attr("action", '@Url.Action("ReExam", ViewContext.RouteData.Values["controller"]?.ToString())');
+        $("#examForm").submit();
+    }
+
+    function submitListeningExam() {
+        var KidID = $("#modalKidID").val();
+        var TestType = $("#modalTestType").val();
+        var ClassName = $("#modalClass").val();
+        if (!KidID || !TestType || !ClassName) {
+            alert("請確保所有欄位均已填寫！");
+            return;
+        }
+        $("#examForm").attr("action", '@Url.Action("ListeningReExam", ViewContext.RouteData.Values["controller"]?.ToString())');
         $("#examForm").submit();
     }
 </script>

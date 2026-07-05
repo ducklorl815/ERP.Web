@@ -46,8 +46,11 @@
                 </select>
             </div>
 
-            <div class="col-1">
+            <div class="col-1 d-flex flex-column gap-2">
                 <button type="submit" class="btn btn-primary">送出</button>
+                <button type="submit" formaction="@Url.Action("ListeningTest", ViewContext.RouteData.Values["controller"]?.ToString())" class="btn btn-info btn-sm">
+                    英聽版本
+                </button>
             </div>
 
         </div>
