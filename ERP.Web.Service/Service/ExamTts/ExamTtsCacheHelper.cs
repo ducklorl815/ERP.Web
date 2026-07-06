@@ -6,6 +6,18 @@ namespace ERP.Web.Service.Service.ExamTts
     /// <summary>英聽 TTS 共用快取檔名與 URL 組合邏輯</summary>
     internal static class ExamTtsCacheHelper
     {
+        /// <summary>題號播音固定檔名：label_01.mp3（第一題）～ label_99.mp3</summary>
+        public static string BuildQuestionLabelFileName(int questionNumber)
+        {
+            if (questionNumber < 1 || questionNumber > 99)
+                throw new ArgumentOutOfRangeException(nameof(questionNumber), "題號僅支援 1～99。");
+
+            return $"label_{questionNumber:D2}.mp3";
+        }
+
+        public static string BuildPhysicalPath(string cacheDirectory, string fileName) =>
+            Path.Combine(cacheDirectory, fileName);
+
         /// <summary>快取檔名：WordID + 語言 + 文字 + TTS 設定 hash。</summary>
         public static string BuildCacheFileName(
             Guid wordId,

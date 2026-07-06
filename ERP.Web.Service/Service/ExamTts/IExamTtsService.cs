@@ -22,5 +22,22 @@ namespace ERP.Web.Service.Service.ExamTts
             string speakText,
             string language,
             CancellationToken cancellationToken = default);
+
+        /// <summary>
+        /// 題號播音（第一題、第二題…）固定檔名 label_01.mp3，可跨考卷重用。
+        /// </summary>
+        Task<ExamTtsResult> GetOrCreateQuestionLabelMp3Async(
+            int questionNumber,
+            CancellationToken cancellationToken = default);
+
+        /// <summary>
+        /// 單字聽力片段：優先使用 Vocabulary.ExamAudio，其次快取目錄 seg_*.mp3，最後才呼叫 TTS。
+        /// </summary>
+        Task<ExamTtsResult> GetOrCreateVocabularySegmentMp3Async(
+            Guid wordId,
+            string? storedExamAudioPath,
+            string speakText,
+            string language,
+            CancellationToken cancellationToken = default);
     }
 }

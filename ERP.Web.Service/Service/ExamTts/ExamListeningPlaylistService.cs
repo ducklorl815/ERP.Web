@@ -51,7 +51,7 @@ namespace ERP.Web.Service.Service.ExamTts
             var playlistUrl = ExamTtsCacheHelper.CombineUrl(_options.PublicUrlPrefix, playlistFileName);
 
             if (File.Exists(playlistPath))
-                return ExamTtsResult.Ok(playlistUrl);
+                return ExamTtsResult.Ok(playlistUrl, playlistPath);
 
             var segmentPaths = new List<string>();
             var silenceAfter = new List<double>();
@@ -64,26 +64,27 @@ namespace ERP.Web.Service.Service.ExamTts
                     if (string.IsNullOrWhiteSpace(question.SpeakText))
                         return ExamTtsResult.Fail($"第 {i + 1} 題題目文字為空。");
 
-                    // 題號（中文，可跨考卷重用：第一題、第二題…）
-                    var label = ExamListeningLanguageHelper.ToChineseQuestionLabel(i + 1);
-                    var labelTts = await _examTtsService.GetOrCreateSegmentMp3Async(
-                        label,
-                        ExamListeningLanguageHelper.LanguageChinese,
+                    // 題號：固定檔名 label_01.mp3、label_02.mp3…（HardCode，跨考卷重用）
+                    var labelTts = await _examTtsService.GetOrCreateQuestionLabelMp3Async(
+                        i + 1,
                         cancellationToken);
 
                     if (!labelTts.Success || string.IsNullOrEmpty(labelTts.AudioUrl))
                         return ExamTtsResult.Fail(labelTts.ErrorMessage ?? $"第 {i + 1} 題題號音檔產生失敗。");
 
-                    var labelPath = ExamTtsCacheHelper.ResolvePhysicalPath(
-                        labelTts.AudioUrl, _options.CacheDirectory, _options.PublicUrlPrefix);
+                    var labelPath = labelTts.PhysicalPath
+                        ?? ExamTtsCacheHelper.ResolvePhysicalPath(
+                            labelTts.AudioUrl, _options.CacheDirectory, _options.PublicUrlPrefix);
                     if (labelPath == null || !File.Exists(labelPath))
                         return ExamTtsResult.Fail($"第 {i + 1} 題題號音檔不存在。");
 
                     segmentPaths.Add(labelPath);
                     silenceAfter.Add(_options.PauseAfterQuestionLabelSeconds);
 
-                    // 題目單字（可重用：相同 brilliant / 忙碌的 只呼叫 API 一次）
-                    var wordTts = await _examTtsService.GetOrCreateSegmentMp3Async(
+                    // 單字片段：優先 Vocabulary.ExamAudio，其次 seg_*.mp3 快取
+                    var wordTts = await _examTtsService.GetOrCreateVocabularySegmentMp3Async(
+                        question.WordId,
+                        question.ExamAudio,
                         question.SpeakText,
                         question.SpeakLanguage,
                         cancellationToken);
@@ -91,10 +92,15 @@ namespace ERP.Web.Service.Service.ExamTts
                     if (!wordTts.Success || string.IsNullOrEmpty(wordTts.AudioUrl))
                         return ExamTtsResult.Fail(wordTts.ErrorMessage ?? $"第 {i + 1} 題單字音檔產生失敗。");
 
-                    var wordPath = ExamTtsCacheHelper.ResolvePhysicalPath(
-                        wordTts.AudioUrl, _options.CacheDirectory, _options.PublicUrlPrefix);
+                    var wordPath = wordTts.PhysicalPath
+                        ?? ExamTtsCacheHelper.ResolvePhysicalPath(
+                            wordTts.AudioUrl, _options.CacheDirectory, _options.PublicUrlPrefix);
                     if (wordPath == null || !File.Exists(wordPath))
                         return ExamTtsResult.Fail($"第 {i + 1} 題單字音檔不存在。");
+
+                    // 同步記憶體中的 ExamAudio（實際寫入 DB 已在 TTS 服務完成）
+                    if (!string.IsNullOrWhiteSpace(wordPath))
+                        question.ExamAudio = wordPath;
 
                     segmentPaths.Add(wordPath);
                     silenceAfter.Add(_options.PauseAfterWordSeconds);
@@ -105,7 +111,7 @@ namespace ERP.Web.Service.Service.ExamTts
                 }
 
                 ExamAudioComposer.Compose(segmentPaths, silenceAfter, playlistPath);
-                return ExamTtsResult.Ok(playlistUrl);
+                return ExamTtsResult.Ok(playlistUrl, playlistPath);
             }
             catch (Exception ex)
             {

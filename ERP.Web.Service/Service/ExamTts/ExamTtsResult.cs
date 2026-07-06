@@ -8,12 +8,16 @@ namespace ERP.Web.Service.Service.ExamTts
         /// <summary>可供前端 audio src 使用的 URL，例如 /exam-audio/{file}.mp3</summary>
         public string? AudioUrl { get; set; }
 
+        /// <summary>本機實體路徑，例如 D:\Project\exam-audio\seg_xxx.mp3</summary>
+        public string? PhysicalPath { get; set; }
+
         public string? ErrorMessage { get; set; }
 
-        public static ExamTtsResult Ok(string audioUrl) => new()
+        public static ExamTtsResult Ok(string audioUrl, string? physicalPath = null) => new()
         {
             Success = true,
-            AudioUrl = audioUrl
+            AudioUrl = audioUrl,
+            PhysicalPath = physicalPath
         };
 
         public static ExamTtsResult Fail(string message) => new()

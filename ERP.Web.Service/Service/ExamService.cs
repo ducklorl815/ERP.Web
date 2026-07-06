@@ -281,12 +281,25 @@ namespace ERP.Web.Service.Service
 
                 questions.Add(new ExamListeningQuestionItem
                 {
+                    WordId = word.WordID,
+                    ExamAudio = word.ExamAudio,
                     SpeakText = word.SpeakText ?? string.Empty,
                     SpeakLanguage = word.SpeakLanguage ?? ExamListeningLanguageHelper.LanguageEnglish
                 });
             }
 
             var playlist = await _examListeningPlaylistService.BuildExamPlaylistAsync(questions);
+
+            // 將已更新的 ExamAudio 同步回考卷題目清單
+            foreach (var question in questions)
+            {
+                if (question.WordId == Guid.Empty || string.IsNullOrWhiteSpace(question.ExamAudio))
+                    continue;
+
+                var word = result.VocabularyList.FirstOrDefault(w => w.WordID == question.WordId);
+                if (word != null)
+                    word.ExamAudio = question.ExamAudio;
+            }
 
             if (playlist.Success && !string.IsNullOrEmpty(playlist.AudioUrl))
             {

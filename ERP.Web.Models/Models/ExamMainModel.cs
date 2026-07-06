@@ -10,6 +10,10 @@
         public string ClassName { get; set; } // 課程標題
         public string Question { get; set; } // 
         public string Answer { get; set; } // 意思
+
+        /// <summary>英聽單字片段實體路徑，例如 D:\Project\exam-audio\seg_xxx.mp3</summary>
+        public string? ExamAudio { get; set; }
+
         public Guid KidID { get; set; }
         public int Correct { get; set; }
         public int Focus { get; set; }

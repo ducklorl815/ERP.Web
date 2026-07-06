@@ -2,6 +2,7 @@ using System.Net.Http.Headers;
 using System.Text;
 using System.Text.Json;
 using System.Text.Json.Serialization;
+using ERP.Web.Models.Respository;
 using ERP.Web.Service.Options;
 using Microsoft.Extensions.Logging;
 using Microsoft.Extensions.Options;
@@ -17,15 +18,18 @@ namespace ERP.Web.Service.Service.ExamTts
         private const string SpeechEndpoint = "https://api.openai.com/v1/audio/speech";
 
         private readonly ExamTtsOptions _options;
+        private readonly ExamRespo _examRepo;
         private readonly IHttpClientFactory _httpClientFactory;
         private readonly ILogger<OpenAiExamTtsService> _logger;
 
         public OpenAiExamTtsService(
             IOptions<ExamTtsOptions> options,
+            ExamRespo examRepo,
             IHttpClientFactory httpClientFactory,
             ILogger<OpenAiExamTtsService> logger)
         {
             _options = options.Value;
+            _examRepo = examRepo;
             _httpClientFactory = httpClientFactory;
             _logger = logger;
         }
@@ -57,6 +61,71 @@ namespace ERP.Web.Service.Service.ExamTts
             return GetOrCreateCachedMp3Async(fileName, speakText, language, profile, cancellationToken);
         }
 
+        public Task<ExamTtsResult> GetOrCreateQuestionLabelMp3Async(
+            int questionNumber,
+            CancellationToken cancellationToken = default)
+        {
+            var fileName = ExamTtsCacheHelper.BuildQuestionLabelFileName(questionNumber);
+            var label = ExamListeningLanguageHelper.ToChineseQuestionLabel(questionNumber);
+            var profile = ResolveVoiceProfile(ExamListeningLanguageHelper.LanguageChinese);
+
+            return GetOrCreateCachedMp3Async(
+                fileName,
+                label,
+                ExamListeningLanguageHelper.LanguageChinese,
+                profile,
+                cancellationToken);
+        }
+
+        public async Task<ExamTtsResult> GetOrCreateVocabularySegmentMp3Async(
+            Guid wordId,
+            string? storedExamAudioPath,
+            string speakText,
+            string language,
+            CancellationToken cancellationToken = default)
+        {
+            if (string.IsNullOrWhiteSpace(speakText))
+                return ExamTtsResult.Fail("題目文字為空，無法產生音檔。");
+
+            if (string.IsNullOrWhiteSpace(_options.CacheDirectory))
+                return ExamTtsResult.Fail("未設定 ExamTts:CacheDirectory。");
+
+            var profile = ResolveVoiceProfile(language);
+            var fileName = ExamTtsCacheHelper.BuildSegmentCacheFileName(
+                speakText, language, profile.Key);
+            var filePath = ExamTtsCacheHelper.BuildPhysicalPath(_options.CacheDirectory, fileName);
+            var publicUrl = ExamTtsCacheHelper.CombineUrl(_options.PublicUrlPrefix, fileName);
+
+            // 1. DB 已記錄且檔案仍存在（且檔名符合目前播音內容）
+            if (!string.IsNullOrWhiteSpace(storedExamAudioPath)
+                && File.Exists(storedExamAudioPath)
+                && string.Equals(Path.GetFileName(storedExamAudioPath), fileName, StringComparison.OrdinalIgnoreCase))
+            {
+                var storedUrl = ExamTtsCacheHelper.CombineUrl(
+                    _options.PublicUrlPrefix,
+                    Path.GetFileName(storedExamAudioPath));
+                return ExamTtsResult.Ok(storedUrl, storedExamAudioPath);
+            }
+
+            // 2. 快取目錄已有相同 seg_*.mp3（跨單字共用）
+            if (File.Exists(filePath))
+            {
+                var cached = ExamTtsResult.Ok(publicUrl, filePath);
+                await ExamVocabularyAudioPersistence.TrySaveAsync(
+                    _examRepo, _logger, wordId, storedExamAudioPath, cached.PhysicalPath);
+                return cached;
+            }
+
+            // 3. 呼叫 OpenAI TTS 產生新片段，並寫回 Vocabulary.ExamAudio
+            var created = await GetOrCreateCachedMp3Async(fileName, speakText, language, profile, cancellationToken);
+            if (created.Success)
+            {
+                await ExamVocabularyAudioPersistence.TrySaveAsync(
+                    _examRepo, _logger, wordId, storedExamAudioPath, created.PhysicalPath);
+            }
+            return created;
+        }
+
         private async Task<ExamTtsResult> GetOrCreateCachedMp3Async(
             string fileName,
             string speakText,
@@ -76,7 +145,7 @@ namespace ERP.Web.Service.Service.ExamTts
             var publicUrl = ExamTtsCacheHelper.CombineUrl(_options.PublicUrlPrefix, fileName);
 
             if (File.Exists(filePath))
-                return ExamTtsResult.Ok(publicUrl);
+                return ExamTtsResult.Ok(publicUrl, filePath);
 
             if (!IsConfigured)
             {
@@ -114,7 +183,7 @@ namespace ERP.Web.Service.Service.ExamTts
                     return ExamTtsResult.Fail("OpenAI 語音合成未回傳音訊資料。");
 
                 await File.WriteAllBytesAsync(filePath, audioBytes, cancellationToken);
-                return ExamTtsResult.Ok(publicUrl);
+                return ExamTtsResult.Ok(publicUrl, filePath);
             }
             catch (Exception ex)
             {

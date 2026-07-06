@@ -293,6 +293,7 @@ WHERE (@OnlyWhenSame = 0)
                     les.ClassName,
                     w.Question,
                     w.Answer,
+                    w.ExamAudio,
                     CASE WHEN wi.Focus IS NOT NULL THEN wi.Focus ELSE 0 END AS Focus,
                     @KidMainID AS KidID,
                     ISNULL(latest.LastCorrect, 0) AS Correct,
@@ -346,6 +347,7 @@ WHERE (@OnlyWhenSame = 0)
 				ClassName,
 				Question,
 				Answer,
+                w.ExamAudio,
 				case when wi.Focus is not null then wi.Focus else 0 end as Focus,
 				km.ID as KidID,
 				case when kwi.Correct is not null then kwi.Correct else 0 end as Correct,
@@ -378,12 +380,13 @@ WHERE (@OnlyWhenSame = 0)
 
             var sql = @"
                 SELECT 
-                v.ID,
+                v.ID AS WordID,
                 les.TestType,
 				v.CategoryType,
                 les.ClassName,
                 v.Question,
-                v.Answer
+                v.Answer,
+                v.ExamAudio
                 FROM KidsWorld.dbo.Vocabulary v
                 JOIN KidsWorld.dbo.KidExamWordIndex ke ON v.ID = ke.ExamID
                 JOIN KidsWorld.dbo.KidTestIndex kti ON ke.KidTestIndexID = kti.ID
@@ -882,6 +885,7 @@ WHERE (@OnlyWhenSame = 0)
                     les.ClassName,
                     w.Question,
                     w.Answer,
+                    w.ExamAudio,
                     km.ID as KidID,
                     wl.Correct
                 FROM KidsWorld.dbo.KidExamWordIndex wl
@@ -929,6 +933,7 @@ WHERE (@OnlyWhenSame = 0)
                     les.ClassName,
                     w.Question,
                     w.Answer,
+                    w.ExamAudio,
                     @KidMainID AS KidID,
                     ISNULL(latest.LastCorrect, 0) AS Correct,
                     ISNULL(latest.LastReTest, 0) AS ReTest,
@@ -1754,6 +1759,36 @@ WHERE (@OnlyWhenSame = 0)
             }
         }
 
+        /// <summary>
+        /// 英聽單字片段產生後，將實體路徑寫回 Vocabulary.ExamAudio。
+        /// SQL：UPDATE KidsWorld.dbo.Vocabulary SET ExamAudio = @ExamAudio WHERE ID = @ID
+        /// </summary>
+        public async Task<bool> UpdateExamAudioAsync(Guid wordId, string examAudioPath)
+        {
+            if (wordId == Guid.Empty || string.IsNullOrWhiteSpace(examAudioPath))
+                return false;
+
+            var sqlparam = new DynamicParameters();
+            sqlparam.Add("ID", wordId);
+            sqlparam.Add("ExamAudio", examAudioPath.Trim());
+
+            const string sql = @"
+                UPDATE KidsWorld.dbo.Vocabulary
+                   SET ExamAudio = @ExamAudio
+                 WHERE ID = @ID";
+
+            using var conn = new SqlConnection(_dBList.erp);
+            try
+            {
+                var result = await conn.ExecuteAsync(sql, sqlparam);
+                return result > 0;
+            }
+            catch
+            {
+                return false;
+            }
+        }
+
         public async Task<bool> UpdateWord(string ID, string Question, string Answer)
         {
             var sqlparam = new DynamicParameters();
@@ -1790,6 +1825,7 @@ WHERE (@OnlyWhenSame = 0)
 	                      ,CategoryType
                           ,Question
                           ,Answer
+                          ,ExamAudio
                       FROM KidsWorld.dbo.Vocabulary
                       where ID =@ID
                         "
