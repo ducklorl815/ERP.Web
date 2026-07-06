@@ -68,13 +68,25 @@ namespace ERP.Web.Controllers
         }
 
         /// <summary>
-        /// 複習考：自動撈取當天答錯（Correct=0）的題目組卷
+        /// 複習考：自動撈取當天答錯（Correct=0）的題目組卷（筆試＋答案卷）
         /// </summary>
         public async Task<IActionResult> WrongTest(ExamSearchListViewModel_param param)
         {
             param.TestType = TestType;
+            param.ExamMode = "Written";
             var result = await _examService.GetWrongExamDataAsync(param);
             return View("~/Views/Exam/Test.cshtml", result);
+        }
+
+        /// <summary>
+        /// 複習考 — 英聽版本（依英聽／中聽題數從答錯題池出題，含答案卷）
+        /// </summary>
+        public async Task<IActionResult> ListeningWrongTest(ExamSearchListViewModel_param param)
+        {
+            param.TestType = TestType;
+            param.ExamMode = "Listening";
+            var result = await _examService.GetWrongExamDataAsync(param);
+            return View("~/Views/Exam/TestListening.cshtml", result);
         }
 
         /// <summary>

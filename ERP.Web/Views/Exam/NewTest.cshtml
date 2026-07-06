@@ -37,16 +37,37 @@
                                     <span class="badge bg-warning text-dark">複習考</span>
                                 </div>
                                 <div>
-                                    <label class="form-label mb-1" for="WrongTestNumber">題數</label>
+                                    <label class="form-label mb-1" for="WrongTestNumber">筆試題數</label>
                                     <input id="WrongTestNumber" type="number" class="form-control" value="18" min="1" style="width:120px;" />
                                 </div>
-                                <div>
+                                @if (!isMathExam)
+                                {
+                                    <div>
+                                        <label class="form-label mb-1" for="WrongEnglishListeningCount">英聽題數</label>
+                                        <input id="WrongEnglishListeningCount" type="number" class="form-control" value="7" min="0" style="width:120px;" title="聽英文 → 寫中文" />
+                                    </div>
+                                    <div>
+                                        <label class="form-label mb-1" for="WrongChineseListeningCount">中聽題數</label>
+                                        <input id="WrongChineseListeningCount" type="number" class="form-control" value="3" min="0" style="width:120px;" title="聽中文 → 寫英文" />
+                                    </div>
+                                }
+                                <div class="d-flex flex-column gap-2">
                                     <button id="btnWrongTest" type="button" class="btn btn-warning">
-                                        複習考（答錯題）
+                                        複習考（筆試）
                                     </button>
+                                    @if (!isMathExam)
+                                    {
+                                        <button id="btnListeningWrongTest" type="button" class="btn btn-info btn-sm">
+                                            複習考（聽力版本）
+                                        </button>
+                                    }
                                 </div>
                                 <div class="text-muted small">
                                     依「學生」自動抓歷史@examSubjectLabel答錯（Correct=0）的題目組卷（不限定日期）。
+                                    @if (!isMathExam)
+                                    {
+                                        <span>聽力版本以英聽／中聽題數為準，並含答案卷。</span>
+                                    }
                                 </div>
                             </div>
                         </div>
@@ -73,7 +94,7 @@
             });
         }
 
-        // 複習考：按鈕跳轉到 WrongTest
+        // 複習考：筆試版本
         $('#btnWrongTest').on('click', function () {
             var kidId = $('#KidID').val();
             var testNumber = $('#WrongTestNumber').val() || 18;
@@ -86,6 +107,29 @@
             var url = '@Url.Action("WrongTest", ViewContext.RouteData.Values["controller"]?.ToString())'
                 + '?KidID=' + encodeURIComponent(kidId)
                 + '&TestNumber=' + encodeURIComponent(testNumber);
+
+            window.location.href = url;
+        });
+
+        // 複習考：聽力版本（英聽＋中聽，含答案卷）
+        $('#btnListeningWrongTest').on('click', function () {
+            var kidId = $('#KidID').val();
+            var en = parseInt($('#WrongEnglishListeningCount').val(), 10) || 0;
+            var zh = parseInt($('#WrongChineseListeningCount').val(), 10) || 0;
+
+            if (!kidId) {
+                alert('請先選擇學生');
+                return;
+            }
+            if (en + zh <= 0) {
+                alert('請至少設定 1 題英聽或中聽題數');
+                return;
+            }
+
+            var url = '@Url.Action("ListeningWrongTest", ViewContext.RouteData.Values["controller"]?.ToString())'
+                + '?KidID=' + encodeURIComponent(kidId)
+                + '&EnglishListeningCount=' + encodeURIComponent(en)
+                + '&ChineseListeningCount=' + encodeURIComponent(zh);
 
             window.location.href = url;
         });

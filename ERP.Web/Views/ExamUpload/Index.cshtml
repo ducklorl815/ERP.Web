@@ -13,6 +13,19 @@
     <hr />
 </form>
 
+<h3 class="mt-4 mb-2">補救：用 Excel 回填 Question</h3>
+<div class="text-muted small mb-2">
+    依你保留的 Excel，用 <strong>Answer</strong> 去比對 DB 的 Answer，找到就把 Excel 的 <strong>Question</strong> 回填到 DB 的 Question。
+    為了避免誤覆蓋，預設只更新「目前 Question 與 Answer 相同」的資料。
+</div>
+
+<form id="restoreForm" enctype="multipart/form-data">
+    <button class="btn btn-outline-secondary btn-sm" type="button" id="btnRestorePreview">預覽命中</button>
+    <button class="btn btn-danger btn-sm" type="button" id="btnRestoreApply">套用回填</button>
+    <input type="file" id="restoreFileInput" name="file" accept=".xlsx, .xls" />
+    <span id="restoreStatus" class="ms-2"></span>
+</form>
+
 <script>
     $(document).ready(function () {
         $("#uploadForm").on("submit", function (e) {
@@ -35,6 +48,75 @@
                 },
                 error: function () {
                     $("#uploadStatus").text("上傳失敗，請重試");
+                }
+            });
+        });
+
+        function buildRestoreFormData() {
+            var formData = new FormData();
+            var fileInput = $("#restoreFileInput")[0].files[0];
+            if (!fileInput) {
+                $("#restoreStatus").text("請選擇 Excel 檔案");
+                return null;
+            }
+            formData.append("file", fileInput);
+            return formData;
+        }
+
+        function renderRestoreResult(prefix, data) {
+            // data: { excelRowCount, excelDistinctAnswerCount, excelDuplicateAnswerCount, dbMatchCount, wouldUpdateCount, updatedCount? }
+            var msg = prefix
+                + " ExcelRows=" + (data.excelRowCount ?? 0)
+                + " DistinctAnswer=" + (data.excelDistinctAnswerCount ?? 0)
+                + " DuplicateAnswer=" + (data.excelDuplicateAnswerCount ?? 0)
+                + " DbMatch=" + (data.dbMatchCount ?? 0)
+                + " WouldUpdate=" + (data.wouldUpdateCount ?? 0);
+            if (data.updatedCount !== undefined) {
+                msg += " Updated=" + data.updatedCount;
+            }
+            $("#restoreStatus").text(msg);
+        }
+
+        $("#btnRestorePreview").on("click", function () {
+            var formData = buildRestoreFormData();
+            if (!formData) return;
+
+            $("#restoreStatus").text("預覽中...");
+            $.ajax({
+                url: "@Url.Action("RestoreQuestionPreview", "ExamUpload")",
+                type: "POST",
+                data: formData,
+                processData: false,
+                contentType: false,
+                success: function (data) {
+                    renderRestoreResult("預覽完成：", data);
+                },
+                error: function (xhr) {
+                    $("#restoreStatus").text("預覽失敗：" + (xhr.responseText || "請重試"));
+                }
+            });
+        });
+
+        $("#btnRestoreApply").on("click", function () {
+            var formData = buildRestoreFormData();
+            if (!formData) return;
+
+            if (!confirm("確定要套用回填嗎？此操作會更新資料庫 Question 欄位（預設僅更新 Question==Answer 的資料）。")) {
+                return;
+            }
+
+            $("#restoreStatus").text("套用中...");
+            $.ajax({
+                url: "@Url.Action("RestoreQuestionApply", "ExamUpload")",
+                type: "POST",
+                data: formData,
+                processData: false,
+                contentType: false,
+                success: function (data) {
+                    renderRestoreResult("套用完成：", data);
+                },
+                error: function (xhr) {
+                    $("#restoreStatus").text("套用失敗：" + (xhr.responseText || "請重試"));
                 }
             });
         });

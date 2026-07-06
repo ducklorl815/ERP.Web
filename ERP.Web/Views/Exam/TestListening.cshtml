@@ -2,8 +2,8 @@
 
 @{
     Layout = null;
-    var words = Model.VocabularyList?.Where(x => x.CategoryType == "Word").ToList() ?? new List<ERP.Web.Models.Models.Vocabulary>();
-    var phrases = Model.VocabularyList?.Where(x => x.CategoryType == "Phrase").ToList() ?? new List<ERP.Web.Models.Models.Vocabulary>();
+    // 與英聽音檔播放順序一致：依 VocabularyList 出題順序，不拆分單字／片語
+    var questions = Model.VocabularyList ?? new List<ERP.Web.Models.Models.Vocabulary>();
 }
 
 <link href="https://cdn.jsdelivr.net/npm/bootstrap@5.3.0/dist/css/bootstrap.min.css" rel="stylesheet">
@@ -17,6 +17,10 @@
     }
 
     .question-number { font-weight: bold; }
+
+    .question-text {
+        font-size: 16px;
+    }
 
     .exam-container .question-row {
         margin-top: 0.2rem;
@@ -181,7 +185,7 @@
 }
 
 <form method="post" id="TestView" action="@Url.Action("Submit", "Exam")">
-    @if (words.Any() || phrases.Any())
+    @if (questions.Any())
     {
         <div class="exam-container">
             <div style="display: flex; justify-content: space-between;">
@@ -194,41 +198,27 @@
             </div>
 
             <p class="exam-section no-print text-muted small mb-2">
-                聽力預覽：播放上方完整音檔（第 N 題 → 單字 ×2，含間隔）；列印考卷僅顯示題號。
+                聽力預覽：播放上方完整音檔（第 N 題 → 單字 ×2，含間隔）；題號與音檔順序一致。列印考卷僅顯示題號。
             </p>
 
-            @if (words.Any())
+            <div class="exam-section">聽力測驗（聽音後寫出答案）</div>
+            @for (int i = 0; i < questions.Count; i++)
             {
-                <div class="exam-section">單字聽力測驗（聽音後寫出答案）每題 @Model.scoreTable.WordScore 分</div>
-                @for (int i = 0; i < words.Count; i++)
-                {
-                    <div class="question-row">
-                        <span class="question-number">@(i + 1).</span>
-                        <span class="listening-q-label">（聽音作答）</span>
-                    </div>
-                    <div class="answer-row">
-                        <input type="text" class="answer-line" name="answers[@i]" />
-                    </div>
-                }
-            }
-
-            @if (phrases.Any())
-            {
-                <div class="exam-section">片語聽力測驗（聽音後寫出答案）每題 @Model.scoreTable.PhraseScore 分</div>
-                @for (int i = 0; i < phrases.Count; i++)
-                {
-                    <div class="question-row">
-                        <span class="question-number">@(words.Count + i + 1).</span>
-                        <span class="listening-q-label">（聽音作答）</span>
-                    </div>
-                    <div class="answer-row">
-                        <input type="text" class="answer-line" name="answers[@(words.Count + i)]" />
-                    </div>
-                }
+                var item = questions[i];
+                var score = string.Equals(item.CategoryType, "Phrase", StringComparison.OrdinalIgnoreCase)
+                    ? Model.scoreTable.PhraseScore
+                    : Model.scoreTable.WordScore;
+                <div class="question-row">
+                    <span class="question-number">@(i + 1).</span>
+                    <span class="listening-q-label">（聽音作答，@(string.Equals(item.CategoryType, "Phrase", StringComparison.OrdinalIgnoreCase) ? "片語" : "單字") @score 分）</span>
+                </div>
+                <div class="answer-row">
+                    <input type="text" class="answer-line" name="answers[@i]" />
+                </div>
             }
         </div>
 
-        <!-- 答案卷 -->
+        <!-- 答案卷：題號、聽力類型、念出的題目、正確答案，順序與音檔一致 -->
         <div class="exam-container page-break">
             <div style="display: flex; justify-content: space-between;">
                 <label class="exam-title">
@@ -236,40 +226,26 @@
                 </label>
             </div>
 
-            @if (words.Any())
+            <div class="exam-section">聽力測驗答案</div>
+            @for (int i = 0; i < questions.Count; i++)
             {
-                <div class="exam-section">單字聽力測驗答案</div>
-                @for (int i = 0; i < words.Count; i++)
-                {
-                    var expected = words[i].ListeningExpectedAnswer ?? words[i].Answer;
-                    var dirLabel = string.Equals(words[i].ListeningDirection, "English", StringComparison.OrdinalIgnoreCase)
-                        ? "英聽" : "中聽";
-                    <div class="question-row">
-                        <span class="question-number">@(i + 1).</span>
-                        <span class="text-muted small">（@dirLabel）</span>
-                    </div>
-                    <div class="answer-line answer-row">
-                        <span class="answer-text">@expected</span>
-                    </div>
-                }
-            }
-
-            @if (phrases.Any())
-            {
-                <div class="exam-section">片語聽力測驗答案</div>
-                @for (int i = 0; i < phrases.Count; i++)
-                {
-                    var expected = phrases[i].ListeningExpectedAnswer ?? phrases[i].Answer;
-                    var dirLabel = string.Equals(phrases[i].ListeningDirection, "English", StringComparison.OrdinalIgnoreCase)
-                        ? "英聽" : "中聽";
-                    <div class="question-row">
-                        <span class="question-number">@(words.Count + i + 1).</span>
-                        <span class="text-muted small">（@dirLabel）</span>
-                    </div>
-                    <div class="answer-line answer-row">
-                        <span class="answer-text">@expected</span>
-                    </div>
-                }
+                var item = questions[i];
+                var expected = item.ListeningExpectedAnswer ?? item.Answer;
+                var isEnglishListening = string.Equals(item.ListeningDirection, "English", StringComparison.OrdinalIgnoreCase);
+                var dirLabel = isEnglishListening ? "英聽" : "中聽";
+                var speakText = !string.IsNullOrWhiteSpace(item.SpeakText)
+                    ? item.SpeakText
+                    : isEnglishListening
+                        ? item.Answer
+                        : item.Question;
+                <div class="question-row">
+                    <span class="question-number">@(i + 1).</span>
+                    <span class="text-muted small">（@dirLabel）</span>
+                    <span class="question-text">@speakText</span>
+                </div>
+                <div class="answer-line answer-row">
+                    <span class="answer-text">@expected</span>
+                </div>
             }
         </div>
     }

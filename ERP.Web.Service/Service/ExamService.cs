@@ -7,6 +7,7 @@ using ERP.Web.Utility.Paging;
 using Microsoft.AspNetCore.Http;
 using Microsoft.AspNetCore.Mvc.Rendering; // ASP.NET Core 的 SelectListItem
 using OfficeOpenXml;
+using System.Text;
 
 namespace ERP.Web.Service.Service
 {
@@ -147,9 +148,11 @@ namespace ERP.Web.Service.Service
                 VocabularyList.Add(Vocabulary);
             }
 
-            result.VocabularyList = VocabularyList.OrderByDescending(x => Guid.NewGuid())
-                .OrderByDescending(x => x.CategoryType.ToLower() == "word")
-                .ToList();
+            result.VocabularyList = string.Equals(param.ExamMode, "Listening", StringComparison.OrdinalIgnoreCase)
+                ? VocabularyList.OrderBy(_ => Guid.NewGuid()).ToList()
+                : VocabularyList.OrderByDescending(x => Guid.NewGuid())
+                    .OrderByDescending(x => x.CategoryType.ToLower() == "word")
+                    .ToList();
 
             await CalculateScore(result.VocabularyList, result);
 
@@ -586,13 +589,29 @@ namespace ERP.Web.Service.Service
             };
 
             if (param == null || string.IsNullOrWhiteSpace(param.KidID))
+            {
+                await ApplyExamModeAsync(result, param?.ExamMode);
                 return result;
+            }
 
-            // 依「學生」抓取目前仍答錯（最新一筆 Correct=0）的題目
-            var take = param.TestNumber > 0 ? param.TestNumber : 18;
-            result.VocabularyList = await FillFromWrongAnswerPoolAsync(param, new HashSet<Guid>(), take);
+            // 聽力複習考：依英聽／中聽題數從答錯題池抽題
+            if (string.Equals(param.ExamMode, "Listening", StringComparison.OrdinalIgnoreCase)
+                && (param.EnglishListeningCount > 0 || param.ChineseListeningCount > 0))
+            {
+                result.VocabularyList = await BuildListeningMixedFromWrongPoolAsync(param);
+            }
+            else
+            {
+                // 筆試複習考：依「學生」抓取目前仍答錯（最新一筆 Correct=0）的題目
+                var take = param.TestNumber > 0 ? param.TestNumber : 18;
+                result.VocabularyList = await FillFromWrongAnswerPoolAsync(param, new HashSet<Guid>(), take);
+            }
+
             if (result.VocabularyList.Count == 0)
+            {
+                await ApplyExamModeAsync(result, param.ExamMode);
                 return result;
+            }
 
             await CalculateScore(result.VocabularyList, result);
 
@@ -612,7 +631,52 @@ namespace ERP.Web.Service.Service
                 });
             }
 
+            await ApplyExamModeAsync(result, param.ExamMode);
             return result;
+        }
+
+        /// <summary>
+        /// 複習考聽力混合出題：從答錯題池抽英聽 N 題＋中聽 M 題，亂數打散。
+        /// </summary>
+        private async Task<List<Vocabulary>> BuildListeningMixedFromWrongPoolAsync(ExamSearchListViewModel_param param)
+        {
+            if (string.IsNullOrWhiteSpace(param.KidID))
+                return new List<Vocabulary>();
+
+            var pool = await _examRepo.GetWrongVocabularyByKid(param.KidID, param.TestType);
+            if (pool == null || pool.Count == 0)
+                return new List<Vocabulary>();
+
+            var recentSet = (await _examRepo.GetRecentExamWordIdsAsync(param.KidID, param.TestType, 2))?.ToHashSet()
+                ?? new HashSet<Guid>();
+
+            var ordered = OrderWrongExamPool(pool, recentSet)
+                .GroupBy(x => x.WordID)
+                .Select(g => g.First())
+                .ToList();
+
+            var englishCount = Math.Max(0, param.EnglishListeningCount);
+            var chineseCount = Math.Max(0, param.ChineseListeningCount);
+            var result = new List<Vocabulary>();
+            var takenIds = new HashSet<Guid>();
+
+            foreach (var word in ordered.Where(x => !takenIds.Contains(x.WordID)).Take(englishCount))
+            {
+                ExamListeningLanguageHelper.ApplyListeningProfile(
+                    word, ExamListeningLanguageHelper.DirectionEnglish);
+                result.Add(word);
+                takenIds.Add(word.WordID);
+            }
+
+            foreach (var word in ordered.Where(x => !takenIds.Contains(x.WordID)).Take(chineseCount))
+            {
+                ExamListeningLanguageHelper.ApplyListeningProfile(
+                    word, ExamListeningLanguageHelper.DirectionChinese);
+                result.Add(word);
+                takenIds.Add(word.WordID);
+            }
+
+            return result.OrderBy(_ => Guid.NewGuid()).ToList();
         }
 
         /// <summary>
@@ -677,6 +741,89 @@ namespace ERP.Web.Service.Service
 
             // 儲存到資料庫
             return vocabularies.Count > 0 ? await SaveToDatabase(vocabularies) : false;
+        }
+
+        public class RestoreQuestionFromExcelPreview
+        {
+            public int ExcelRowCount { get; set; }
+            public int ExcelDistinctAnswerCount { get; set; }
+            public int ExcelDuplicateAnswerCount { get; set; }
+            public int DbMatchCount { get; set; }
+            public int WouldUpdateCount { get; set; }
+        }
+
+        public class RestoreQuestionFromExcelApply : RestoreQuestionFromExcelPreview
+        {
+            public int UpdatedCount { get; set; }
+        }
+
+        public async Task<RestoreQuestionFromExcelPreview> PreviewRestoreQuestionFromExcelAsync(
+            IFormFile file,
+            bool onlyWhenQuestionEqualsAnswer = true)
+        {
+            var rows = await ParseQuestionAnswerPairsAsync(file);
+            var preview = await _examRepo.PreviewRestoreQuestionByAnswerAsync(rows, onlyWhenQuestionEqualsAnswer);
+            return new RestoreQuestionFromExcelPreview
+            {
+                ExcelRowCount = preview.ExcelRowCount,
+                ExcelDistinctAnswerCount = preview.ExcelDistinctAnswerCount,
+                ExcelDuplicateAnswerCount = preview.ExcelDuplicateAnswerCount,
+                DbMatchCount = preview.DbMatchCount,
+                WouldUpdateCount = preview.WouldUpdateCount
+            };
+        }
+
+        public async Task<RestoreQuestionFromExcelApply> RestoreQuestionFromExcelAsync(
+            IFormFile file,
+            bool onlyWhenQuestionEqualsAnswer = true)
+        {
+            var rows = await ParseQuestionAnswerPairsAsync(file);
+            var result = await _examRepo.RestoreQuestionByAnswerAsync(rows, onlyWhenQuestionEqualsAnswer);
+            return new RestoreQuestionFromExcelApply
+            {
+                ExcelRowCount = result.ExcelRowCount,
+                ExcelDistinctAnswerCount = result.ExcelDistinctAnswerCount,
+                ExcelDuplicateAnswerCount = result.ExcelDuplicateAnswerCount,
+                DbMatchCount = result.DbMatchCount,
+                WouldUpdateCount = result.WouldUpdateCount,
+                UpdatedCount = result.UpdatedCount
+            };
+        }
+
+        private async Task<IReadOnlyList<(string Answer, string Question)>> ParseQuestionAnswerPairsAsync(IFormFile file)
+        {
+            ExcelPackage.LicenseContext = LicenseContext.NonCommercial;
+
+            var pairs = new List<(string Answer, string Question)>();
+            using var stream = new MemoryStream();
+            await file.CopyToAsync(stream);
+            using var package = new ExcelPackage(stream);
+
+            var worksheets = package.Workbook.Worksheets;
+            if (worksheets == null || worksheets.Count == 0)
+                return pairs;
+
+            // 沿用既有上傳規則：若第一張是範本，從第二張開始；若只有一張也仍嘗試讀取（用於補救檔）
+            var startIndex = worksheets.Count <= 1 ? 0 : 1;
+            for (int i = startIndex; i < worksheets.Count; i++)
+            {
+                var worksheet = worksheets[i];
+                if (worksheet?.Dimension == null) continue;
+
+                var rowCount = worksheet.Dimension.Rows;
+                for (int row = 2; row <= rowCount; row++)
+                {
+                    // 既有欄位：1=CategoryType, 2=Question, 3=Answer
+                    var question = worksheet.Cells[row, 2].Text?.Trim() ?? string.Empty;
+                    var answer = worksheet.Cells[row, 3].Text?.Trim() ?? string.Empty;
+                    if (string.IsNullOrWhiteSpace(question) || string.IsNullOrWhiteSpace(answer))
+                        continue;
+
+                    pairs.Add((answer, question));
+                }
+            }
+
+            return pairs;
         }
 
         public async Task<bool> SaveToDatabase(List<Vocabulary> vocabularies)

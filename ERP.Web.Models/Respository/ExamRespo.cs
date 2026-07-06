@@ -4,6 +4,7 @@ using ERP.Web.Utility.Models;
 using ERP.Web.Utility.Paging;
 using Microsoft.Extensions.Options;
 using Microsoft.Data.SqlClient;
+using System.Data;
 
 namespace ERP.Web.Models.Respository
 {
@@ -44,6 +45,169 @@ namespace ERP.Web.Models.Respository
             catch
             {
                 return Guid.Empty;
+            }
+        }
+
+        public class RestoreQuestionPreviewResult
+        {
+            public int ExcelRowCount { get; set; }
+            public int ExcelDistinctAnswerCount { get; set; }
+            public int ExcelDuplicateAnswerCount { get; set; }
+            public int DbMatchCount { get; set; }
+            public int WouldUpdateCount { get; set; }
+        }
+
+        public class RestoreQuestionApplyResult : RestoreQuestionPreviewResult
+        {
+            public int UpdatedCount { get; set; }
+        }
+
+        /// <summary>
+        /// 以 Excel (Answer→Question) 回填 Vocabulary.Question。
+        /// 預設只更新「Question 目前與 Answer 相同」的資料，避免覆蓋已正確的 Question。
+        /// </summary>
+        public async Task<RestoreQuestionPreviewResult> PreviewRestoreQuestionByAnswerAsync(
+            IReadOnlyList<(string Answer, string Question)> rows,
+            bool onlyWhenQuestionEqualsAnswer = true)
+        {
+            return await RestoreQuestionByAnswerInternalAsync(rows, apply: false, onlyWhenQuestionEqualsAnswer);
+        }
+
+        /// <summary>
+        /// 以 Excel (Answer→Question) 回填 Vocabulary.Question。
+        /// 預設只更新「Question 目前與 Answer 相同」的資料，避免覆蓋已正確的 Question。
+        /// </summary>
+        public async Task<RestoreQuestionApplyResult> RestoreQuestionByAnswerAsync(
+            IReadOnlyList<(string Answer, string Question)> rows,
+            bool onlyWhenQuestionEqualsAnswer = true)
+        {
+            var result = await RestoreQuestionByAnswerInternalAsync(rows, apply: true, onlyWhenQuestionEqualsAnswer);
+            return (RestoreQuestionApplyResult)result;
+        }
+
+        private async Task<RestoreQuestionPreviewResult> RestoreQuestionByAnswerInternalAsync(
+            IReadOnlyList<(string Answer, string Question)> rows,
+            bool apply,
+            bool onlyWhenQuestionEqualsAnswer)
+        {
+            var preview = apply
+                ? new RestoreQuestionApplyResult()
+                : new RestoreQuestionPreviewResult();
+
+            if (rows == null || rows.Count == 0)
+                return preview;
+
+            using var conn = new SqlConnection(_dBList.erp);
+            await conn.OpenAsync();
+            using var tx = conn.BeginTransaction();
+
+            try
+            {
+                // 以 temp table + bulk copy 處理大量 Excel rows（速度快、也避免 SQL injection）
+                const string createTemp = @"
+CREATE TABLE #RestoreQA(
+    Answer NVARCHAR(4000) NOT NULL,
+    Question NVARCHAR(4000) NOT NULL
+);";
+
+                using (var cmd = new SqlCommand(createTemp, conn, tx))
+                    await cmd.ExecuteNonQueryAsync();
+
+                var table = new DataTable();
+                table.Columns.Add("Answer", typeof(string));
+                table.Columns.Add("Question", typeof(string));
+
+                foreach (var (answer, question) in rows)
+                {
+                    if (string.IsNullOrWhiteSpace(answer) || string.IsNullOrWhiteSpace(question))
+                        continue;
+                    table.Rows.Add(answer.Trim(), question.Trim());
+                }
+
+                preview.ExcelRowCount = table.Rows.Count;
+                if (preview.ExcelRowCount == 0)
+                {
+                    tx.Commit();
+                    return preview;
+                }
+
+                using (var bulk = new SqlBulkCopy(conn, SqlBulkCopyOptions.Default, tx))
+                {
+                    bulk.DestinationTableName = "#RestoreQA";
+                    bulk.ColumnMappings.Add("Answer", "Answer");
+                    bulk.ColumnMappings.Add("Question", "Question");
+                    await bulk.WriteToServerAsync(table);
+                }
+
+                // 先把 Excel 依 Answer 去重（同一 Answer 取第一筆 Question）
+                const string buildDistinct = @"
+SELECT
+    Answer = LTRIM(RTRIM(Answer)),
+    Question = MAX(Question)
+INTO #RestoreDistinct
+FROM #RestoreQA
+GROUP BY LTRIM(RTRIM(Answer));";
+
+                using (var cmd = new SqlCommand(buildDistinct, conn, tx))
+                    await cmd.ExecuteNonQueryAsync();
+
+                const string previewSql = @"
+SELECT
+    ExcelRowCount = (SELECT COUNT(1) FROM #RestoreQA),
+    ExcelDistinctAnswerCount = (SELECT COUNT(1) FROM #RestoreDistinct),
+    ExcelDuplicateAnswerCount = (SELECT COUNT(1) FROM #RestoreQA) - (SELECT COUNT(1) FROM #RestoreDistinct),
+    DbMatchCount = (
+        SELECT COUNT(1)
+        FROM KidsWorld.dbo.Vocabulary v
+        JOIN #RestoreDistinct r
+          ON LTRIM(RTRIM(v.Answer)) = r.Answer
+    ),
+    WouldUpdateCount = (
+        SELECT COUNT(1)
+        FROM KidsWorld.dbo.Vocabulary v
+        JOIN #RestoreDistinct r
+          ON LTRIM(RTRIM(v.Answer)) = r.Answer
+        WHERE (@OnlyWhenSame = 0)
+           OR (LTRIM(RTRIM(ISNULL(v.Question, ''))) = LTRIM(RTRIM(ISNULL(v.Answer, ''))))
+    );";
+
+                var previewData = await conn.QueryFirstAsync<RestoreQuestionPreviewResult>(
+                    previewSql,
+                    new { OnlyWhenSame = onlyWhenQuestionEqualsAnswer ? 1 : 0 },
+                    tx);
+
+                preview.ExcelRowCount = previewData.ExcelRowCount;
+                preview.ExcelDistinctAnswerCount = previewData.ExcelDistinctAnswerCount;
+                preview.ExcelDuplicateAnswerCount = previewData.ExcelDuplicateAnswerCount;
+                preview.DbMatchCount = previewData.DbMatchCount;
+                preview.WouldUpdateCount = previewData.WouldUpdateCount;
+
+                if (apply)
+                {
+                    const string updateSql = @"
+UPDATE v
+SET v.Question = r.Question
+FROM KidsWorld.dbo.Vocabulary v
+JOIN #RestoreDistinct r
+  ON LTRIM(RTRIM(v.Answer)) = r.Answer
+WHERE (@OnlyWhenSame = 0)
+   OR (LTRIM(RTRIM(ISNULL(v.Question, ''))) = LTRIM(RTRIM(ISNULL(v.Answer, ''))));";
+
+                    var updated = await conn.ExecuteAsync(
+                        updateSql,
+                        new { OnlyWhenSame = onlyWhenQuestionEqualsAnswer ? 1 : 0 },
+                        tx);
+
+                    ((RestoreQuestionApplyResult)preview).UpdatedCount = updated;
+                }
+
+                tx.Commit();
+                return preview;
+            }
+            catch
+            {
+                tx.Rollback();
+                throw;
             }
         }
         public async Task<bool> chkUpdateWord(Vocabulary param)
