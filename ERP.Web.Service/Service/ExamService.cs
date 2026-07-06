@@ -14,15 +14,18 @@ namespace ERP.Web.Service.Service
     {
         private readonly ExamRespo _examRepo;
         private readonly IExamTtsService _examTtsService;
+        private readonly ExamListeningPlaylistService _examListeningPlaylistService;
         /// <summary>複習考（答錯題）固定課程名稱，用於累計出卷次數</summary>
         private const string WrongExamLessionName = "複習考";
         public ExamService(
             ExamRespo examRepo,
-            IExamTtsService examTtsService
+            IExamTtsService examTtsService,
+            ExamListeningPlaylistService examListeningPlaylistService
             )
         {
             _examRepo = examRepo;
             _examTtsService = examTtsService;
+            _examListeningPlaylistService = examListeningPlaylistService;
         }
         public async Task<ExamSearchListViewModel_result> GetNewTestAsync(ExamSearchListViewModel_param param)
         {
@@ -235,15 +238,21 @@ namespace ERP.Web.Service.Service
             return result;
         }
 
-        /// <summary>英聽模式：依題目中/英文產生 MP3 URL（Key 未設定時僅標記提示）</summary>
+        /// <summary>英聽模式：產生整份考卷 MP3（片段可重用，節省 API）</summary>
         private async Task ApplyExamModeAsync(ExamDataViewModel_result result, string? examMode)
         {
             if (!string.Equals(examMode, "Listening", StringComparison.OrdinalIgnoreCase))
                 return;
 
             result.ExamMode = "Listening";
-            result.ExamTypeLabel = "英聽";
+            var hasEnglish = result.VocabularyList?.Any(x =>
+                string.Equals(x.ListeningDirection, ExamListeningLanguageHelper.DirectionEnglish, StringComparison.OrdinalIgnoreCase)) == true;
+            var hasChinese = result.VocabularyList?.Any(x =>
+                string.Equals(x.ListeningDirection, ExamListeningLanguageHelper.DirectionChinese, StringComparison.OrdinalIgnoreCase)) == true;
+            result.ExamTypeLabel = hasEnglish && hasChinese ? "聽力" : hasChinese ? "中聽" : "英聽";
             result.TtsConfigured = _examTtsService.IsConfigured;
+            result.ExamListeningAudioDownloadName =
+                $"{result.Title}_{result.ExamTypeLabel}_{result.ExamDate:yyyyMMdd}_{result.ExamAttemptNumber}.mp3";
 
             if (result.VocabularyList == null || result.VocabularyList.Count == 0)
             {
@@ -252,30 +261,45 @@ namespace ERP.Web.Service.Service
                 return;
             }
 
-            var missingAudioCount = 0;
+            var questions = new List<ExamListeningQuestionItem>();
             foreach (var word in result.VocabularyList)
             {
-                word.SpeakText = ExamListeningLanguageHelper.ResolveSpeakText(word.Question);
-                word.SpeakLanguage = ExamListeningLanguageHelper.ResolveLanguage(word.Question);
-
-                var tts = await _examTtsService.GetOrCreateMp3Async(
-                    word.WordID,
-                    word.SpeakText,
-                    word.SpeakLanguage);
-
-                if (tts.Success && !string.IsNullOrEmpty(tts.AudioUrl))
-                    word.AudioUrl = tts.AudioUrl;
-                else
+                if (string.IsNullOrWhiteSpace(word.SpeakText) || string.IsNullOrWhiteSpace(word.SpeakLanguage))
                 {
-                    word.TtsErrorMessage = tts.ErrorMessage;
-                    missingAudioCount++;
+                    ExamListeningLanguageHelper.ApplyListeningProfile(
+                        word,
+                        ExamListeningLanguageHelper.ResolveLanguage(word.Question).StartsWith("zh", StringComparison.OrdinalIgnoreCase)
+                            ? ExamListeningLanguageHelper.DirectionChinese
+                            : ExamListeningLanguageHelper.DirectionEnglish);
                 }
+
+                word.AudioUrl = null;
+                word.TtsErrorMessage = null;
+
+                questions.Add(new ExamListeningQuestionItem
+                {
+                    SpeakText = word.SpeakText ?? string.Empty,
+                    SpeakLanguage = word.SpeakLanguage ?? ExamListeningLanguageHelper.LanguageEnglish
+                });
             }
 
-            if (!result.TtsConfigured)
-                result.TtsNoticeMessage = "尚未設定 TTS（ExamTts:OpenAiApiKey 或 SubscriptionKey）。考卷已產生，填入金鑰後重新出卷即可產生 MP3。";
-            else if (missingAudioCount > 0)
-                result.TtsNoticeMessage = $"有 {missingAudioCount} 題音檔尚未成功產生，請檢查題目文字或 TTS 設定。";
+            var playlist = await _examListeningPlaylistService.BuildExamPlaylistAsync(questions);
+
+            if (playlist.Success && !string.IsNullOrEmpty(playlist.AudioUrl))
+            {
+                result.ExamListeningAudioUrl = playlist.AudioUrl;
+            }
+            else
+            {
+                result.TtsNoticeMessage = playlist.ErrorMessage
+                    ?? "英聽完整音檔產生失敗，請檢查 TTS 設定。";
+            }
+
+            if (!result.TtsConfigured && string.IsNullOrEmpty(result.TtsNoticeMessage))
+            {
+                result.TtsNoticeMessage =
+                    "尚未設定 TTS（ExamTts:OpenAiApiKey 或 SubscriptionKey）。考卷已產生，填入金鑰後重新出卷即可產生 MP3。";
+            }
         }
 
         /// <summary>設定考卷標題用的日期與第幾次考試（KidTestIndex × Lession）</summary>
@@ -343,6 +367,13 @@ namespace ERP.Web.Service.Service
 
             if (listVocabulary.Count == 0)
                 return finalQuestions;
+
+            // 聽力考：分別抽「英聽／中聽」題數後亂數打散
+            if (string.Equals(param.ExamMode, "Listening", StringComparison.OrdinalIgnoreCase)
+                && (param.EnglishListeningCount > 0 || param.ChineseListeningCount > 0))
+            {
+                return BuildListeningMixedExam(param, listVocabulary);
+            }
 
             // 依 ClassNum 降序排列（最新的在前）
             var groupedByClass = listVocabulary
@@ -439,6 +470,56 @@ namespace ERP.Web.Service.Service
             }
 
             return finalQuestions;
+        }
+
+        /// <summary>
+        /// 聽力混合出題：英聽 N 題（念英文 Answer）＋中聽 M 題（念中文 Question），亂數打散。
+        /// 辭庫慣例：Question＝中文、Answer＝英文。
+        /// </summary>
+        private List<Vocabulary> BuildListeningMixedExam(
+            ExamSearchListViewModel_param param,
+            List<Vocabulary> listVocabulary)
+        {
+            var pool = OrderEnglishExamPool(listVocabulary)
+                .GroupBy(x => x.WordID)
+                .Select(g => g.First())
+                .ToList();
+
+            var englishCount = Math.Max(0, param.EnglishListeningCount);
+            var chineseCount = Math.Max(0, param.ChineseListeningCount);
+            var result = new List<Vocabulary>();
+            var takenIds = new HashSet<Guid>();
+
+            var englishPicks = pool
+                .Where(x => !takenIds.Contains(x.WordID))
+                .OrderBy(_ => Guid.NewGuid())
+                .Take(englishCount)
+                .ToList();
+
+            foreach (var word in englishPicks)
+            {
+                ExamListeningLanguageHelper.ApplyListeningProfile(
+                    word, ExamListeningLanguageHelper.DirectionEnglish);
+                result.Add(word);
+                takenIds.Add(word.WordID);
+            }
+
+            var chinesePicks = pool
+                .Where(x => !takenIds.Contains(x.WordID))
+                .OrderBy(_ => Guid.NewGuid())
+                .Take(chineseCount)
+                .ToList();
+
+            foreach (var word in chinesePicks)
+            {
+                ExamListeningLanguageHelper.ApplyListeningProfile(
+                    word, ExamListeningLanguageHelper.DirectionChinese);
+                result.Add(word);
+                takenIds.Add(word.WordID);
+            }
+
+            // 英聽＋中聽亂數交錯，增加考卷複雜度
+            return result.OrderBy(_ => Guid.NewGuid()).ToList();
         }
 
         /// <summary>從課程辭庫依出題優先序選題，同一 WordID 只取一題。</summary>

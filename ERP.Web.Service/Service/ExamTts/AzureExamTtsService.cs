@@ -25,11 +25,37 @@ namespace ERP.Web.Service.Service.ExamTts
             !string.IsNullOrWhiteSpace(_options.SubscriptionKey)
             && !string.IsNullOrWhiteSpace(_options.Region);
 
-        public async Task<ExamTtsResult> GetOrCreateMp3Async(
+        public Task<ExamTtsResult> GetOrCreateMp3Async(
             Guid wordId,
             string speakText,
             string language,
             CancellationToken cancellationToken = default)
+        {
+            var profile = ResolveVoiceProfile(language);
+            var fileName = ExamTtsCacheHelper.BuildCacheFileName(
+                wordId, speakText, language, profile.Key);
+
+            return GetOrCreateCachedMp3Async(fileName, speakText, language, profile, cancellationToken);
+        }
+
+        public Task<ExamTtsResult> GetOrCreateSegmentMp3Async(
+            string speakText,
+            string language,
+            CancellationToken cancellationToken = default)
+        {
+            var profile = ResolveVoiceProfile(language);
+            var fileName = ExamTtsCacheHelper.BuildSegmentCacheFileName(
+                speakText, language, profile.Key);
+
+            return GetOrCreateCachedMp3Async(fileName, speakText, language, profile, cancellationToken);
+        }
+
+        private async Task<ExamTtsResult> GetOrCreateCachedMp3Async(
+            string fileName,
+            string speakText,
+            string language,
+            VoiceProfile profile,
+            CancellationToken cancellationToken)
         {
             if (string.IsNullOrWhiteSpace(speakText))
                 return ExamTtsResult.Fail("題目文字為空，無法產生音檔。");
@@ -39,7 +65,6 @@ namespace ERP.Web.Service.Service.ExamTts
 
             Directory.CreateDirectory(_options.CacheDirectory);
 
-            var fileName = ExamTtsCacheHelper.BuildCacheFileName(wordId, speakText, language);
             var filePath = Path.Combine(_options.CacheDirectory, fileName);
             var publicUrl = ExamTtsCacheHelper.CombineUrl(_options.PublicUrlPrefix, fileName);
 
@@ -54,19 +79,24 @@ namespace ERP.Web.Service.Service.ExamTts
 
             try
             {
-                var voiceName = language.StartsWith("zh", StringComparison.OrdinalIgnoreCase)
-                    ? _options.ChineseVoice
-                    : _options.EnglishVoice;
-
                 var speechConfig = SpeechConfig.FromSubscription(_options.SubscriptionKey, _options.Region);
-                speechConfig.SpeechSynthesisVoiceName = voiceName;
+                speechConfig.SpeechSynthesisVoiceName = profile.VoiceName;
                 speechConfig.SetSpeechSynthesisOutputFormat(
                     SpeechSynthesisOutputFormat.Audio24Khz48KBitRateMonoMp3);
 
                 using var synthesizer = new SpeechSynthesizer(speechConfig, null);
                 using var registration = cancellationToken.Register(() => synthesizer.StopSpeakingAsync());
 
-                var synthesis = await synthesizer.SpeakTextAsync(speakText);
+                var ratePercent = (int)Math.Round(profile.Speed * 100);
+                var xmlLang = profile.IsChinese ? "zh-TW" : "en-US";
+                var escapedText = System.Security.SecurityElement.Escape(speakText) ?? speakText;
+                var ssml =
+                    $"<speak version='1.0' xml:lang='{xmlLang}'>" +
+                    $"<voice name='{profile.VoiceName}'>" +
+                    $"<prosody rate='{ratePercent}%'>{escapedText}</prosody>" +
+                    "</voice></speak>";
+
+                var synthesis = await synthesizer.SpeakSsmlAsync(ssml);
 
                 if (synthesis.Reason == ResultReason.Canceled)
                 {
@@ -83,9 +113,23 @@ namespace ERP.Web.Service.Service.ExamTts
             }
             catch (Exception ex)
             {
-                _logger.LogError(ex, "Azure TTS 例外，WordID={WordId}", wordId);
+                _logger.LogError(ex, "Azure TTS 例外，Text={Text}", speakText);
                 return ExamTtsResult.Fail($"語音合成例外：{ex.Message}");
             }
         }
+
+        private VoiceProfile ResolveVoiceProfile(string language)
+        {
+            var isChinese = language.StartsWith("zh", StringComparison.OrdinalIgnoreCase);
+            var speed = OpenAiExamTtsService.ClampSpeed(isChinese
+                ? _options.ChineseSpeed ?? _options.Speed
+                : _options.EnglishSpeed ?? _options.Speed);
+            var voiceName = isChinese ? _options.ChineseVoice : _options.EnglishVoice;
+            var key = $"azure|{voiceName}|{speed:F2}";
+
+            return new VoiceProfile(voiceName, speed, isChinese, key);
+        }
+
+        private sealed record VoiceProfile(string VoiceName, double Speed, bool IsChinese, string Key);
     }
 }

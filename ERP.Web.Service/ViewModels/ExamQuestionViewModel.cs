@@ -21,6 +21,13 @@ namespace ERP.Web.Service.ViewModels
         public bool Correct { get; set; }
         public bool Focus { get; set; }// 優先試題
         public int TestNumber { get; set; }
+
+        /// <summary>英聽題數：聽英文（Answer）→ 寫中文（Question）</summary>
+        public int EnglishListeningCount { get; set; }
+
+        /// <summary>中聽題數：聽中文（Question）→ 寫英文（Answer）</summary>
+        public int ChineseListeningCount { get; set; }
+
         public string Question { get; set; }
         public string Answer { get; set; } // 正確答案
         /// <summary>關鍵字：課程、問題、答案一併搜尋</summary>
@@ -93,6 +100,12 @@ namespace ERP.Web.Service.ViewModels
 
         /// <summary>未設定 TTS 或部分題目無音檔時的整體提示</summary>
         public string? TtsNoticeMessage { get; set; }
+
+        /// <summary>整份英聽考卷合併後的 MP3 URL（含題號、間隔、重複念法）</summary>
+        public string? ExamListeningAudioUrl { get; set; }
+
+        /// <summary>英聽完整音檔下載檔名</summary>
+        public string? ExamListeningAudioDownloadName { get; set; }
     }
 
     public class ScoreTable

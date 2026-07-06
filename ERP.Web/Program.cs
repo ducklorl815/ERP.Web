@@ -8,6 +8,7 @@ using ERP.Web.Service.Service.ExamTts;
 using ERP.Web.Utility.Models;
 using ERP.Web.Utility.Services;
 using Microsoft.Extensions.FileProviders;
+using Microsoft.Extensions.Options;
 
 var builder = WebApplication.CreateBuilder(args);
 
@@ -17,22 +18,24 @@ builder.Services.AddControllersWithViews().AddRazorRuntimeCompilation();
 // Add services to the container.
 builder.Services.AddControllersWithViews();
 
-// 英聽／中聽 TTS（Provider：OpenAI 或 Azure）；CacheDirectory 相對路徑會對應 wwwroot
+// 英聽／中聽 TTS；CacheDirectory 預設在 ContentRoot/AppData（實體檔，建置不會清掉）
 builder.Services.Configure<ExamTtsOptions>(builder.Configuration.GetSection(ExamTtsOptions.SectionName));
 builder.Services.PostConfigure<ExamTtsOptions>(options =>
 {
     if (string.IsNullOrWhiteSpace(options.CacheDirectory))
-        options.CacheDirectory = "exam-audio";
+        options.CacheDirectory = "AppData/exam-audio";
 
     if (!Path.IsPathRooted(options.CacheDirectory))
     {
         options.CacheDirectory = Path.Combine(
-            builder.Environment.WebRootPath,
+            builder.Environment.ContentRootPath,
             options.CacheDirectory.TrimStart('/', '\\'));
     }
 
     if (string.IsNullOrWhiteSpace(options.PublicUrlPrefix))
         options.PublicUrlPrefix = "/exam-audio";
+
+    Directory.CreateDirectory(options.CacheDirectory);
 });
 
 builder.Services.AddHttpClient(nameof(OpenAiExamTtsService), client =>
@@ -56,6 +59,7 @@ builder.Services.AddMemoryCache();
 builder.Services.AddHttpContextAccessor();
 builder.Services.AddSingleton<IPermissionService, PermissionService>();
 
+builder.Services.AddSingleton<ExamListeningPlaylistService>();
 builder.Services.AddSingleton<ControllerSettingService>();
 builder.Services.AddSingleton<HomeService>();
 builder.Services.AddSingleton<ChartsService>();
@@ -83,6 +87,20 @@ if (!app.Environment.IsDevelopment())
 
 app.UseHttpsRedirection();
 app.UseStaticFiles();
+
+// 英聽 TTS 實體音檔（AppData/exam-audio，跨建置重用）
+{
+    var examTts = app.Services.GetRequiredService<IOptions<ExamTtsOptions>>().Value;
+    if (!string.IsNullOrWhiteSpace(examTts.CacheDirectory) && Directory.Exists(examTts.CacheDirectory))
+    {
+        var audioPrefix = (examTts.PublicUrlPrefix ?? "/exam-audio").TrimEnd('/');
+        app.UseStaticFiles(new StaticFileOptions
+        {
+            FileProvider = new PhysicalFileProvider(examTts.CacheDirectory),
+            RequestPath = audioPrefix
+        });
+    }
+}
 
 app.UseDeveloperExceptionPage();
 app.UseStaticFiles(new StaticFileOptions

@@ -11,6 +11,8 @@
     <PackageReference Include="EPPlus" Version="6.2.16" />
     <!-- 英聽考卷：Azure Speech TTS -->
     <PackageReference Include="Microsoft.CognitiveServices.Speech" Version="1.38.0" />
+    <!-- 英聽考卷：合併 MP3 片段與靜音間隔 -->
+    <PackageReference Include="NAudio" Version="2.2.1" />
     <!-- 移除 Microsoft.AspNet.Mvc - ASP.NET Core 已內建 MVC 功能 -->
     <PackageReference Include="Microsoft.AspNetCore.Http.Features" Version="5.0.17" />
     <PackageReference Include="Microsoft.Extensions.Logging.Abstractions" Version="6.0.4" />

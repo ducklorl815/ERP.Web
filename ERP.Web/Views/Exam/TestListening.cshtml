@@ -158,6 +158,21 @@
     </style>
 ")
 
+@if (!string.IsNullOrEmpty(Model.ExamListeningAudioUrl))
+{
+    <div class="exam-container listening-playlist no-print mb-3">
+        <div class="exam-section">完整英聽音檔（依序：第 N 題 → 單字 ×2，含間隔）</div>
+        <audio controls preload="metadata" src="@Model.ExamListeningAudioUrl" style="width:100%; max-width:600px;"></audio>
+        <div class="mt-2">
+            <a class="btn btn-sm btn-outline-primary"
+               href="@Model.ExamListeningAudioUrl"
+               download="@(Model.ExamListeningAudioDownloadName ?? "exam-listening.mp3")">
+                下載完整 MP3
+            </a>
+        </div>
+    </div>
+}
+
 @if (!string.IsNullOrEmpty(Model.TtsNoticeMessage))
 {
     <div class="exam-container tts-notice no-print">
@@ -179,28 +194,17 @@
             </div>
 
             <p class="exam-section no-print text-muted small mb-2">
-                英聽預覽：播放音檔確認念法；列印考卷僅顯示題號，不印出題目文字。
+                聽力預覽：播放上方完整音檔（第 N 題 → 單字 ×2，含間隔）；列印考卷僅顯示題號。
             </p>
 
             @if (words.Any())
             {
-                <div class="exam-section">單字英聽測驗（聽音後寫出答案）每題 @Model.scoreTable.WordScore 分</div>
+                <div class="exam-section">單字聽力測驗（聽音後寫出答案）每題 @Model.scoreTable.WordScore 分</div>
                 @for (int i = 0; i < words.Count; i++)
                 {
                     <div class="question-row">
                         <span class="question-number">@(i + 1).</span>
                         <span class="listening-q-label">（聽音作答）</span>
-                    </div>
-                    <div class="listening-preview no-print">
-                        @if (!string.IsNullOrEmpty(words[i].AudioUrl))
-                        {
-                            <audio controls preload="none" src="@words[i].AudioUrl"></audio>
-                            <span class="text-muted small ms-2">[@words[i].SpeakLanguage]</span>
-                        }
-                        else if (!string.IsNullOrEmpty(words[i].TtsErrorMessage))
-                        {
-                            <span class="tts-item-error">@words[i].TtsErrorMessage</span>
-                        }
                     </div>
                     <div class="answer-row">
                         <input type="text" class="answer-line" name="answers[@i]" />
@@ -210,23 +214,12 @@
 
             @if (phrases.Any())
             {
-                <div class="exam-section">片語英聽測驗（聽音後寫出答案）每題 @Model.scoreTable.PhraseScore 分</div>
+                <div class="exam-section">片語聽力測驗（聽音後寫出答案）每題 @Model.scoreTable.PhraseScore 分</div>
                 @for (int i = 0; i < phrases.Count; i++)
                 {
                     <div class="question-row">
                         <span class="question-number">@(words.Count + i + 1).</span>
                         <span class="listening-q-label">（聽音作答）</span>
-                    </div>
-                    <div class="listening-preview no-print">
-                        @if (!string.IsNullOrEmpty(phrases[i].AudioUrl))
-                        {
-                            <audio controls preload="none" src="@phrases[i].AudioUrl"></audio>
-                            <span class="text-muted small ms-2">[@phrases[i].SpeakLanguage]</span>
-                        }
-                        else if (!string.IsNullOrEmpty(phrases[i].TtsErrorMessage))
-                        {
-                            <span class="tts-item-error">@phrases[i].TtsErrorMessage</span>
-                        }
                     </div>
                     <div class="answer-row">
                         <input type="text" class="answer-line" name="answers[@(words.Count + i)]" />
@@ -245,30 +238,36 @@
 
             @if (words.Any())
             {
-                <div class="exam-section">單字英聽測驗答案</div>
+                <div class="exam-section">單字聽力測驗答案</div>
                 @for (int i = 0; i < words.Count; i++)
                 {
+                    var expected = words[i].ListeningExpectedAnswer ?? words[i].Answer;
+                    var dirLabel = string.Equals(words[i].ListeningDirection, "English", StringComparison.OrdinalIgnoreCase)
+                        ? "英聽" : "中聽";
                     <div class="question-row">
                         <span class="question-number">@(i + 1).</span>
-                        <span class="text-muted small">（英聽題）</span>
+                        <span class="text-muted small">（@dirLabel）</span>
                     </div>
                     <div class="answer-line answer-row">
-                        <span class="answer-text">@words[i].Answer</span>
+                        <span class="answer-text">@expected</span>
                     </div>
                 }
             }
 
             @if (phrases.Any())
             {
-                <div class="exam-section">片語英聽測驗答案</div>
+                <div class="exam-section">片語聽力測驗答案</div>
                 @for (int i = 0; i < phrases.Count; i++)
                 {
+                    var expected = phrases[i].ListeningExpectedAnswer ?? phrases[i].Answer;
+                    var dirLabel = string.Equals(phrases[i].ListeningDirection, "English", StringComparison.OrdinalIgnoreCase)
+                        ? "英聽" : "中聽";
                     <div class="question-row">
                         <span class="question-number">@(words.Count + i + 1).</span>
-                        <span class="text-muted small">（英聽題）</span>
+                        <span class="text-muted small">（@dirLabel）</span>
                     </div>
                     <div class="answer-line answer-row">
-                        <span class="answer-text">@phrases[i].Answer</span>
+                        <span class="answer-text">@expected</span>
                     </div>
                 }
             }

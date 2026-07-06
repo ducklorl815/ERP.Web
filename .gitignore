@@ -14,3 +14,6 @@ ERP.Web.Utility/obj/
 
 # TTS 測試音檔
 ERP.Web/wwwroot/exam-audio/_test_*.mp3
+
+# 英聽 TTS 實體快取（跨建置保留，勿 commit）
+ERP.Web/AppData/exam-audio/

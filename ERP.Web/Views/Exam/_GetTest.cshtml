@@ -6,7 +6,7 @@
 
 <h2 class="mb-3">請填寫考試資訊</h2>
 
-<form method="get" action="@Url.Action("Test", ViewContext.RouteData.Values["controller"]?.ToString())">
+<form method="get" action="@Url.Action("Test", ViewContext.RouteData.Values["controller"]?.ToString())" id="examTestForm">
     <input type="hidden" name="TestType" value="@examTestType" />
     <div>
         <div class="row align-items-end gy-3 gx-4 col-12">
@@ -27,9 +27,9 @@
                 </select>
             </div>
 
-            <div class="col-2 row align-items-center">
+            <div class="col-2 row align-items-center" id="writtenTestNumberGroup">
                 <label for="Number" class="me-2 mb-0">題數：</label>
-                <input id="Number" type="number" name="TestNumber" class="form-control" style="width:100px;" value="18" />
+                <input id="Number" type="number" name="TestNumber" class="form-control" style="width:100px;" value="18" min="1" />
             </div>
 
             <div class="col-2">
@@ -47,14 +47,63 @@
             </div>
 
             <div class="col-1 d-flex flex-column gap-2">
-                <button type="submit" class="btn btn-primary">送出</button>
-                <button type="submit" formaction="@Url.Action("ListeningTest", ViewContext.RouteData.Values["controller"]?.ToString())" class="btn btn-info btn-sm">
-                    英聽版本
+                <button type="submit" class="btn btn-primary">筆試</button>
+                <button type="submit" formaction="@Url.Action("ListeningTest", ViewContext.RouteData.Values["controller"]?.ToString())" class="btn btn-info btn-sm" id="btnListeningTest">
+                    聽力版本
                 </button>
             </div>
 
+        </div>
+
+        <div class="row align-items-end gy-3 gx-4 col-12 mt-2" id="listeningCountGroup">
+            <div class="col-12">
+                <span class="badge bg-info text-dark">聽力出題</span>
+                <span class="text-muted small ms-2">辭庫：Question＝中文、Answer＝英文；可混合出題後亂數打散</span>
+            </div>
+            <div class="col-auto">
+                <label for="EnglishListeningCount" class="form-label mb-1">英聽題數（聽英文 → 寫中文）</label>
+                <input id="EnglishListeningCount" type="number" name="EnglishListeningCount" class="form-control" style="width:120px;" value="7" min="0" />
+            </div>
+            <div class="col-auto">
+                <label for="ChineseListeningCount" class="form-label mb-1">中聽題數（聽中文 → 寫英文）</label>
+                <input id="ChineseListeningCount" type="number" name="ChineseListeningCount" class="form-control" style="width:120px;" value="3" min="0" />
+            </div>
+            <div class="col-auto text-muted small pb-2">
+                聽力版本會忽略上方「題數」，以這兩欄為準
+            </div>
         </div>
     </div>
 
 </form>
 <hr />
+
+<script>
+    (function () {
+        var form = document.getElementById('examTestForm');
+        var btnListening = document.getElementById('btnListeningTest');
+        if (!form || !btnListening) return;
+
+        btnListening.addEventListener('click', function (e) {
+            var en = parseInt(document.getElementById('EnglishListeningCount').value, 10) || 0;
+            var zh = parseInt(document.getElementById('ChineseListeningCount').value, 10) || 0;
+            if (en + zh <= 0) {
+                alert('請至少設定 1 題英聽或中聽題數');
+                e.preventDefault();
+                return false;
+            }
+            var hidden = form.querySelector('input[name="ExamMode"]');
+            if (!hidden) {
+                hidden = document.createElement('input');
+                hidden.type = 'hidden';
+                hidden.name = 'ExamMode';
+                form.appendChild(hidden);
+            }
+            hidden.value = 'Listening';
+        });
+
+        form.querySelector('button[type="submit"]:not(#btnListeningTest)')?.addEventListener('click', function () {
+            var hidden = form.querySelector('input[name="ExamMode"]');
+            if (hidden) hidden.remove();
+        });
+    })();
+</script>

@@ -1,6 +1,7 @@
 using System.Net.Http.Headers;
 using System.Text;
 using System.Text.Json;
+using System.Text.Json.Serialization;
 using ERP.Web.Service.Options;
 using Microsoft.Extensions.Logging;
 using Microsoft.Extensions.Options;
@@ -9,7 +10,7 @@ namespace ERP.Web.Service.Service.ExamTts
 {
     /// <summary>
     /// OpenAI Audio Speech API：題目文字 → MP3（含本機快取）。
-    /// ApiKey 未設定時略過 API，供先上版、後填 Key 使用。
+    /// 支援 speed（語速）與 gpt-4o-mini-tts 的 instructions（口音／語氣）。
     /// </summary>
     public class OpenAiExamTtsService : IExamTtsService
     {
@@ -31,11 +32,37 @@ namespace ERP.Web.Service.Service.ExamTts
 
         public bool IsConfigured => !string.IsNullOrWhiteSpace(_options.OpenAiApiKey);
 
-        public async Task<ExamTtsResult> GetOrCreateMp3Async(
+        public Task<ExamTtsResult> GetOrCreateMp3Async(
             Guid wordId,
             string speakText,
             string language,
             CancellationToken cancellationToken = default)
+        {
+            var profile = ResolveVoiceProfile(language);
+            var fileName = ExamTtsCacheHelper.BuildCacheFileName(
+                wordId, speakText, language, profile.Key);
+
+            return GetOrCreateCachedMp3Async(fileName, speakText, language, profile, cancellationToken);
+        }
+
+        public Task<ExamTtsResult> GetOrCreateSegmentMp3Async(
+            string speakText,
+            string language,
+            CancellationToken cancellationToken = default)
+        {
+            var profile = ResolveVoiceProfile(language);
+            var fileName = ExamTtsCacheHelper.BuildSegmentCacheFileName(
+                speakText, language, profile.Key);
+
+            return GetOrCreateCachedMp3Async(fileName, speakText, language, profile, cancellationToken);
+        }
+
+        private async Task<ExamTtsResult> GetOrCreateCachedMp3Async(
+            string fileName,
+            string speakText,
+            string language,
+            VoiceProfile profile,
+            CancellationToken cancellationToken)
         {
             if (string.IsNullOrWhiteSpace(speakText))
                 return ExamTtsResult.Fail("題目文字為空，無法產生音檔。");
@@ -45,7 +72,6 @@ namespace ERP.Web.Service.Service.ExamTts
 
             Directory.CreateDirectory(_options.CacheDirectory);
 
-            var fileName = ExamTtsCacheHelper.BuildCacheFileName(wordId, speakText, language);
             var filePath = Path.Combine(_options.CacheDirectory, fileName);
             var publicUrl = ExamTtsCacheHelper.CombineUrl(_options.PublicUrlPrefix, fileName);
 
@@ -60,25 +86,13 @@ namespace ERP.Web.Service.Service.ExamTts
 
             try
             {
-                var voice = language.StartsWith("zh", StringComparison.OrdinalIgnoreCase)
-                    ? _options.ChineseVoice
-                    : _options.EnglishVoice;
-
-                var payload = new
-                {
-                    model = _options.OpenAiModel,
-                    input = speakText,
-                    voice,
-                    response_format = "mp3"
-                };
+                var payload = BuildPayload(speakText, profile.Voice, profile.Speed, profile.Instructions);
+                var json = JsonSerializer.Serialize(payload, JsonOptions);
 
                 var client = _httpClientFactory.CreateClient(nameof(OpenAiExamTtsService));
                 using var request = new HttpRequestMessage(HttpMethod.Post, SpeechEndpoint);
                 request.Headers.Authorization = new AuthenticationHeaderValue("Bearer", _options.OpenAiApiKey);
-                request.Content = new StringContent(
-                    JsonSerializer.Serialize(payload),
-                    Encoding.UTF8,
-                    "application/json");
+                request.Content = new StringContent(json, Encoding.UTF8, "application/json");
 
                 using var response = await client.SendAsync(request, cancellationToken);
 
@@ -104,12 +118,91 @@ namespace ERP.Web.Service.Service.ExamTts
             }
             catch (Exception ex)
             {
-                _logger.LogError(ex, "OpenAI TTS 例外，WordID={WordId}", wordId);
+                _logger.LogError(ex, "OpenAI TTS 例外，Text={Text}", speakText);
                 return ExamTtsResult.Fail($"語音合成例外：{ex.Message}");
             }
         }
 
-        /// <summary>從 OpenAI 錯誤 JSON 擷取可讀訊息</summary>
+        private VoiceProfile ResolveVoiceProfile(string language)
+        {
+            var isChinese = language.StartsWith("zh", StringComparison.OrdinalIgnoreCase);
+            var speed = ClampSpeed(isChinese
+                ? _options.ChineseSpeed ?? _options.Speed
+                : _options.EnglishSpeed ?? _options.Speed);
+            var voice = isChinese ? _options.ChineseVoice : _options.EnglishVoice;
+            var instructions = isChinese
+                ? _options.OpenAiChineseInstructions
+                : _options.OpenAiEnglishInstructions;
+            var key = BuildProfileKey(_options.OpenAiModel, voice, speed, instructions);
+
+            return new VoiceProfile(voice, speed, instructions, key);
+        }
+
+        private object BuildPayload(string speakText, string voice, double speed, string? instructions)
+        {
+            var supportsInstructions = _options.OpenAiModel.StartsWith(
+                "gpt-4o-mini-tts",
+                StringComparison.OrdinalIgnoreCase);
+
+            if (supportsInstructions && !string.IsNullOrWhiteSpace(instructions))
+            {
+                return new OpenAiSpeechRequest
+                {
+                    Model = _options.OpenAiModel,
+                    Input = speakText,
+                    Voice = voice,
+                    ResponseFormat = "mp3",
+                    Speed = speed,
+                    Instructions = instructions.Trim()
+                };
+            }
+
+            return new OpenAiSpeechRequest
+            {
+                Model = _options.OpenAiModel,
+                Input = speakText,
+                Voice = voice,
+                ResponseFormat = "mp3",
+                Speed = speed
+            };
+        }
+
+        internal static string BuildProfileKey(string model, string voice, double speed, string? instructions)
+        {
+            var instructionPart = string.IsNullOrWhiteSpace(instructions) ? "-" : instructions.Trim();
+            return $"{model}|{voice}|{speed:F2}|{instructionPart}";
+        }
+
+        internal static double ClampSpeed(double speed) => Math.Clamp(speed, 0.25, 4.0);
+
+        private sealed record VoiceProfile(string Voice, double Speed, string? Instructions, string Key);
+
+        private static readonly JsonSerializerOptions JsonOptions = new()
+        {
+            DefaultIgnoreCondition = JsonIgnoreCondition.WhenWritingNull
+        };
+
+        private sealed class OpenAiSpeechRequest
+        {
+            [JsonPropertyName("model")]
+            public string Model { get; set; } = string.Empty;
+
+            [JsonPropertyName("input")]
+            public string Input { get; set; } = string.Empty;
+
+            [JsonPropertyName("voice")]
+            public string Voice { get; set; } = string.Empty;
+
+            [JsonPropertyName("response_format")]
+            public string ResponseFormat { get; set; } = "mp3";
+
+            [JsonPropertyName("speed")]
+            public double Speed { get; set; }
+
+            [JsonPropertyName("instructions")]
+            public string? Instructions { get; set; }
+        }
+
         private static string TryParseOpenAiError(string errorBody)
         {
             if (string.IsNullOrWhiteSpace(errorBody))

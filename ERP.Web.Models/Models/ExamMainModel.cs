@@ -41,6 +41,12 @@
         /// <summary>TTS 失敗或未設定 Key 時的提示</summary>
         public string? TtsErrorMessage { get; set; }
 
+        /// <summary>聽力出題：English＝聽英文寫中文；Chinese＝聽中文寫英文</summary>
+        public string? ListeningDirection { get; set; }
+
+        /// <summary>聽力考卷學生應填寫的答案（答案卷／PDF 用）</summary>
+        public string? ListeningExpectedAnswer { get; set; }
+
         #endregion
 
     }

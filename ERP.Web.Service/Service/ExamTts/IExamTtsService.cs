@@ -14,5 +14,13 @@ namespace ERP.Web.Service.Service.ExamTts
             string speakText,
             string language,
             CancellationToken cancellationToken = default);
+
+        /// <summary>
+        /// 取得或建立可重複使用的 TTS 片段（依文字 hash，跨考卷共用以節省 API）。
+        /// </summary>
+        Task<ExamTtsResult> GetOrCreateSegmentMp3Async(
+            string speakText,
+            string language,
+            CancellationToken cancellationToken = default);
     }
 }
