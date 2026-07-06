@@ -1,4 +1,5 @@
 using ERP.Web.Service.Service;
+using ERP.Web.Service.Service.ExamTts;
 using ERP.Web.Service.ViewModels;
 using Microsoft.AspNetCore.Mvc;
 
@@ -11,11 +12,13 @@ namespace ERP.Web.Controllers
     public class ExamEnglishController : Controller
     {
         private readonly ExamService _examService;
+        private readonly IExamTtsService _examTtsService;
         private const string TestType = "English"; // 固定為 English
 
-        public ExamEnglishController(ExamService examService)
+        public ExamEnglishController(ExamService examService, IExamTtsService examTtsService)
         {
             _examService = examService;
+            _examTtsService = examTtsService;
         }
 
         #region 考試頁面
@@ -137,6 +140,31 @@ namespace ERP.Web.Controllers
         {
             var result = await _examService.GetClassNameListByDate(KidID, TestDate, TestType);
             return Json(result);
+        }
+
+        /// <summary>
+        /// 測試 TTS 連線（開發用）：英文題念英文、中文題念中文。
+        /// 例：/ExamEnglish/TtsPing?text=brilliant 或 ?text=忙碌的
+        /// </summary>
+        [HttpGet]
+        public async Task<IActionResult> TtsPing(string text = "brilliant", CancellationToken cancellationToken = default)
+        {
+            var language = ExamListeningLanguageHelper.ResolveLanguage(text);
+            var result = await _examTtsService.GetOrCreateMp3Async(
+                Guid.Empty,
+                text.Trim(),
+                language,
+                cancellationToken);
+
+            return Json(new
+            {
+                configured = _examTtsService.IsConfigured,
+                text,
+                language,
+                success = result.Success,
+                audioUrl = result.AudioUrl,
+                error = result.ErrorMessage
+            });
         }
 
         #endregion

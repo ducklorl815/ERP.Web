@@ -1,5 +1,3 @@
-using System.Security.Cryptography;
-using System.Text;
 using ERP.Web.Service.Options;
 using Microsoft.CognitiveServices.Speech;
 using Microsoft.CognitiveServices.Speech.Audio;
@@ -41,9 +39,9 @@ namespace ERP.Web.Service.Service.ExamTts
 
             Directory.CreateDirectory(_options.CacheDirectory);
 
-            var fileName = BuildCacheFileName(wordId, speakText, language);
+            var fileName = ExamTtsCacheHelper.BuildCacheFileName(wordId, speakText, language);
             var filePath = Path.Combine(_options.CacheDirectory, fileName);
-            var publicUrl = CombineUrl(_options.PublicUrlPrefix, fileName);
+            var publicUrl = ExamTtsCacheHelper.CombineUrl(_options.PublicUrlPrefix, fileName);
 
             if (File.Exists(filePath))
                 return ExamTtsResult.Ok(publicUrl);
@@ -88,21 +86,6 @@ namespace ERP.Web.Service.Service.ExamTts
                 _logger.LogError(ex, "Azure TTS 例外，WordID={WordId}", wordId);
                 return ExamTtsResult.Fail($"語音合成例外：{ex.Message}");
             }
-        }
-
-        /// <summary>快取檔名：WordID + 語言 + 文字 hash，避免同字不同義時覆蓋錯誤。</summary>
-        internal static string BuildCacheFileName(Guid wordId, string speakText, string language)
-        {
-            var hashInput = $"{language}:{speakText.Trim()}";
-            var hashBytes = SHA256.HashData(Encoding.UTF8.GetBytes(hashInput));
-            var hash = Convert.ToHexString(hashBytes)[..16].ToLowerInvariant();
-            return $"{wordId:N}_{hash}.mp3";
-        }
-
-        private static string CombineUrl(string prefix, string fileName)
-        {
-            var basePath = (prefix ?? "/exam-audio").TrimEnd('/');
-            return $"{basePath}/{fileName}";
         }
     }
 }

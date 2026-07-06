@@ -7,3 +7,10 @@ ERP.Web.Service/bin/
 ERP.Web.Service/obj/
 ERP.Web.Utility/bin/
 ERP.Web.Utility/obj/
+
+# 本機機密設定（勿 commit）
+**/appsettings.Development.local.json
+**/appsettings.*.local.json
+
+# TTS 測試音檔
+ERP.Web/wwwroot/exam-audio/_test_*.mp3

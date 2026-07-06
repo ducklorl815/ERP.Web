@@ -248,7 +248,7 @@ namespace ERP.Web.Service.Service
             if (result.VocabularyList == null || result.VocabularyList.Count == 0)
             {
                 if (!result.TtsConfigured)
-                    result.TtsNoticeMessage = "尚未設定 Azure Speech（ExamTts:SubscriptionKey）。";
+                    result.TtsNoticeMessage = "尚未設定 TTS（ExamTts:OpenAiApiKey 或 SubscriptionKey）。";
                 return;
             }
 
@@ -273,9 +273,9 @@ namespace ERP.Web.Service.Service
             }
 
             if (!result.TtsConfigured)
-                result.TtsNoticeMessage = "尚未設定 Azure Speech（ExamTts:SubscriptionKey）。考卷已產生，註冊並填入金鑰後重新出卷即可產生 MP3。";
+                result.TtsNoticeMessage = "尚未設定 TTS（ExamTts:OpenAiApiKey 或 SubscriptionKey）。考卷已產生，填入金鑰後重新出卷即可產生 MP3。";
             else if (missingAudioCount > 0)
-                result.TtsNoticeMessage = $"有 {missingAudioCount} 題音檔尚未成功產生，請檢查題目文字或 Azure 設定。";
+                result.TtsNoticeMessage = $"有 {missingAudioCount} 題音檔尚未成功產生，請檢查題目文字或 TTS 設定。";
         }
 
         /// <summary>設定考卷標題用的日期與第幾次考試（KidTestIndex × Lession）</summary>

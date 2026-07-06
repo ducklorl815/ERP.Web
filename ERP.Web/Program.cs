@@ -17,7 +17,7 @@ builder.Services.AddControllersWithViews().AddRazorRuntimeCompilation();
 // Add services to the container.
 builder.Services.AddControllersWithViews();
 
-// 英聽 TTS（Azure Speech）；CacheDirectory 相對路徑會對應 wwwroot
+// 英聽／中聽 TTS（Provider：OpenAI 或 Azure）；CacheDirectory 相對路徑會對應 wwwroot
 builder.Services.Configure<ExamTtsOptions>(builder.Configuration.GetSection(ExamTtsOptions.SectionName));
 builder.Services.PostConfigure<ExamTtsOptions>(options =>
 {
@@ -35,12 +35,27 @@ builder.Services.PostConfigure<ExamTtsOptions>(options =>
         options.PublicUrlPrefix = "/exam-audio";
 });
 
+builder.Services.AddHttpClient(nameof(OpenAiExamTtsService), client =>
+{
+    client.Timeout = TimeSpan.FromSeconds(60);
+});
+
+builder.Services.AddSingleton<AzureExamTtsService>();
+builder.Services.AddSingleton<OpenAiExamTtsService>();
+builder.Services.AddSingleton<IExamTtsService>(sp =>
+{
+    var options = sp.GetRequiredService<Microsoft.Extensions.Options.IOptions<ExamTtsOptions>>().Value;
+    if (string.Equals(options.Provider, "OpenAI", StringComparison.OrdinalIgnoreCase))
+        return sp.GetRequiredService<OpenAiExamTtsService>();
+
+    return sp.GetRequiredService<AzureExamTtsService>();
+});
+
 // 權限服務（Singleton - 使用記憶體快取）
 builder.Services.AddMemoryCache();
 builder.Services.AddHttpContextAccessor();
 builder.Services.AddSingleton<IPermissionService, PermissionService>();
 
-builder.Services.AddSingleton<IExamTtsService, AzureExamTtsService>();
 builder.Services.AddSingleton<ControllerSettingService>();
 builder.Services.AddSingleton<HomeService>();
 builder.Services.AddSingleton<ChartsService>();

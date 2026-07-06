@@ -1,0 +1,5 @@
+{
+  "ExamTts": {
+    "OpenAiApiKey": "在此填入 OpenAI API Key，並將檔案另存為 appsettings.Development.local.json"
+  }
+}

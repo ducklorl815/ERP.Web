@@ -88,7 +88,7 @@ namespace ERP.Web.Service.ViewModels
         public bool IsListeningExam =>
             string.Equals(ExamMode, "Listening", StringComparison.OrdinalIgnoreCase);
 
-        /// <summary>Azure TTS 是否已設定（未設定時考卷仍可產生，但無音檔）</summary>
+        /// <summary>TTS 是否已設定（未設定時考卷仍可產生，但無音檔）</summary>
         public bool TtsConfigured { get; set; }
 
         /// <summary>未設定 TTS 或部分題目無音檔時的整體提示</summary>
