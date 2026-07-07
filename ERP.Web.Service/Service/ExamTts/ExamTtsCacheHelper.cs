@@ -45,18 +45,69 @@ namespace ERP.Web.Service.Service.ExamTts
             return $"seg_{hash}.mp3";
         }
 
-        /// <summary>整份考卷合併後的播放清單</summary>
-        public static string BuildPlaylistCacheFileName(string playlistProfileKey)
+        /// <summary>考卷單題聽力片段：seq_20260707_7_1.mp3（日期_次數_題號）</summary>
+        public static string BuildExamSegmentFileName(DateTime examDate, int attemptNumber, int questionNumber)
         {
-            var hashBytes = SHA256.HashData(Encoding.UTF8.GetBytes(playlistProfileKey));
-            var hash = Convert.ToHexString(hashBytes)[..16].ToLowerInvariant();
-            return $"playlist_{hash}.mp3";
+            if (attemptNumber < 1)
+                throw new ArgumentOutOfRangeException(nameof(attemptNumber), "考試次數須大於 0。");
+
+            if (questionNumber < 1 || questionNumber > 99)
+                throw new ArgumentOutOfRangeException(nameof(questionNumber), "題號僅支援 1～99。");
+
+            return $"seq_{examDate:yyyyMMdd}_{attemptNumber}_{questionNumber}.mp3";
+        }
+
+        /// <summary>seq_ 片段內容識別，用於 .profile 快取比對</summary>
+        public static string BuildSegmentProfileKey(string speakText, string language, string ttsProfileKey) =>
+            $"{language}:{speakText.Trim()}:{ttsProfileKey}";
+
+        public static async Task<bool> IsSegmentCacheValidAsync(
+            string filePath,
+            string segmentProfileKey,
+            CancellationToken cancellationToken = default)
+        {
+            var profilePath = filePath + ".profile";
+            if (!File.Exists(filePath) || !File.Exists(profilePath))
+                return false;
+
+            var cachedProfile = await File.ReadAllTextAsync(profilePath, cancellationToken);
+            return string.Equals(cachedProfile, segmentProfileKey, StringComparison.Ordinal);
+        }
+
+        public static Task WriteSegmentProfileAsync(
+            string filePath,
+            string segmentProfileKey,
+            CancellationToken cancellationToken = default) =>
+            File.WriteAllTextAsync(filePath + ".profile", segmentProfileKey, cancellationToken);
+
+        /// <summary>整份考卷合併後的播放清單（與考卷 exam-title 一致的可讀檔名）</summary>
+        public static string BuildPlaylistFileName(string displayName)
+        {
+            var sanitized = SanitizeFileName(displayName);
+            return sanitized.EndsWith(".mp3", StringComparison.OrdinalIgnoreCase)
+                ? sanitized
+                : $"{sanitized}.mp3";
+        }
+
+        /// <summary>移除檔名不允許的字元，避免寫入快取目錄失敗</summary>
+        public static string SanitizeFileName(string fileName)
+        {
+            if (string.IsNullOrWhiteSpace(fileName))
+                return "exam-listening.mp3";
+
+            var invalid = Path.GetInvalidFileNameChars();
+            var builder = new StringBuilder(fileName.Length);
+            foreach (var c in fileName)
+                builder.Append(Array.IndexOf(invalid, c) >= 0 ? '_' : c);
+
+            var result = builder.ToString().Trim().TrimEnd('.');
+            return string.IsNullOrWhiteSpace(result) ? "exam-listening.mp3" : result;
         }
 
         public static string CombineUrl(string prefix, string fileName)
         {
             var basePath = (prefix ?? "/exam-audio").TrimEnd('/');
-            return $"{basePath}/{fileName}";
+            return $"{basePath}/{Uri.EscapeDataString(fileName)}";
         }
 
         /// <summary>由公開 URL 反查本機快取實體路徑</summary>
@@ -70,6 +121,15 @@ namespace ERP.Web.Service.Service.ExamTts
                 return null;
 
             var fileName = publicUrl[(prefix.Length + 1)..];
+            try
+            {
+                fileName = Uri.UnescapeDataString(fileName);
+            }
+            catch (UriFormatException)
+            {
+                // 保留原始檔名，相容舊版未編碼 URL
+            }
+
             return Path.Combine(cacheDirectory, fileName);
         }
     }

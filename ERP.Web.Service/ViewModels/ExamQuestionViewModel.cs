@@ -88,6 +88,9 @@ namespace ERP.Web.Service.ViewModels
         public string ExamPaperSuffix =>
             $"{ExamTypeLabel}試卷_{ExamDate:yyyyMMdd}_{ExamAttemptNumber}";
 
+        /// <summary>與考卷 exam-title 一致的名稱，例如：複習考_20260707 英聽試卷_20260707_7</summary>
+        public string ExamListeningDisplayName => $"{Title} {ExamPaperSuffix}".Trim();
+
         /// <summary>Written | Listening</summary>
         public string ExamMode { get; set; } = "Written";
 

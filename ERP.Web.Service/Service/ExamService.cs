@@ -255,7 +255,7 @@ namespace ERP.Web.Service.Service
             result.ExamTypeLabel = hasEnglish && hasChinese ? "聽力" : hasChinese ? "中聽" : "英聽";
             result.TtsConfigured = _examTtsService.IsConfigured;
             result.ExamListeningAudioDownloadName =
-                $"{result.Title}_{result.ExamTypeLabel}_{result.ExamDate:yyyyMMdd}_{result.ExamAttemptNumber}.mp3";
+                ExamTtsCacheHelper.BuildPlaylistFileName(result.ExamListeningDisplayName);
 
             if (result.VocabularyList == null || result.VocabularyList.Count == 0)
             {
@@ -288,7 +288,11 @@ namespace ERP.Web.Service.Service
                 });
             }
 
-            var playlist = await _examListeningPlaylistService.BuildExamPlaylistAsync(questions);
+            var playlist = await _examListeningPlaylistService.BuildExamPlaylistAsync(
+                questions,
+                result.ExamListeningDisplayName,
+                result.ExamDate,
+                result.ExamAttemptNumber);
 
             // 將已更新的 ExamAudio 同步回考卷題目清單
             foreach (var question in questions)

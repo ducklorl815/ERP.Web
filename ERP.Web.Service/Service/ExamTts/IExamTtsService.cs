@@ -31,13 +31,15 @@ namespace ERP.Web.Service.Service.ExamTts
             CancellationToken cancellationToken = default);
 
         /// <summary>
-        /// 單字聽力片段：優先使用 Vocabulary.ExamAudio，其次快取目錄 seg_*.mp3，最後才呼叫 TTS。
+        /// 單字聽力片段：指定 segmentFileName 時使用 seq_日期_次數_題號.mp3；
+        /// 未指定時沿用 seg_*.mp3 快取，並可寫回 Vocabulary.ExamAudio。
         /// </summary>
         Task<ExamTtsResult> GetOrCreateVocabularySegmentMp3Async(
             Guid wordId,
             string? storedExamAudioPath,
             string speakText,
             string language,
+            string? segmentFileName = null,
             CancellationToken cancellationToken = default);
     }
 }

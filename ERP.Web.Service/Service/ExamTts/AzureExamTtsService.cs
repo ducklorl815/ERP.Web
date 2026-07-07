@@ -77,6 +77,7 @@ namespace ERP.Web.Service.Service.ExamTts
             string? storedExamAudioPath,
             string speakText,
             string language,
+            string? segmentFileName = null,
             CancellationToken cancellationToken = default)
         {
             if (string.IsNullOrWhiteSpace(speakText))
@@ -86,12 +87,16 @@ namespace ERP.Web.Service.Service.ExamTts
                 return ExamTtsResult.Fail("未設定 ExamTts:CacheDirectory。");
 
             var profile = ResolveVoiceProfile(language);
-            var fileName = ExamTtsCacheHelper.BuildSegmentCacheFileName(
-                speakText, language, profile.Key);
+            var useExamSegmentName = !string.IsNullOrWhiteSpace(segmentFileName);
+            var fileName = useExamSegmentName
+                ? segmentFileName!
+                : ExamTtsCacheHelper.BuildSegmentCacheFileName(speakText, language, profile.Key);
             var filePath = ExamTtsCacheHelper.BuildPhysicalPath(_options.CacheDirectory, fileName);
             var publicUrl = ExamTtsCacheHelper.CombineUrl(_options.PublicUrlPrefix, fileName);
+            var segmentProfileKey = ExamTtsCacheHelper.BuildSegmentProfileKey(speakText, language, profile.Key);
 
-            if (!string.IsNullOrWhiteSpace(storedExamAudioPath)
+            if (!useExamSegmentName
+                && !string.IsNullOrWhiteSpace(storedExamAudioPath)
                 && File.Exists(storedExamAudioPath)
                 && string.Equals(Path.GetFileName(storedExamAudioPath), fileName, StringComparison.OrdinalIgnoreCase))
             {
@@ -101,7 +106,12 @@ namespace ERP.Web.Service.Service.ExamTts
                 return ExamTtsResult.Ok(storedUrl, storedExamAudioPath);
             }
 
-            if (File.Exists(filePath))
+            if (useExamSegmentName)
+            {
+                if (await ExamTtsCacheHelper.IsSegmentCacheValidAsync(filePath, segmentProfileKey, cancellationToken))
+                    return ExamTtsResult.Ok(publicUrl, filePath);
+            }
+            else if (File.Exists(filePath))
             {
                 var cached = ExamTtsResult.Ok(publicUrl, filePath);
                 await ExamVocabularyAudioPersistence.TrySaveAsync(
@@ -112,8 +122,16 @@ namespace ERP.Web.Service.Service.ExamTts
             var created = await GetOrCreateCachedMp3Async(fileName, speakText, language, profile, cancellationToken);
             if (created.Success)
             {
-                await ExamVocabularyAudioPersistence.TrySaveAsync(
-                    _examRepo, _logger, wordId, storedExamAudioPath, created.PhysicalPath);
+                if (useExamSegmentName)
+                {
+                    await ExamTtsCacheHelper.WriteSegmentProfileAsync(
+                        filePath, segmentProfileKey, cancellationToken);
+                }
+                else
+                {
+                    await ExamVocabularyAudioPersistence.TrySaveAsync(
+                        _examRepo, _logger, wordId, storedExamAudioPath, created.PhysicalPath);
+                }
             }
             return created;
         }

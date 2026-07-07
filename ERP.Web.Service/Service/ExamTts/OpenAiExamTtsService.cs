@@ -82,6 +82,7 @@ namespace ERP.Web.Service.Service.ExamTts
             string? storedExamAudioPath,
             string speakText,
             string language,
+            string? segmentFileName = null,
             CancellationToken cancellationToken = default)
         {
             if (string.IsNullOrWhiteSpace(speakText))
@@ -91,13 +92,17 @@ namespace ERP.Web.Service.Service.ExamTts
                 return ExamTtsResult.Fail("未設定 ExamTts:CacheDirectory。");
 
             var profile = ResolveVoiceProfile(language);
-            var fileName = ExamTtsCacheHelper.BuildSegmentCacheFileName(
-                speakText, language, profile.Key);
+            var useExamSegmentName = !string.IsNullOrWhiteSpace(segmentFileName);
+            var fileName = useExamSegmentName
+                ? segmentFileName!
+                : ExamTtsCacheHelper.BuildSegmentCacheFileName(speakText, language, profile.Key);
             var filePath = ExamTtsCacheHelper.BuildPhysicalPath(_options.CacheDirectory, fileName);
             var publicUrl = ExamTtsCacheHelper.CombineUrl(_options.PublicUrlPrefix, fileName);
+            var segmentProfileKey = ExamTtsCacheHelper.BuildSegmentProfileKey(speakText, language, profile.Key);
 
-            // 1. DB 已記錄且檔案仍存在（且檔名符合目前播音內容）
-            if (!string.IsNullOrWhiteSpace(storedExamAudioPath)
+            // 1. DB 已記錄且檔案仍存在（且檔名符合目前播音內容；僅 seg_ 共用快取模式）
+            if (!useExamSegmentName
+                && !string.IsNullOrWhiteSpace(storedExamAudioPath)
                 && File.Exists(storedExamAudioPath)
                 && string.Equals(Path.GetFileName(storedExamAudioPath), fileName, StringComparison.OrdinalIgnoreCase))
             {
@@ -107,8 +112,13 @@ namespace ERP.Web.Service.Service.ExamTts
                 return ExamTtsResult.Ok(storedUrl, storedExamAudioPath);
             }
 
-            // 2. 快取目錄已有相同 seg_*.mp3（跨單字共用）
-            if (File.Exists(filePath))
+            // 2. 快取目錄已有相同片段（seq_ 需比對 .profile 內容）
+            if (useExamSegmentName)
+            {
+                if (await ExamTtsCacheHelper.IsSegmentCacheValidAsync(filePath, segmentProfileKey, cancellationToken))
+                    return ExamTtsResult.Ok(publicUrl, filePath);
+            }
+            else if (File.Exists(filePath))
             {
                 var cached = ExamTtsResult.Ok(publicUrl, filePath);
                 await ExamVocabularyAudioPersistence.TrySaveAsync(
@@ -116,12 +126,20 @@ namespace ERP.Web.Service.Service.ExamTts
                 return cached;
             }
 
-            // 3. 呼叫 OpenAI TTS 產生新片段，並寫回 Vocabulary.ExamAudio
+            // 3. 呼叫 OpenAI TTS 產生新片段
             var created = await GetOrCreateCachedMp3Async(fileName, speakText, language, profile, cancellationToken);
             if (created.Success)
             {
-                await ExamVocabularyAudioPersistence.TrySaveAsync(
-                    _examRepo, _logger, wordId, storedExamAudioPath, created.PhysicalPath);
+                if (useExamSegmentName)
+                {
+                    await ExamTtsCacheHelper.WriteSegmentProfileAsync(
+                        filePath, segmentProfileKey, cancellationToken);
+                }
+                else
+                {
+                    await ExamVocabularyAudioPersistence.TrySaveAsync(
+                        _examRepo, _logger, wordId, storedExamAudioPath, created.PhysicalPath);
+                }
             }
             return created;
         }

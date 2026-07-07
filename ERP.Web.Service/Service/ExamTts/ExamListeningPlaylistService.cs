@@ -29,6 +29,9 @@ namespace ERP.Web.Service.Service.ExamTts
         /// </summary>
         public async Task<ExamTtsResult> BuildExamPlaylistAsync(
             IReadOnlyList<ExamListeningQuestionItem> questions,
+            string? playlistDisplayName = null,
+            DateTime? examDate = null,
+            int examAttemptNumber = 1,
             CancellationToken cancellationToken = default)
         {
             if (questions == null || questions.Count == 0)
@@ -46,12 +49,21 @@ namespace ERP.Web.Service.Service.ExamTts
             }
 
             var playlistProfileKey = BuildPlaylistProfileKey(questions);
-            var playlistFileName = ExamTtsCacheHelper.BuildPlaylistCacheFileName(playlistProfileKey);
+            var playlistFileName = ExamTtsCacheHelper.BuildPlaylistFileName(
+                string.IsNullOrWhiteSpace(playlistDisplayName) ? "exam-listening" : playlistDisplayName);
             var playlistPath = Path.Combine(_options.CacheDirectory, playlistFileName);
+            var playlistProfilePath = playlistPath + ".profile";
             var playlistUrl = ExamTtsCacheHelper.CombineUrl(_options.PublicUrlPrefix, playlistFileName);
 
-            if (File.Exists(playlistPath))
+            if (File.Exists(playlistPath)
+                && File.Exists(playlistProfilePath)
+                && string.Equals(
+                    await File.ReadAllTextAsync(playlistProfilePath, cancellationToken),
+                    playlistProfileKey,
+                    StringComparison.Ordinal))
+            {
                 return ExamTtsResult.Ok(playlistUrl, playlistPath);
+            }
 
             var segmentPaths = new List<string>();
             var silenceAfter = new List<double>();
@@ -81,12 +93,16 @@ namespace ERP.Web.Service.Service.ExamTts
                     segmentPaths.Add(labelPath);
                     silenceAfter.Add(_options.PauseAfterQuestionLabelSeconds);
 
-                    // 單字片段：優先 Vocabulary.ExamAudio，其次 seg_*.mp3 快取
+                    // 單字片段：seq_日期_次數_題號.mp3（例：seq_20260707_7_1.mp3）
+                    var segmentFileName = examDate.HasValue
+                        ? ExamTtsCacheHelper.BuildExamSegmentFileName(examDate.Value, examAttemptNumber, i + 1)
+                        : null;
                     var wordTts = await _examTtsService.GetOrCreateVocabularySegmentMp3Async(
                         question.WordId,
                         question.ExamAudio,
                         question.SpeakText,
                         question.SpeakLanguage,
+                        segmentFileName,
                         cancellationToken);
 
                     if (!wordTts.Success || string.IsNullOrEmpty(wordTts.AudioUrl))
@@ -111,6 +127,7 @@ namespace ERP.Web.Service.Service.ExamTts
                 }
 
                 ExamAudioComposer.Compose(segmentPaths, silenceAfter, playlistPath);
+                await File.WriteAllTextAsync(playlistProfilePath, playlistProfileKey, cancellationToken);
                 return ExamTtsResult.Ok(playlistUrl, playlistPath);
             }
             catch (Exception ex)
