@@ -31,8 +31,8 @@ namespace ERP.Web.Service.Service.ExamTts
             CancellationToken cancellationToken = default);
 
         /// <summary>
-        /// 單字聽力片段：指定 segmentFileName 時使用 seq_日期_次數_題號.mp3；
-        /// 未指定時沿用 seg_*.mp3 快取，並可寫回 Vocabulary.ExamAudio。
+        /// 單字聽力片段：優先查 Vocabulary.ExamAudio 與 seg_{hash} 共用快取；
+        /// 僅在無快取時呼叫 TTS，並寫回 Vocabulary.ExamAudio。
         /// </summary>
         Task<ExamTtsResult> GetOrCreateVocabularySegmentMp3Async(
             Guid wordId,

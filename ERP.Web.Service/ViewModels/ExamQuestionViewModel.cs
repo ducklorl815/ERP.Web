@@ -104,11 +104,26 @@ namespace ERP.Web.Service.ViewModels
         /// <summary>未設定 TTS 或部分題目無音檔時的整體提示</summary>
         public string? TtsNoticeMessage { get; set; }
 
-        /// <summary>整份英聽考卷合併後的 MP3 URL（含題號、間隔、重複念法）</summary>
+        /// <summary>整份英聽考卷合併後的 MP3 URL（已改為每題獨立音檔，此欄位保留相容性）</summary>
+        [Obsolete("已改為每題獨立音檔，請使用 ExamListeningTracks")]
         public string? ExamListeningAudioUrl { get; set; }
 
-        /// <summary>英聽完整音檔下載檔名</summary>
+        /// <summary>英聽完整音檔下載檔名（已改為每題獨立音檔）</summary>
+        [Obsolete("已改為每題獨立音檔，請使用 ExamListeningTracks")]
         public string? ExamListeningAudioDownloadName { get; set; }
+
+        /// <summary>每題英聽音檔（含題號、重複念法與間隔）</summary>
+        public List<ExamListeningTrackViewModel> ExamListeningTracks { get; set; } = new();
+    }
+
+    /// <summary>英聽考卷單題音檔（前端播放／下載用）</summary>
+    public class ExamListeningTrackViewModel
+    {
+        public int QuestionNumber { get; set; }
+
+        public string AudioUrl { get; set; } = string.Empty;
+
+        public string DownloadName { get; set; } = string.Empty;
     }
 
     public class ScoreTable

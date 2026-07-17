@@ -1760,6 +1760,34 @@ WHERE (@OnlyWhenSame = 0)
         }
 
         /// <summary>
+        /// 讀取 Vocabulary.ExamAudio 實體路徑（英聽單字片段快取）。
+        /// SQL：SELECT ExamAudio FROM KidsWorld.dbo.Vocabulary WHERE ID = @ID
+        /// </summary>
+        public async Task<string?> GetExamAudioAsync(Guid wordId)
+        {
+            if (wordId == Guid.Empty)
+                return null;
+
+            var sqlparam = new DynamicParameters();
+            sqlparam.Add("ID", wordId);
+
+            const string sql = @"
+                SELECT ExamAudio
+                  FROM KidsWorld.dbo.Vocabulary
+                 WHERE ID = @ID";
+
+            using var conn = new SqlConnection(_dBList.erp);
+            try
+            {
+                return await conn.QueryFirstOrDefaultAsync<string>(sql, sqlparam);
+            }
+            catch
+            {
+                return null;
+            }
+        }
+
+        /// <summary>
         /// 英聽單字片段產生後，將實體路徑寫回 Vocabulary.ExamAudio。
         /// SQL：UPDATE KidsWorld.dbo.Vocabulary SET ExamAudio = @ExamAudio WHERE ID = @ID
         /// </summary>

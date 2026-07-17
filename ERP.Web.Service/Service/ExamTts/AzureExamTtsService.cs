@@ -95,44 +95,56 @@ namespace ERP.Web.Service.Service.ExamTts
             var publicUrl = ExamTtsCacheHelper.CombineUrl(_options.PublicUrlPrefix, fileName);
             var segmentProfileKey = ExamTtsCacheHelper.BuildSegmentProfileKey(speakText, language, profile.Key);
 
-            if (!useExamSegmentName
-                && !string.IsNullOrWhiteSpace(storedExamAudioPath)
-                && File.Exists(storedExamAudioPath)
-                && string.Equals(Path.GetFileName(storedExamAudioPath), fileName, StringComparison.OrdinalIgnoreCase))
+            var dbExamAudioPath = storedExamAudioPath;
+            if (string.IsNullOrWhiteSpace(dbExamAudioPath) && wordId != Guid.Empty)
+                dbExamAudioPath = await _examRepo.GetExamAudioAsync(wordId);
+
+            var fromDb = await ExamVocabularyAudioResolver.TryResolveStoredPathAsync(
+                dbExamAudioPath, segmentProfileKey, _options.PublicUrlPrefix, cancellationToken);
+            if (fromDb != null)
+                return fromDb;
+
+            var fromSharedCache = await ExamVocabularyAudioResolver.TryResolveSharedSegmentCacheAsync(
+                _options.CacheDirectory,
+                _options.PublicUrlPrefix,
+                speakText,
+                language,
+                profile.Key,
+                cancellationToken);
+            if (fromSharedCache != null)
             {
-                var storedUrl = ExamTtsCacheHelper.CombineUrl(
-                    _options.PublicUrlPrefix,
-                    Path.GetFileName(storedExamAudioPath));
-                return ExamTtsResult.Ok(storedUrl, storedExamAudioPath);
+                await ExamVocabularyAudioPersistence.TrySaveAsync(
+                    _examRepo, _logger, wordId, dbExamAudioPath, fromSharedCache.PhysicalPath);
+                return fromSharedCache;
             }
 
-            if (useExamSegmentName)
-            {
-                if (await ExamTtsCacheHelper.IsSegmentCacheValidAsync(filePath, segmentProfileKey, cancellationToken))
-                    return ExamTtsResult.Ok(publicUrl, filePath);
-            }
-            else if (File.Exists(filePath))
+            if (useExamSegmentName
+                && await ExamTtsCacheHelper.IsSegmentCacheValidAsync(filePath, segmentProfileKey, cancellationToken))
             {
                 var cached = ExamTtsResult.Ok(publicUrl, filePath);
                 await ExamVocabularyAudioPersistence.TrySaveAsync(
-                    _examRepo, _logger, wordId, storedExamAudioPath, cached.PhysicalPath);
+                    _examRepo, _logger, wordId, dbExamAudioPath, cached.PhysicalPath);
                 return cached;
             }
 
-            var created = await GetOrCreateCachedMp3Async(fileName, speakText, language, profile, cancellationToken);
-            if (created.Success)
+            if (!useExamSegmentName && File.Exists(filePath))
             {
-                if (useExamSegmentName)
-                {
-                    await ExamTtsCacheHelper.WriteSegmentProfileAsync(
-                        filePath, segmentProfileKey, cancellationToken);
-                }
-                else
-                {
-                    await ExamVocabularyAudioPersistence.TrySaveAsync(
-                        _examRepo, _logger, wordId, storedExamAudioPath, created.PhysicalPath);
-                }
+                var cached = ExamTtsResult.Ok(publicUrl, filePath);
+                await ExamVocabularyAudioPersistence.TrySaveAsync(
+                    _examRepo, _logger, wordId, dbExamAudioPath, cached.PhysicalPath);
+                return cached;
             }
+
+            var createFileName = ExamTtsCacheHelper.BuildSegmentCacheFileName(speakText, language, profile.Key);
+            var created = await GetOrCreateCachedMp3Async(createFileName, speakText, language, profile, cancellationToken);
+            if (created.Success && !string.IsNullOrWhiteSpace(created.PhysicalPath))
+            {
+                await ExamTtsCacheHelper.WriteSegmentProfileAsync(
+                    created.PhysicalPath, segmentProfileKey, cancellationToken);
+                await ExamVocabularyAudioPersistence.TrySaveAsync(
+                    _examRepo, _logger, wordId, dbExamAudioPath, created.PhysicalPath);
+            }
+
             return created;
         }
 

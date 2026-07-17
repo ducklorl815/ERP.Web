@@ -6,7 +6,7 @@ using Microsoft.Extensions.Options;
 namespace ERP.Web.Service.Service.ExamTts
 {
     /// <summary>
-    /// 英聽考卷：將「第 N 題 → 單字 ×2」組成一支完整 MP3，片段可跨考卷重用。
+    /// 英聽考卷：每題產生一支完整 MP3（第 N 題 → 間隔 → 單字 ×2 → 間隔），片段可跨考卷重用。
     /// </summary>
     public class ExamListeningPlaylistService
     {
@@ -25,77 +25,87 @@ namespace ERP.Web.Service.Service.ExamTts
         }
 
         /// <summary>
-        /// 產生整份考卷英聽音檔：第 N 題 → 3 秒 → 單字 → 3 秒 → 單字 → 10 秒 → 下一題。
+        /// 產生每題英聽音檔：第 N 題 → PauseAfterQuestionLabelSeconds → 單字 → PauseAfterWordSeconds → 單字 → PauseAfterQuestionBlockSeconds。
+        /// 檔名例：Fun Skills Unit42-43 SP 01_01_afternoon.mp3
         /// </summary>
-        public async Task<ExamTtsResult> BuildExamPlaylistAsync(
+        public async Task<ExamListeningTracksResult> BuildExamQuestionTracksAsync(
             IReadOnlyList<ExamListeningQuestionItem> questions,
-            string? playlistDisplayName = null,
+            string? examTitle = null,
             DateTime? examDate = null,
             int examAttemptNumber = 1,
             CancellationToken cancellationToken = default)
         {
             if (questions == null || questions.Count == 0)
-                return ExamTtsResult.Fail("沒有題目可產生英聽音檔。");
+                return ExamListeningTracksResult.Fail("沒有題目可產生英聽音檔。");
 
             if (string.IsNullOrWhiteSpace(_options.CacheDirectory))
-                return ExamTtsResult.Fail("未設定 ExamTts:CacheDirectory。");
+                return ExamListeningTracksResult.Fail("未設定 ExamTts:CacheDirectory。");
 
             Directory.CreateDirectory(_options.CacheDirectory);
 
             if (!_examTtsService.IsConfigured)
             {
-                return ExamTtsResult.Skipped(
+                return ExamListeningTracksResult.Skipped(
                     "尚未設定 TTS（ExamTts:OpenAiApiKey 或 SubscriptionKey）。");
             }
 
-            var playlistProfileKey = BuildPlaylistProfileKey(questions);
-            var playlistFileName = ExamTtsCacheHelper.BuildPlaylistFileName(
-                string.IsNullOrWhiteSpace(playlistDisplayName) ? "exam-listening" : playlistDisplayName);
-            var playlistPath = Path.Combine(_options.CacheDirectory, playlistFileName);
-            var playlistProfilePath = playlistPath + ".profile";
-            var playlistUrl = ExamTtsCacheHelper.CombineUrl(_options.PublicUrlPrefix, playlistFileName);
-
-            if (File.Exists(playlistPath)
-                && File.Exists(playlistProfilePath)
-                && string.Equals(
-                    await File.ReadAllTextAsync(playlistProfilePath, cancellationToken),
-                    playlistProfileKey,
-                    StringComparison.Ordinal))
-            {
-                return ExamTtsResult.Ok(playlistUrl, playlistPath);
-            }
-
-            var segmentPaths = new List<string>();
-            var silenceAfter = new List<double>();
+            var title = string.IsNullOrWhiteSpace(examTitle) ? "exam-listening" : examTitle.Trim();
+            var tracks = new List<ExamListeningTrackItem>();
 
             try
             {
                 for (var i = 0; i < questions.Count; i++)
                 {
+                    var questionNumber = i + 1;
                     var question = questions[i];
                     if (string.IsNullOrWhiteSpace(question.SpeakText))
-                        return ExamTtsResult.Fail($"第 {i + 1} 題題目文字為空。");
+                        return ExamListeningTracksResult.Fail($"第 {questionNumber} 題題目文字為空。");
 
-                    // 題號：固定檔名 label_01.mp3、label_02.mp3…（HardCode，跨考卷重用）
+                    var trackFileName = ExamTtsCacheHelper.BuildPerQuestionFileName(
+                        title,
+                        questionNumber,
+                        question.SpeakText);
+                    var trackPath = Path.Combine(_options.CacheDirectory, trackFileName);
+                    var trackProfilePath = trackPath + ".profile";
+                    var trackUrl = ExamTtsCacheHelper.CombineUrl(_options.PublicUrlPrefix, trackFileName);
+                    var trackProfileKey = BuildQuestionTrackProfileKey(questionNumber, question);
+
+                    // 快取命中：直接重用已產生的每題完整音檔
+                    if (File.Exists(trackPath)
+                        && File.Exists(trackProfilePath)
+                        && string.Equals(
+                            await File.ReadAllTextAsync(trackProfilePath, cancellationToken),
+                            trackProfileKey,
+                            StringComparison.Ordinal))
+                    {
+                        tracks.Add(new ExamListeningTrackItem
+                        {
+                            QuestionNumber = questionNumber,
+                            WordId = question.WordId,
+                            AudioUrl = trackUrl,
+                            DownloadName = trackFileName,
+                            PhysicalPath = trackPath
+                        });
+                        continue;
+                    }
+
+                    // 題號：固定檔名 label_01.mp3、label_02.mp3…（跨考卷重用）
                     var labelTts = await _examTtsService.GetOrCreateQuestionLabelMp3Async(
-                        i + 1,
+                        questionNumber,
                         cancellationToken);
 
                     if (!labelTts.Success || string.IsNullOrEmpty(labelTts.AudioUrl))
-                        return ExamTtsResult.Fail(labelTts.ErrorMessage ?? $"第 {i + 1} 題題號音檔產生失敗。");
+                        return ExamListeningTracksResult.Fail(labelTts.ErrorMessage ?? $"第 {questionNumber} 題題號音檔產生失敗。");
 
                     var labelPath = labelTts.PhysicalPath
                         ?? ExamTtsCacheHelper.ResolvePhysicalPath(
                             labelTts.AudioUrl, _options.CacheDirectory, _options.PublicUrlPrefix);
                     if (labelPath == null || !File.Exists(labelPath))
-                        return ExamTtsResult.Fail($"第 {i + 1} 題題號音檔不存在。");
+                        return ExamListeningTracksResult.Fail($"第 {questionNumber} 題題號音檔不存在。");
 
-                    segmentPaths.Add(labelPath);
-                    silenceAfter.Add(_options.PauseAfterQuestionLabelSeconds);
-
-                    // 單字片段：seq_日期_次數_題號.mp3（例：seq_20260707_7_1.mp3）
+                    // 單字片段：仍用 seq_ 或 seg_ 快取，避免重複 TTS
                     var segmentFileName = examDate.HasValue
-                        ? ExamTtsCacheHelper.BuildExamSegmentFileName(examDate.Value, examAttemptNumber, i + 1)
+                        ? ExamTtsCacheHelper.BuildExamSegmentFileName(examDate.Value, examAttemptNumber, questionNumber)
                         : null;
                     var wordTts = await _examTtsService.GetOrCreateVocabularySegmentMp3Async(
                         question.WordId,
@@ -106,38 +116,50 @@ namespace ERP.Web.Service.Service.ExamTts
                         cancellationToken);
 
                     if (!wordTts.Success || string.IsNullOrEmpty(wordTts.AudioUrl))
-                        return ExamTtsResult.Fail(wordTts.ErrorMessage ?? $"第 {i + 1} 題單字音檔產生失敗。");
+                        return ExamListeningTracksResult.Fail(wordTts.ErrorMessage ?? $"第 {questionNumber} 題單字音檔產生失敗。");
 
                     var wordPath = wordTts.PhysicalPath
                         ?? ExamTtsCacheHelper.ResolvePhysicalPath(
                             wordTts.AudioUrl, _options.CacheDirectory, _options.PublicUrlPrefix);
                     if (wordPath == null || !File.Exists(wordPath))
-                        return ExamTtsResult.Fail($"第 {i + 1} 題單字音檔不存在。");
+                        return ExamListeningTracksResult.Fail($"第 {questionNumber} 題單字音檔不存在。");
 
-                    // 同步記憶體中的 ExamAudio（實際寫入 DB 已在 TTS 服務完成）
                     if (!string.IsNullOrWhiteSpace(wordPath))
                         question.ExamAudio = wordPath;
 
-                    segmentPaths.Add(wordPath);
-                    silenceAfter.Add(_options.PauseAfterWordSeconds);
+                    // 每題完整流程：第 N 題 → 間隔 → 單字 → 間隔 → 單字 → 間隔
+                    var segmentPaths = new List<string> { labelPath, wordPath, wordPath };
+                    var silenceAfter = new List<double>
+                    {
+                        _options.PauseAfterQuestionLabelSeconds,
+                        _options.PauseAfterWordSeconds,
+                        _options.PauseAfterQuestionBlockSeconds
+                    };
 
-                    // 第二遍：直接重用同一檔案，不消耗 token
-                    segmentPaths.Add(wordPath);
-                    silenceAfter.Add(_options.PauseAfterQuestionBlockSeconds);
+                    ExamAudioComposer.Compose(segmentPaths, silenceAfter, trackPath);
+                    await File.WriteAllTextAsync(trackProfilePath, trackProfileKey, cancellationToken);
+
+                    tracks.Add(new ExamListeningTrackItem
+                    {
+                        QuestionNumber = questionNumber,
+                        WordId = question.WordId,
+                        AudioUrl = trackUrl,
+                        DownloadName = trackFileName,
+                        PhysicalPath = trackPath
+                    });
                 }
 
-                ExamAudioComposer.Compose(segmentPaths, silenceAfter, playlistPath);
-                await File.WriteAllTextAsync(playlistProfilePath, playlistProfileKey, cancellationToken);
-                return ExamTtsResult.Ok(playlistUrl, playlistPath);
+                return ExamListeningTracksResult.Ok(tracks);
             }
             catch (Exception ex)
             {
-                _logger.LogError(ex, "合併英聽播放清單失敗");
-                return ExamTtsResult.Fail($"合併英聽音檔失敗：{ex.Message}");
+                _logger.LogError(ex, "產生英聽每題音檔失敗");
+                return ExamListeningTracksResult.Fail($"產生英聽音檔失敗：{ex.Message}");
             }
         }
 
-        internal string BuildPlaylistProfileKey(IReadOnlyList<ExamListeningQuestionItem> questions)
+        /// <summary>每題完整音檔的快取比對鍵（pause 或念法變更時重產）</summary>
+        internal string BuildQuestionTrackProfileKey(int questionNumber, ExamListeningQuestionItem question)
         {
             var builder = new StringBuilder();
             builder.Append("p=")
@@ -147,18 +169,11 @@ namespace ERP.Web.Service.Service.ExamTts
                 .Append("|prov=").Append(_options.Provider)
                 .Append("|model=").Append(_options.OpenAiModel)
                 .Append("|spd=").Append(_options.Speed.ToString("F2"))
-                .Append('|');
-
-            for (var i = 0; i < questions.Count; i++)
-            {
-                var q = questions[i];
-                builder.Append(i + 1)
-                    .Append('|')
-                    .Append(q.SpeakLanguage)
-                    .Append('|')
-                    .Append(q.SpeakText.Trim())
-                    .Append(';');
-            }
+                .Append("|q=").Append(questionNumber)
+                .Append('|')
+                .Append(question.SpeakLanguage)
+                .Append('|')
+                .Append(question.SpeakText.Trim());
 
             return builder.ToString();
         }

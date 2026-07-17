@@ -80,6 +80,48 @@ namespace ERP.Web.Service.Service.ExamTts
             CancellationToken cancellationToken = default) =>
             File.WriteAllTextAsync(filePath + ".profile", segmentProfileKey, cancellationToken);
 
+        /// <summary>
+        /// 每題英聽完整音檔：{考卷名稱}_{題號}_{念出文字}.mp3
+        /// 例：Fun Skills Unit42-43 SP 01_01_afternoon.mp3
+        /// </summary>
+        public static string BuildPerQuestionFileName(string examTitle, int questionNumber, string speakText)
+        {
+            if (questionNumber < 1 || questionNumber > 99)
+                throw new ArgumentOutOfRangeException(nameof(questionNumber), "題號僅支援 1～99。");
+
+            var sanitizedTitle = SanitizeFileName(examTitle).Replace(".mp3", string.Empty, StringComparison.OrdinalIgnoreCase);
+            var wordSuffix = SanitizeSpeakTextSuffix(speakText);
+            return $"{sanitizedTitle}_{questionNumber:D2}_{wordSuffix}.mp3";
+        }
+
+        /// <summary>將 TTS 念出文字轉為檔名後綴（英文小寫、空白改底線）</summary>
+        public static string SanitizeSpeakTextSuffix(string speakText)
+        {
+            if (string.IsNullOrWhiteSpace(speakText))
+                return "word";
+
+            var trimmed = speakText.Trim();
+            var invalid = Path.GetInvalidFileNameChars();
+            var builder = new StringBuilder(trimmed.Length);
+
+            foreach (var c in trimmed)
+            {
+                if (Array.IndexOf(invalid, c) >= 0 || c == '.')
+                    builder.Append('_');
+                else if (char.IsWhiteSpace(c))
+                    builder.Append('_');
+                else
+                    builder.Append(char.ToLowerInvariant(c));
+            }
+
+            var result = builder.ToString().Trim('_');
+            if (string.IsNullOrWhiteSpace(result))
+                return "word";
+
+            // 避免檔名過長
+            return result.Length <= 40 ? result : result[..40].TrimEnd('_');
+        }
+
         /// <summary>整份考卷合併後的播放清單（與考卷 exam-title 一致的可讀檔名）</summary>
         public static string BuildPlaylistFileName(string displayName)
         {

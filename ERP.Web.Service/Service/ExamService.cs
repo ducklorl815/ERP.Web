@@ -241,7 +241,7 @@ namespace ERP.Web.Service.Service
             return result;
         }
 
-        /// <summary>英聽模式：產生整份考卷 MP3（片段可重用，節省 API）</summary>
+        /// <summary>英聽模式：產生每題獨立 MP3（片段可重用，節省 API）</summary>
         private async Task ApplyExamModeAsync(ExamDataViewModel_result result, string? examMode)
         {
             if (!string.Equals(examMode, "Listening", StringComparison.OrdinalIgnoreCase))
@@ -254,8 +254,6 @@ namespace ERP.Web.Service.Service
                 string.Equals(x.ListeningDirection, ExamListeningLanguageHelper.DirectionChinese, StringComparison.OrdinalIgnoreCase)) == true;
             result.ExamTypeLabel = hasEnglish && hasChinese ? "聽力" : hasChinese ? "中聽" : "英聽";
             result.TtsConfigured = _examTtsService.IsConfigured;
-            result.ExamListeningAudioDownloadName =
-                ExamTtsCacheHelper.BuildPlaylistFileName(result.ExamListeningDisplayName);
 
             if (result.VocabularyList == null || result.VocabularyList.Count == 0)
             {
@@ -276,6 +274,10 @@ namespace ERP.Web.Service.Service
                             : ExamListeningLanguageHelper.DirectionEnglish);
                 }
 
+                // 出卷清單若未帶 ExamAudio，先向 DB 查詢已快取路徑（複習考可重用）
+                if (string.IsNullOrWhiteSpace(word.ExamAudio) && word.WordID != Guid.Empty)
+                    word.ExamAudio = await _examRepo.GetExamAudioAsync(word.WordID);
+
                 word.AudioUrl = null;
                 word.TtsErrorMessage = null;
 
@@ -288,31 +290,44 @@ namespace ERP.Web.Service.Service
                 });
             }
 
-            var playlist = await _examListeningPlaylistService.BuildExamPlaylistAsync(
+            var tracksResult = await _examListeningPlaylistService.BuildExamQuestionTracksAsync(
                 questions,
-                result.ExamListeningDisplayName,
+                result.Title,
                 result.ExamDate,
                 result.ExamAttemptNumber);
 
-            // 將已更新的 ExamAudio 同步回考卷題目清單
-            foreach (var question in questions)
+            // 將已更新的 ExamAudio 與每題 AudioUrl 同步回考卷題目清單
+            foreach (var track in tracksResult.Tracks)
             {
-                if (question.WordId == Guid.Empty || string.IsNullOrWhiteSpace(question.ExamAudio))
-                    continue;
+                var question = questions.FirstOrDefault(q => q.WordId == track.WordId);
+                if (question != null && !string.IsNullOrWhiteSpace(question.ExamAudio))
+                {
+                    var word = result.VocabularyList.FirstOrDefault(w => w.WordID == question.WordId);
+                    if (word != null)
+                        word.ExamAudio = question.ExamAudio;
+                }
 
-                var word = result.VocabularyList.FirstOrDefault(w => w.WordID == question.WordId);
-                if (word != null)
-                    word.ExamAudio = question.ExamAudio;
+                var vocabulary = result.VocabularyList.FirstOrDefault(w => w.WordID == track.WordId);
+                if (vocabulary != null)
+                    vocabulary.AudioUrl = track.AudioUrl;
             }
 
-            if (playlist.Success && !string.IsNullOrEmpty(playlist.AudioUrl))
+            if (tracksResult.Success && tracksResult.Tracks.Count > 0)
             {
-                result.ExamListeningAudioUrl = playlist.AudioUrl;
+                result.ExamListeningTracks = tracksResult.Tracks
+                    .OrderBy(t => t.QuestionNumber)
+                    .Select(t => new ExamListeningTrackViewModel
+                    {
+                        QuestionNumber = t.QuestionNumber,
+                        AudioUrl = t.AudioUrl,
+                        DownloadName = t.DownloadName
+                    })
+                    .ToList();
             }
             else
             {
-                result.TtsNoticeMessage = playlist.ErrorMessage
-                    ?? "英聽完整音檔產生失敗，請檢查 TTS 設定。";
+                result.TtsNoticeMessage = tracksResult.ErrorMessage
+                    ?? "英聽音檔產生失敗，請檢查 TTS 設定。";
             }
 
             if (!result.TtsConfigured && string.IsNullOrEmpty(result.TtsNoticeMessage))

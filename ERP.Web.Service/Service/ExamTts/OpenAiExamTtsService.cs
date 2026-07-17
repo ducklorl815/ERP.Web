@@ -100,47 +100,62 @@ namespace ERP.Web.Service.Service.ExamTts
             var publicUrl = ExamTtsCacheHelper.CombineUrl(_options.PublicUrlPrefix, fileName);
             var segmentProfileKey = ExamTtsCacheHelper.BuildSegmentProfileKey(speakText, language, profile.Key);
 
-            // 1. DB 已記錄且檔案仍存在（且檔名符合目前播音內容；僅 seg_ 共用快取模式）
-            if (!useExamSegmentName
-                && !string.IsNullOrWhiteSpace(storedExamAudioPath)
-                && File.Exists(storedExamAudioPath)
-                && string.Equals(Path.GetFileName(storedExamAudioPath), fileName, StringComparison.OrdinalIgnoreCase))
+            // 0. 記憶體無路徑時，先從 DB 查 Vocabulary.ExamAudio
+            var dbExamAudioPath = storedExamAudioPath;
+            if (string.IsNullOrWhiteSpace(dbExamAudioPath) && wordId != Guid.Empty)
+                dbExamAudioPath = await _examRepo.GetExamAudioAsync(wordId);
+
+            // 1. 優先重用 DB 已記錄路徑（seq_ / seg_ 皆可，須 .profile 比對念法）
+            var fromDb = await ExamVocabularyAudioResolver.TryResolveStoredPathAsync(
+                dbExamAudioPath, segmentProfileKey, _options.PublicUrlPrefix, cancellationToken);
+            if (fromDb != null)
+                return fromDb;
+
+            // 2. 嘗試 seg_{hash} 共用快取（相同念法跨考卷，複習考可重用）
+            var fromSharedCache = await ExamVocabularyAudioResolver.TryResolveSharedSegmentCacheAsync(
+                _options.CacheDirectory,
+                _options.PublicUrlPrefix,
+                speakText,
+                language,
+                profile.Key,
+                cancellationToken);
+            if (fromSharedCache != null)
             {
-                var storedUrl = ExamTtsCacheHelper.CombineUrl(
-                    _options.PublicUrlPrefix,
-                    Path.GetFileName(storedExamAudioPath));
-                return ExamTtsResult.Ok(storedUrl, storedExamAudioPath);
+                await ExamVocabularyAudioPersistence.TrySaveAsync(
+                    _examRepo, _logger, wordId, dbExamAudioPath, fromSharedCache.PhysicalPath);
+                return fromSharedCache;
             }
 
-            // 2. 快取目錄已有相同片段（seq_ 需比對 .profile 內容）
-            if (useExamSegmentName)
-            {
-                if (await ExamTtsCacheHelper.IsSegmentCacheValidAsync(filePath, segmentProfileKey, cancellationToken))
-                    return ExamTtsResult.Ok(publicUrl, filePath);
-            }
-            else if (File.Exists(filePath))
+            // 3. 本次考卷 seq_ 檔名快取（同日期同次數同題號重出卷時重用）
+            if (useExamSegmentName
+                && await ExamTtsCacheHelper.IsSegmentCacheValidAsync(filePath, segmentProfileKey, cancellationToken))
             {
                 var cached = ExamTtsResult.Ok(publicUrl, filePath);
                 await ExamVocabularyAudioPersistence.TrySaveAsync(
-                    _examRepo, _logger, wordId, storedExamAudioPath, cached.PhysicalPath);
+                    _examRepo, _logger, wordId, dbExamAudioPath, cached.PhysicalPath);
                 return cached;
             }
 
-            // 3. 呼叫 OpenAI TTS 產生新片段
-            var created = await GetOrCreateCachedMp3Async(fileName, speakText, language, profile, cancellationToken);
-            if (created.Success)
+            // 4. 非 seq_ 模式：seg_ 檔名直接存在（向後相容）
+            if (!useExamSegmentName && File.Exists(filePath))
             {
-                if (useExamSegmentName)
-                {
-                    await ExamTtsCacheHelper.WriteSegmentProfileAsync(
-                        filePath, segmentProfileKey, cancellationToken);
-                }
-                else
-                {
-                    await ExamVocabularyAudioPersistence.TrySaveAsync(
-                        _examRepo, _logger, wordId, storedExamAudioPath, created.PhysicalPath);
-                }
+                var cached = ExamTtsResult.Ok(publicUrl, filePath);
+                await ExamVocabularyAudioPersistence.TrySaveAsync(
+                    _examRepo, _logger, wordId, dbExamAudioPath, cached.PhysicalPath);
+                return cached;
             }
+
+            // 5. 呼叫 TTS：新片段一律用 seg_{hash}，利於跨考卷／複習考重用
+            var createFileName = ExamTtsCacheHelper.BuildSegmentCacheFileName(speakText, language, profile.Key);
+            var created = await GetOrCreateCachedMp3Async(createFileName, speakText, language, profile, cancellationToken);
+            if (created.Success && !string.IsNullOrWhiteSpace(created.PhysicalPath))
+            {
+                await ExamTtsCacheHelper.WriteSegmentProfileAsync(
+                    created.PhysicalPath, segmentProfileKey, cancellationToken);
+                await ExamVocabularyAudioPersistence.TrySaveAsync(
+                    _examRepo, _logger, wordId, dbExamAudioPath, created.PhysicalPath);
+            }
+
             return created;
         }
 
