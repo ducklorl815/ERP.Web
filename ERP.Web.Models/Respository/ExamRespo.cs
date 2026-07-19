@@ -2,8 +2,8 @@
 using ERP.Web.Models.Models;
 using ERP.Web.Utility.Models;
 using ERP.Web.Utility.Paging;
-using Microsoft.Extensions.Options;
 using Microsoft.Data.SqlClient;
+using Microsoft.Extensions.Options;
 using System.Data;
 
 namespace ERP.Web.Models.Respository
@@ -238,17 +238,18 @@ WHERE (@OnlyWhenSame = 0)
                 return false;
             }
         }
-        public async Task<bool> chkSameWord(Vocabulary param)
+        public async Task<bool> chkSameWord(Vocabulary param, Guid LessionID)
         {
             var sqlparam = new DynamicParameters();
             sqlparam.Add("Question", param.Question);
             sqlparam.Add("Answer", param.Answer);
-
+            sqlparam.Add("LessionID", LessionID);
             var sql = @"
                         SELECT TOP 1 1 
                           FROM KidsWorld.dbo.Vocabulary
                           WHERE Question = @Question
                           AND Answer = @Answer
+                          AND LessionID = @LessionID                           
                         "
             ;
 

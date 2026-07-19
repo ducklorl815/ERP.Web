@@ -1,5 +1,4 @@
-﻿using Azure.Core;
-using ERP.Web.Models.Models;
+﻿using ERP.Web.Models.Models;
 using ERP.Web.Models.Respository;
 using ERP.Web.Service.Service.ExamTts;
 using ERP.Web.Service.ViewModels;
@@ -7,7 +6,6 @@ using ERP.Web.Utility.Paging;
 using Microsoft.AspNetCore.Http;
 using Microsoft.AspNetCore.Mvc.Rendering; // ASP.NET Core 的 SelectListItem
 using OfficeOpenXml;
-using System.Text;
 
 namespace ERP.Web.Service.Service
 {
@@ -872,7 +870,7 @@ namespace ERP.Web.Service.Service
                     if (LessionID == Guid.Empty)
                         return false;
                     // 檢查是否已有相同單字
-                    bool checkWord = await _examRepo.chkSameWord(vocab);
+                    bool checkWord = await _examRepo.chkSameWord(vocab, LessionID);
 
                     if (!checkWord)
                     {
