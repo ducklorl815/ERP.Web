@@ -938,7 +938,8 @@ WHERE (@OnlyWhenSame = 0)
                     @KidMainID AS KidID,
                     ISNULL(latest.LastCorrect, 0) AS Correct,
                     ISNULL(latest.LastReTest, 0) AS ReTest,
-                    ISNULL(examCnt.Cnt, 0) AS ExamTimes
+                    ISNULL(examCnt.Cnt, 0) AS ExamTimes,
+                    firstExam.FirstExamDate
                 FROM KidsWorld.dbo.Vocabulary w
                 INNER JOIN KidsWorld.dbo.Lession les ON les.ID = w.LessionID
                     AND les.Enabled = 1 AND les.Deleted = 0
@@ -969,6 +970,18 @@ WHERE (@OnlyWhenSame = 0)
                       AND kti.KidMainID = @KidMainID
                       AND LOWER(les_k.TestType) = LOWER(@TestType)
                 ) examCnt
+                OUTER APPLY (
+                    SELECT MIN(kti.TestDate) AS FirstExamDate
+                    FROM KidsWorld.dbo.KidExamWordIndex kwi
+                    INNER JOIN KidsWorld.dbo.KidTestIndex kti ON kti.ID = kwi.KidTestIndexID
+                        AND kti.Enabled = 1 AND kti.Deleted = 0
+                    INNER JOIN KidsWorld.dbo.Lession les_k ON les_k.ID = kti.LessionID
+                        AND les_k.Enabled = 1 AND les_k.Deleted = 0
+                    WHERE kwi.ExamID = w.ID
+                      AND kwi.Enabled = 1 AND kwi.Deleted = 0
+                      AND kti.KidMainID = @KidMainID
+                      AND LOWER(les_k.TestType) = LOWER(@TestType)
+                ) firstExam
                 WHERE LOWER(les.TestType) = LOWER(@TestType)
                   AND examCnt.Cnt > 0
                   AND ISNULL(latest.LastCorrect, 0) = 0

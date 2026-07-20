@@ -31,6 +31,11 @@
         /// </summary>
         public int ExamTimes { get; set; }
 
+        /// <summary>
+        /// 該學生在相同 TestType 下，此單字第一次被出題的時間，用於複習考優先排序。
+        /// </summary>
+        public DateTime? FirstExamDate { get; set; }
+
         #region 英聽（非資料庫欄位，出卷時由 TTS 服務填入）
 
         /// <summary>ExamMode=Listening 時，實際送 TTS 的文字（通常為 Question）</summary>

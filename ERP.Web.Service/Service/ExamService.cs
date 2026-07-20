@@ -710,12 +710,14 @@ namespace ERP.Web.Service.Service
         }
 
         /// <summary>
-        /// 複習考（答錯題）出題順序：ReTest 較少 → 前兩次考卷未出現 → 同序內亂數。
+        /// 複習考（答錯題）出題順序：被考次數較少優先 → 第一次出題時間較早優先；
+        /// 若仍同序，再把前兩次考卷未出現者往前排，最後同序內亂數打散。
         /// </summary>
         private static List<Vocabulary> OrderWrongExamPool(IEnumerable<Vocabulary> words, HashSet<Guid> recentExamWordIds)
         {
             return words
-                .OrderBy(x => x.ReTest)
+                .OrderBy(x => x.ExamTimes)
+                .ThenBy(x => x.FirstExamDate ?? DateTime.MaxValue)
                 .ThenBy(x => recentExamWordIds.Contains(x.WordID) ? 1 : 0)
                 .ThenBy(_ => Guid.NewGuid())
                 .ToList();
