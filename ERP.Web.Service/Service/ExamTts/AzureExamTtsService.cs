@@ -91,8 +91,9 @@ namespace ERP.Web.Service.Service.ExamTts
             var fileName = useExamSegmentName
                 ? segmentFileName!
                 : ExamTtsCacheHelper.BuildSegmentCacheFileName(speakText, language, profile.Key);
-            var filePath = ExamTtsCacheHelper.BuildPhysicalPath(_options.CacheDirectory, fileName);
-            var publicUrl = ExamTtsCacheHelper.CombineUrl(_options.PublicUrlPrefix, fileName);
+            ExamTtsCacheHelper.TryResolvePublicOrLegacyPath(
+                _options.CacheDirectory, fileName, out var filePath, out var relativePath);
+            var publicUrl = ExamTtsCacheHelper.CombineUrl(_options.PublicUrlPrefix, relativePath);
             var segmentProfileKey = ExamTtsCacheHelper.BuildSegmentProfileKey(speakText, language, profile.Key);
 
             var dbExamAudioPath = storedExamAudioPath;
@@ -100,7 +101,11 @@ namespace ERP.Web.Service.Service.ExamTts
                 dbExamAudioPath = await _examRepo.GetExamAudioAsync(wordId);
 
             var fromDb = await ExamVocabularyAudioResolver.TryResolveStoredPathAsync(
-                dbExamAudioPath, segmentProfileKey, _options.PublicUrlPrefix, cancellationToken);
+                dbExamAudioPath,
+                segmentProfileKey,
+                _options.PublicUrlPrefix,
+                _options.CacheDirectory,
+                cancellationToken);
             if (fromDb != null)
                 return fromDb;
 
@@ -161,10 +166,12 @@ namespace ERP.Web.Service.Service.ExamTts
             if (string.IsNullOrWhiteSpace(_options.CacheDirectory))
                 return ExamTtsResult.Fail("未設定 ExamTts:CacheDirectory。");
 
-            Directory.CreateDirectory(_options.CacheDirectory);
+            Directory.CreateDirectory(ExamTtsCacheHelper.GetPublicDirectory(_options.CacheDirectory));
 
-            var filePath = Path.Combine(_options.CacheDirectory, fileName);
-            var publicUrl = ExamTtsCacheHelper.CombineUrl(_options.PublicUrlPrefix, fileName);
+            // 共用片段寫入 Public/；若舊版根目錄已有同檔則直接重用
+            ExamTtsCacheHelper.TryResolvePublicOrLegacyPath(
+                _options.CacheDirectory, fileName, out var filePath, out var relativePath);
+            var publicUrl = ExamTtsCacheHelper.CombineUrl(_options.PublicUrlPrefix, relativePath);
 
             if (File.Exists(filePath))
                 return ExamTtsResult.Ok(publicUrl, filePath);
@@ -206,8 +213,14 @@ namespace ERP.Web.Service.Service.ExamTts
                 if (synthesis.AudioData == null || synthesis.AudioData.Length == 0)
                     return ExamTtsResult.Fail("語音合成未回傳音訊資料。");
 
-                await File.WriteAllBytesAsync(filePath, synthesis.AudioData, cancellationToken);
-                return ExamTtsResult.Ok(publicUrl, filePath);
+                // 新檔一律寫入 Public/
+                var writeRelative = ExamTtsCacheHelper.BuildPublicRelativePath(fileName);
+                var writePath = ExamTtsCacheHelper.BuildPhysicalPath(_options.CacheDirectory, writeRelative);
+                Directory.CreateDirectory(Path.GetDirectoryName(writePath)!);
+                await File.WriteAllBytesAsync(writePath, synthesis.AudioData, cancellationToken);
+                return ExamTtsResult.Ok(
+                    ExamTtsCacheHelper.CombineUrl(_options.PublicUrlPrefix, writeRelative),
+                    writePath);
             }
             catch (Exception ex)
             {

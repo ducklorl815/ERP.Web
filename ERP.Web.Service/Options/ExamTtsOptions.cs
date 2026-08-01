@@ -59,10 +59,13 @@ namespace ERP.Web.Service.Options
         /// <summary>每題結束（第二遍單字後）到下一題的靜音秒數</summary>
         public int PauseAfterQuestionBlockSeconds { get; set; } = 10;
 
-        /// <summary>MP3 實體快取目錄（建議 AppData/exam-audio，勿放 wwwroot 以免建置清除）</summary>
+        /// <summary>
+        /// MP3 實體快取目錄（建議 AppData/exam-audio，勿放 wwwroot 以免建置清除）。
+        /// 結構：Public/（共用片段）、{yyyyMMdd}_{title}/（每題完整音檔）。
+        /// </summary>
         public string CacheDirectory { get; set; } = "AppData/exam-audio";
 
-        /// <summary>對外 URL 前綴（對應 wwwroot 下的 CacheDirectory）</summary>
+        /// <summary>對外 URL 前綴（對應 CacheDirectory）</summary>
         public string PublicUrlPrefix { get; set; } = "/exam-audio";
     }
 }

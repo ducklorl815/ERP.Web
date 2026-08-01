@@ -12,6 +12,7 @@ namespace ERP.Web.Service.Service.ExamTts
             string? storedExamAudioPath,
             string segmentProfileKey,
             string publicUrlPrefix,
+            string cacheDirectory,
             CancellationToken cancellationToken = default)
         {
             if (string.IsNullOrWhiteSpace(storedExamAudioPath) || !File.Exists(storedExamAudioPath))
@@ -20,8 +21,10 @@ namespace ERP.Web.Service.Service.ExamTts
             if (await ExamTtsCacheHelper.IsSegmentCacheValidAsync(
                     storedExamAudioPath, segmentProfileKey, cancellationToken))
             {
+                var relative = ExamTtsCacheHelper.GetRelativePathUnderCache(
+                    storedExamAudioPath, cacheDirectory);
                 return ExamTtsResult.Ok(
-                    ExamTtsCacheHelper.CombineUrl(publicUrlPrefix, Path.GetFileName(storedExamAudioPath)),
+                    ExamTtsCacheHelper.CombineUrl(publicUrlPrefix, relative),
                     storedExamAudioPath);
             }
 
@@ -29,7 +32,7 @@ namespace ERP.Web.Service.Service.ExamTts
         }
 
         /// <summary>
-        /// 嘗試使用 seg_{hash}.mp3 共用快取（相同念法跨考卷共用，不依 seq_ 題號）。
+        /// 嘗試使用 Public/seg_{hash}.mp3 共用快取（相同念法跨考卷共用；相容舊版根目錄 seg_）。
         /// </summary>
         public static async Task<ExamTtsResult?> TryResolveSharedSegmentCacheAsync(
             string cacheDirectory,
@@ -40,8 +43,8 @@ namespace ERP.Web.Service.Service.ExamTts
             CancellationToken cancellationToken = default)
         {
             var fileName = ExamTtsCacheHelper.BuildSegmentCacheFileName(speakText, language, ttsProfileKey);
-            var filePath = ExamTtsCacheHelper.BuildPhysicalPath(cacheDirectory, fileName);
-            if (!File.Exists(filePath))
+            if (!ExamTtsCacheHelper.TryResolvePublicOrLegacyPath(
+                    cacheDirectory, fileName, out var filePath, out var relativePath))
                 return null;
 
             var segmentProfileKey = ExamTtsCacheHelper.BuildSegmentProfileKey(speakText, language, ttsProfileKey);
@@ -52,7 +55,7 @@ namespace ERP.Web.Service.Service.ExamTts
                 || await ExamTtsCacheHelper.IsSegmentCacheValidAsync(filePath, segmentProfileKey, cancellationToken))
             {
                 return ExamTtsResult.Ok(
-                    ExamTtsCacheHelper.CombineUrl(publicUrlPrefix, fileName),
+                    ExamTtsCacheHelper.CombineUrl(publicUrlPrefix, relativePath),
                     filePath);
             }
 

@@ -36,6 +36,8 @@ builder.Services.PostConfigure<ExamTtsOptions>(options =>
         options.PublicUrlPrefix = "/exam-audio";
 
     Directory.CreateDirectory(options.CacheDirectory);
+    // 題號播音、seg_ 單字片段等跨考卷共用檔
+    Directory.CreateDirectory(Path.Combine(options.CacheDirectory, "Public"));
 });
 
 builder.Services.AddHttpClient(nameof(OpenAiExamTtsService), client =>

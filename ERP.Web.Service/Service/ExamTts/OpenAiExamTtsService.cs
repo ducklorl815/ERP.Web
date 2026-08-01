@@ -96,8 +96,9 @@ namespace ERP.Web.Service.Service.ExamTts
             var fileName = useExamSegmentName
                 ? segmentFileName!
                 : ExamTtsCacheHelper.BuildSegmentCacheFileName(speakText, language, profile.Key);
-            var filePath = ExamTtsCacheHelper.BuildPhysicalPath(_options.CacheDirectory, fileName);
-            var publicUrl = ExamTtsCacheHelper.CombineUrl(_options.PublicUrlPrefix, fileName);
+            ExamTtsCacheHelper.TryResolvePublicOrLegacyPath(
+                _options.CacheDirectory, fileName, out var filePath, out var relativePath);
+            var publicUrl = ExamTtsCacheHelper.CombineUrl(_options.PublicUrlPrefix, relativePath);
             var segmentProfileKey = ExamTtsCacheHelper.BuildSegmentProfileKey(speakText, language, profile.Key);
 
             // 0. 記憶體無路徑時，先從 DB 查 Vocabulary.ExamAudio
@@ -107,11 +108,15 @@ namespace ERP.Web.Service.Service.ExamTts
 
             // 1. 優先重用 DB 已記錄路徑（seq_ / seg_ 皆可，須 .profile 比對念法）
             var fromDb = await ExamVocabularyAudioResolver.TryResolveStoredPathAsync(
-                dbExamAudioPath, segmentProfileKey, _options.PublicUrlPrefix, cancellationToken);
+                dbExamAudioPath,
+                segmentProfileKey,
+                _options.PublicUrlPrefix,
+                _options.CacheDirectory,
+                cancellationToken);
             if (fromDb != null)
                 return fromDb;
 
-            // 2. 嘗試 seg_{hash} 共用快取（相同念法跨考卷，複習考可重用）
+            // 2. 嘗試 Public/seg_{hash} 共用快取（相同念法跨考卷，複習考可重用）
             var fromSharedCache = await ExamVocabularyAudioResolver.TryResolveSharedSegmentCacheAsync(
                 _options.CacheDirectory,
                 _options.PublicUrlPrefix,
@@ -145,7 +150,7 @@ namespace ERP.Web.Service.Service.ExamTts
                 return cached;
             }
 
-            // 5. 呼叫 TTS：新片段一律用 seg_{hash}，利於跨考卷／複習考重用
+            // 5. 呼叫 TTS：新片段一律用 Public/seg_{hash}，利於跨考卷／複習考重用
             var createFileName = ExamTtsCacheHelper.BuildSegmentCacheFileName(speakText, language, profile.Key);
             var created = await GetOrCreateCachedMp3Async(createFileName, speakText, language, profile, cancellationToken);
             if (created.Success && !string.IsNullOrWhiteSpace(created.PhysicalPath))
@@ -172,10 +177,12 @@ namespace ERP.Web.Service.Service.ExamTts
             if (string.IsNullOrWhiteSpace(_options.CacheDirectory))
                 return ExamTtsResult.Fail("未設定 ExamTts:CacheDirectory。");
 
-            Directory.CreateDirectory(_options.CacheDirectory);
+            Directory.CreateDirectory(ExamTtsCacheHelper.GetPublicDirectory(_options.CacheDirectory));
 
-            var filePath = Path.Combine(_options.CacheDirectory, fileName);
-            var publicUrl = ExamTtsCacheHelper.CombineUrl(_options.PublicUrlPrefix, fileName);
+            // 共用片段寫入 Public/；若舊版根目錄已有同檔則直接重用
+            ExamTtsCacheHelper.TryResolvePublicOrLegacyPath(
+                _options.CacheDirectory, fileName, out var filePath, out var relativePath);
+            var publicUrl = ExamTtsCacheHelper.CombineUrl(_options.PublicUrlPrefix, relativePath);
 
             if (File.Exists(filePath))
                 return ExamTtsResult.Ok(publicUrl, filePath);
@@ -215,8 +222,14 @@ namespace ERP.Web.Service.Service.ExamTts
                 if (audioBytes.Length == 0)
                     return ExamTtsResult.Fail("OpenAI 語音合成未回傳音訊資料。");
 
-                await File.WriteAllBytesAsync(filePath, audioBytes, cancellationToken);
-                return ExamTtsResult.Ok(publicUrl, filePath);
+                // 新檔一律寫入 Public/
+                var writeRelative = ExamTtsCacheHelper.BuildPublicRelativePath(fileName);
+                var writePath = ExamTtsCacheHelper.BuildPhysicalPath(_options.CacheDirectory, writeRelative);
+                Directory.CreateDirectory(Path.GetDirectoryName(writePath)!);
+                await File.WriteAllBytesAsync(writePath, audioBytes, cancellationToken);
+                return ExamTtsResult.Ok(
+                    ExamTtsCacheHelper.CombineUrl(_options.PublicUrlPrefix, writeRelative),
+                    writePath);
             }
             catch (Exception ex)
             {

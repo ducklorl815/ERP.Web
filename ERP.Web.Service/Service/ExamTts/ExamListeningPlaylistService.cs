@@ -26,7 +26,7 @@ namespace ERP.Web.Service.Service.ExamTts
 
         /// <summary>
         /// 產生每題英聽音檔：第 N 題 → PauseAfterQuestionLabelSeconds → 單字 → PauseAfterWordSeconds → 單字 → PauseAfterQuestionBlockSeconds。
-        /// 檔名例：Fun Skills Unit42-43 SP 01_01_afternoon.mp3
+        /// 存放於 {日期_title}/01.mp3（播放用）＋ 01_jacket.mp3.profile（細節）；共用片段放 Public/。
         /// </summary>
         public async Task<ExamListeningTracksResult> BuildExamQuestionTracksAsync(
             IReadOnlyList<ExamListeningQuestionItem> questions,
@@ -42,6 +42,7 @@ namespace ERP.Web.Service.Service.ExamTts
                 return ExamListeningTracksResult.Fail("未設定 ExamTts:CacheDirectory。");
 
             Directory.CreateDirectory(_options.CacheDirectory);
+            Directory.CreateDirectory(ExamTtsCacheHelper.GetPublicDirectory(_options.CacheDirectory));
 
             if (!_examTtsService.IsConfigured)
             {
@@ -50,6 +51,11 @@ namespace ERP.Web.Service.Service.ExamTts
             }
 
             var title = string.IsNullOrWhiteSpace(examTitle) ? "exam-listening" : examTitle.Trim();
+            var folderDate = examDate ?? DateTime.Today;
+            var examFolderName = ExamTtsCacheHelper.BuildExamFolderName(folderDate, title);
+            var examFolderPath = Path.Combine(_options.CacheDirectory, examFolderName);
+            Directory.CreateDirectory(examFolderPath);
+
             var tracks = new List<ExamListeningTrackItem>();
 
             try
@@ -61,13 +67,15 @@ namespace ERP.Web.Service.Service.ExamTts
                     if (string.IsNullOrWhiteSpace(question.SpeakText))
                         return ExamListeningTracksResult.Fail($"第 {questionNumber} 題題目文字為空。");
 
-                    var trackFileName = ExamTtsCacheHelper.BuildPerQuestionFileName(
-                        title,
+                    // 播放檔僅題號（01.mp3）；單字細節寫在 01_jacket.mp3.profile
+                    var trackFileName = ExamTtsCacheHelper.BuildPerQuestionFileName(questionNumber);
+                    var trackProfileFileName = ExamTtsCacheHelper.BuildPerQuestionProfileFileName(
                         questionNumber,
                         question.SpeakText);
-                    var trackPath = Path.Combine(_options.CacheDirectory, trackFileName);
-                    var trackProfilePath = trackPath + ".profile";
-                    var trackUrl = ExamTtsCacheHelper.CombineUrl(_options.PublicUrlPrefix, trackFileName);
+                    var trackRelativePath = Path.Combine(examFolderName, trackFileName);
+                    var trackPath = Path.Combine(_options.CacheDirectory, trackRelativePath);
+                    var trackProfilePath = Path.Combine(examFolderPath, trackProfileFileName);
+                    var trackUrl = ExamTtsCacheHelper.CombineUrl(_options.PublicUrlPrefix, trackRelativePath);
                     var trackProfileKey = BuildQuestionTrackProfileKey(questionNumber, question);
 
                     // 快取命中：直接重用已產生的每題完整音檔
@@ -89,7 +97,7 @@ namespace ERP.Web.Service.Service.ExamTts
                         continue;
                     }
 
-                    // 題號：固定檔名 label_01.mp3、label_02.mp3…（跨考卷重用）
+                    // 題號：固定檔名 Public/label_01.mp3…（跨考卷重用）
                     var labelTts = await _examTtsService.GetOrCreateQuestionLabelMp3Async(
                         questionNumber,
                         cancellationToken);
@@ -103,7 +111,7 @@ namespace ERP.Web.Service.Service.ExamTts
                     if (labelPath == null || !File.Exists(labelPath))
                         return ExamListeningTracksResult.Fail($"第 {questionNumber} 題題號音檔不存在。");
 
-                    // 單字片段：仍用 seq_ 或 seg_ 快取，避免重複 TTS
+                    // 單字片段：仍用 seq_ 或 seg_ 快取（Public），避免重複 TTS
                     var segmentFileName = examDate.HasValue
                         ? ExamTtsCacheHelper.BuildExamSegmentFileName(examDate.Value, examAttemptNumber, questionNumber)
                         : null;
